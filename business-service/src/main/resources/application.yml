@@ -1,13 +1,13 @@
 spring:
-  application:
-    name: business-service
   profiles:
-    include: ai-service
+    active: ai-service
+  # MySQL 配置
+  datasource:
+    url: jdbc:mysql://localhost:3306/edu_ai
+    username: root
+    password: Gyx200722
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
-server:
-  port: 8080
-  servlet:
-    encoding: # 避免流式输出的乱码
-      charset: UTF-8
-      enabled: true
-      force: true
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
