@@ -1,0 +1,16 @@
+spring:
+  # Spring AI Alibaba Dashscope 配置
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY}
+      chat:
+        options:
+          model: qwen3.7-flash # 聊天模型
+          max-tokens: 8192
+          multi-model: true
+      embedding:
+        enabled: true
+        options:
+          model: qwen3.7-text-embedding # 嵌入模型
+
+
