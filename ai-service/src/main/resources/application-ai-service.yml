@@ -2,7 +2,7 @@ spring:
   # Spring AI Alibaba Dashscope 配置
   ai:
     dashscope:
-      api-key: sk-7a2c847e4e934b609322b28bb7f3a1a3
+      api-key: ${DASHSCOPE_API_KEY}
       chat:
         options:
           model: qwen3.7-flash # 聊天模型
