@@ -27,6 +27,22 @@
         <java.version>17</java.version>
     </properties>
     <dependencies>
+        <!--模块依赖-->
+
+        <dependency>
+            <groupId>com.superyoudi</groupId>
+            <artifactId>common</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.superyoudi</groupId>
+            <artifactId>courseware-service</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+
+
+        <!--      -->
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>

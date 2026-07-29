@@ -24,6 +24,8 @@
     <modules>
         <module>common</module>
         <module>business-service</module>
+        <module>courseware-service</module>
+        <module>ai-service</module>
     </modules>
     <scm>
         <connection/>
@@ -55,6 +57,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>annotationProcessor</scope>
         </dependency>
     </dependencies>
 

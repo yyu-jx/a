@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: business-service
+  profiles:
+    include: ai-service
+
+server:
+  port: 8080
+  servlet:
+    encoding: # 避免流式输出的乱码
+      charset: UTF-8
+      enabled: true
+      force: true
