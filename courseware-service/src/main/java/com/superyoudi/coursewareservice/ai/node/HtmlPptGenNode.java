@@ -121,7 +121,7 @@ public class HtmlPptGenNode implements NodeAction {
                 .interceptors()
                 .chatOptions(
                         DashScopeChatOptions.builder()
-                                .withMultiModel(true)
+                                .multiModel(true)
                                 .build()
                 )
                 .build();

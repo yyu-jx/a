@@ -1,7 +1,7 @@
 package com.superyoudi.businessservice.controller.student;
 
+import com.superyoudi.businessservice.pojo.entity.Result;
 import com.superyoudi.businessservice.pojo.entity.StudyOverview;
-import com.superyoudi.businessservice.result.Result;
 import com.superyoudi.businessservice.service.HomeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;

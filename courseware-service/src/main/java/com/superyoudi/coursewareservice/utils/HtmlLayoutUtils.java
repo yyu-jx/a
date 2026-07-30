@@ -7,6 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
+/**
+ * 这个工具类提供了Locator操作的便捷方法，以及元素布局检查方法。
+ */
 @Slf4j
 public class HtmlLayoutUtils {
 
@@ -42,6 +45,15 @@ public class HtmlLayoutUtils {
         return targetSlide;
     }
 
+    /**
+     * 检查元素布局。若布局没有问题，则不会输出任何东西。若布局有错误，相关信息会被转换成提示词。
+     *
+     * @param layoutPage   布局检查页面
+     * @param slideLocator 幻灯片元素
+     * @param parentName   父级元素名称
+     * @param locatorName  元素名称
+     * @param output       输出提示词
+     */
     public static void checkElementLayout(Page layoutPage, Locator slideLocator,
                                           String parentName, String locatorName, StringBuilder output) {
         layoutPage.evaluate("""

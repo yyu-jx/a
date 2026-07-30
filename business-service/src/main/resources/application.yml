@@ -1,12 +1,20 @@
 spring:
   profiles:
-    active: ai-service
+    include: ai-service,kdb-service
   # MySQL 配置
   datasource:
     url: jdbc:mysql://localhost:3306/edu_ai
     username: root
     password: Gyx200722
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+server:
+  servlet:
+    encoding: # 避免流式输出的乱码
+      charset: UTF-8
+      enabled: true
+      force: true
+  port: 8080
 
 mybatis:
   configuration:
