@@ -8,6 +8,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Mapper
 public interface StudentCourseProgressesMapper {
 
+
+    /**
+     * 获取学习概览
+     *
+     * @param userId 用户ID
+     * @return 学习概览
+     */
     @Select("SELECT\n" +
             "  COUNT(*) AS study_course_total,\n" +
             "  AVG(total_progress) AS avg_total_progress,\n" +
