@@ -1,0 +1,13 @@
+spring:
+  profiles:
+    active: ai-service
+  # MySQL 配置
+  datasource:
+    url: jdbc:mysql://localhost:3306/edu_ai
+    username: root
+    password: Gyx200722
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
