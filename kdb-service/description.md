@@ -10,6 +10,14 @@
 
 此模块依赖AI模块。
 
+
+检索所有数据库中数据的Cypher代码：
+```genericsql
+MATCH (n) 
+OPTIONAL MATCH (n)-[r]->(m) 
+RETURN n, r, m
+```
+
 ## 功能说明
 
 模块提供了知识图谱的数据抽取、构建与检索功能，提供了附加的检索增强生成功能。

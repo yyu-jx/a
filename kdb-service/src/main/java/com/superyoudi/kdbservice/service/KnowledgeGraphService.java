@@ -177,7 +177,7 @@ public class KnowledgeGraphService {
      * @param result         知识点抽取结果
      * @param sourceDocument 原始文本片段
      */
-    private void saveKnowledgePoints(KnowledgeExtractionResult result, Document sourceDocument) {
+    public void saveKnowledgePoints(KnowledgeExtractionResult result, Document sourceDocument) {
 
         // 未提取出任何知识点和关系
         if (result.getKnowledgePoints().isEmpty() || result.getKnowledgeRelations().isEmpty() || sourceDocument.getText() == null)
