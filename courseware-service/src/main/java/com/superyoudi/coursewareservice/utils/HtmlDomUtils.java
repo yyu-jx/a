@@ -5,6 +5,9 @@ import com.microsoft.playwright.Page;
 
 import java.util.Arrays;
 
+/**
+ * 这个工具类提供了操作Locator DOM元素的便捷方法。
+ */
 public class HtmlDomUtils {
 
     /**

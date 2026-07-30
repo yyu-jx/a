@@ -1,7 +1,7 @@
 package com.superyoudi.businessservice.controller.student;
 
-import com.superyoudi.businessservice.pojo.vo.StudyOverviewVO;
-import com.superyoudi.businessservice.result.Result;
+import com.superyoudi.businessservice.vo.StudyOverviewVO;
+import com.superyoudi.businessservice.entity.Result;
 import com.superyoudi.businessservice.service.HomeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,12 +1,10 @@
 package com.superyoudi.businessservice.service.impl;
 
 import com.superyoudi.businessservice.mapper.StudentCourseProgressesMapper;
-import com.superyoudi.businessservice.pojo.vo.StudyOverviewVO;
+import com.superyoudi.businessservice.vo.StudyOverviewVO;
 import com.superyoudi.businessservice.service.HomeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
 
 @Service
 public class HomeserviceImpl implements HomeService {

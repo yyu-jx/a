@@ -13,6 +13,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 /**
+ * 知识点的原始文本片段
+ *
  * @author Sijayyx
  * @date 2026/7/16
  */
@@ -24,7 +26,7 @@ public class KnowledgeTextFragmentNode {
 
     @Id
     private String id;
-    private String text; // text其实可以不用的，因为Document与它是一一对应的关系。但是为了调试的可视化，我将它保留下来。
+    private String text; // text其实可以不用的，因为Document与它是一一对应的关系。但是为了调试的可视化，将它保留下来。
 
     @Relationship(type = "CONTAINS", direction = Relationship.Direction.OUTGOING)
     private List<KnowledgePointNode> knowledgePointNodes;

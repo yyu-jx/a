@@ -1,9 +1,8 @@
 package com.superyoudi.businessservice.mapper;
 
-import com.superyoudi.businessservice.pojo.vo.StudyOverviewVO;
+import com.superyoudi.businessservice.vo.StudyOverviewVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
-import org.springframework.web.bind.annotation.GetMapping;
 
 @Mapper
 public interface StudentCourseProgressesMapper {

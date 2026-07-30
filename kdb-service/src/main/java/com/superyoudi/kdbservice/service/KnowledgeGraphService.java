@@ -118,6 +118,11 @@ public class KnowledgeGraphService {
 
     }
 
+    /**
+     * 抽取原始文本的知识点并构建知识图谱。原始文本会被存入向量数据库中。
+     *
+     * @param originalText
+     */
     public void extractKnowledgePoints(String originalText) {
         Document document = new Document(originalText);
 
@@ -150,6 +155,127 @@ public class KnowledgeGraphService {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    /**
+     * 此方法保存知识图谱中的知识点和关系，并对原始文本进行ETL。
+     * <p>
+     * 传入的原始文本会被进行一次粗粒度的分割以确保不会超出AI的上下文长度限制。每个分割出的Document会由AI抽取知识点。
+     * <p>
+     * 抽取知识点后，JSON数据被解析为KnowledgeExtractionResult并构建知识点及其关系。它和附加的原始文本被一并传入此方法。
+     * <p>
+     * 随后，KnowledgeExtractionResult中的知识点及关系被解析成Map并去重。关系引用的知识点必须存在。知识点会先批量存入Neo4j以构建ID，随后它再次被检索出来，用来构建知识点间关系。
+     * <p>
+     * 知识点的关系和知识点本身同样会被去重。知识点关系由KnowledgePointRelation表示，它由源知识点指向目标，包含关系类型和目标知识点。
+     * <p>
+     * 关系会暂时存入源知识点的关系列表中。随后知识点列表被用来构建KnowledgeTextFragmentNode。它包含了原始文本及其抽取出的知识点关系。
+     * <p>
+     * 在KnowledgeTextFragmentNode存放完毕后，sourceDocument会被拆分成更细粒度的Documents。其指向的KnowledgeTextFragmentNode的ID会被添加进元数据中。
+     * <p>
+     * 最后，KnowledgeTextFragmentNode和细粒度的Documents会被存入数据库。在执行检索增强生成时，Documents会首先检索出来，随后可根据KnowledgeTextFragmentNode的ID反查出知识点关系网。
+     *
+     * @param result         知识点抽取结果
+     * @param sourceDocument 原始文本片段
+     */
+    private void saveKnowledgePoints(KnowledgeExtractionResult result, Document sourceDocument) {
+
+        // 未提取出任何知识点和关系
+        if (result.getKnowledgePoints().isEmpty() || result.getKnowledgeRelations().isEmpty() || sourceDocument.getText() == null)
+            return;
+
+        // name, description
+        // name, knowledgePoint
+        Map<String, KnowledgeExtractionResult.KnowledgePointItem> knowledgePointMap = new HashMap<>();
+
+        // <sourceName, targetName>, relationType
+        Map<Pair<String, String>, String> knowledgeRelationMap = new HashMap<>();
+
+        // 过滤&去重 节点和关系
+        for (KnowledgeExtractionResult.KnowledgePointItem item : result.getKnowledgePoints()) {
+            if (!knowledgePointMap.containsKey(item.getName()))
+                knowledgePointMap.put(item.getName(), item);
+        }
+
+        for (KnowledgeExtractionResult.KnowledgeRelationItem item : result.getKnowledgeRelations()) {
+            Pair<String, String> nodes = Pair.of(item.getSourceKnowledgePoint(), item.getTargetKnowledgePoint());
+            if (!knowledgeRelationMap.containsKey(nodes)) {
+                knowledgeRelationMap.put(nodes, item.getRelation());
+            }
+        }
+
+        log.info("知识点数量: {}", knowledgePointMap.size());
+
+
+        List<KnowledgePointNode> knowledgePoints = new ArrayList<>();
+        for (String name : knowledgePointMap.keySet()) {
+            KnowledgeExtractionResult.KnowledgePointItem item = knowledgePointMap.get(name);
+            KnowledgePointNode kp = new KnowledgePointNode(name, item.getDescription());
+            knowledgePoints.add(kp);
+        }
+
+        // 批量保存知识点
+        knowledgePointRepository.saveAll(knowledgePoints);
+
+        // 建立关系
+        // 重新加载所有知识点-
+        Iterable<KnowledgePointNode> allPoints = knowledgePointRepository.findAllById(knowledgePointMap.keySet());
+        Map<String, KnowledgePointNode> pointMap = new HashMap<>();
+        allPoints.forEach(kp -> pointMap.put(kp.getName(), kp));
+
+        // 遍历关系 Map，建立节点间关系
+        for (Map.Entry<Pair<String, String>, String> entry : knowledgeRelationMap.entrySet()) {
+            String sourceName = entry.getKey().getFirst();
+            String targetName = entry.getKey().getSecond();
+            String relationType = entry.getValue();
+
+            KnowledgePointNode source = pointMap.get(sourceName);
+            KnowledgePointNode target = pointMap.get(targetName);
+
+            if (source == null || target == null) {
+                log.warn("知识点不存在，跳过关系: {} -> {} ({})", sourceName, targetName, relationType);
+                continue;
+            }
+
+            // 检查关系是否已存在
+            boolean relationExists = source.getRelatedToKnowledgePoints().stream()
+                    .anyMatch(r ->
+                            r.getTargetNode().getName().equals(targetName)
+                                    && r.getRelationType().equals(relationType));
+
+            if (!relationExists) {
+                // 创建关系实体，添加到源节点的关系列表中
+                KnowledgePointRelation relation = new KnowledgePointRelation(target, relationType);
+                relation.setRelationId(sourceName, targetName);
+                source.getRelatedToKnowledgePoints().add(relation);
+            }
+        }
+
+        // 建立关系完成的知识点节点集合
+        Collection<KnowledgePointNode> knowledgePointNodes = pointMap.values();
+
+        // 初始化 KnowledgeTextFragmentNode
+        KnowledgeTextFragmentNode knowledgeTextFragmentNode = new KnowledgeTextFragmentNode(sourceDocument.getText());
+        knowledgeTextFragmentNode.setKnowledgePointNodes(knowledgePointNodes.stream().toList());
+
+        // 批量保存所有更新过的源节点并创建关系
+        knowledgePointRepository.saveAll(knowledgePointNodes);
+        KnowledgeTextFragmentNode savedTextFragment = knowledgeTextFragmentRepository.save(knowledgeTextFragmentNode);
+
+        // 为父文档添加对应的文本块的元数据
+        sourceDocument.getMetadata().put("fragment_id", savedTextFragment.getId());
+
+        // 再次拆分成更细粒度的 Documents
+        TextSplitter sentenceSplitter = TokenTextSplitter.builder().withChunkSize(512).build();
+        List<Document> splittedDocs = sentenceSplitter.split(sourceDocument).stream().filter(
+                doc -> {
+                    // 过滤拆分出的空文本
+                    return doc.getText() != null || doc.getText().isBlank();
+                }).toList();
+
+        log.info("文档拆分数量: {}", splittedDocs.size());
+
+        // 向量化并存储, 可以通过documents继承的fragment_id反查KnowledgeTextFragmentNode
+        vectorStore.add(splittedDocs);
     }
 
     /**
@@ -257,107 +383,6 @@ public class KnowledgeGraphService {
         prompt.append("---\n");
 
         return prompt.toString();
-    }
-
-    public void saveKnowledgePoints(KnowledgeExtractionResult result, Document sourceDocument) {
-
-        // 未提取出任何知识点和关系
-        if (result.getKnowledgePoints().isEmpty() || result.getKnowledgeRelations().isEmpty() || sourceDocument.getText() == null)
-            return;
-
-        // name, description
-        // name, knowledgePoint
-        Map<String, KnowledgeExtractionResult.KnowledgePointItem> knowledgePointMap = new HashMap<>();
-
-        // <sourceName, targetName>, relationType
-        Map<Pair<String, String>, String> knowledgeRelationMap = new HashMap<>();
-
-        // 过滤&去重 节点和关系
-        for (KnowledgeExtractionResult.KnowledgePointItem item : result.getKnowledgePoints()) {
-            if (!knowledgePointMap.containsKey(item.getName()))
-                knowledgePointMap.put(item.getName(), item);
-        }
-
-        for (KnowledgeExtractionResult.KnowledgeRelationItem item : result.getKnowledgeRelations()) {
-            Pair<String, String> nodes = Pair.of(item.getSourceKnowledgePoint(), item.getTargetKnowledgePoint());
-            if (!knowledgeRelationMap.containsKey(nodes)) {
-                knowledgeRelationMap.put(nodes, item.getRelation());
-            }
-        }
-
-        log.info("知识点数量: {}", knowledgePointMap.size());
-
-
-        List<KnowledgePointNode> knowledgePoints = new ArrayList<>();
-        for (String name : knowledgePointMap.keySet()) {
-            KnowledgeExtractionResult.KnowledgePointItem item = knowledgePointMap.get(name);
-            KnowledgePointNode kp = new KnowledgePointNode(name, item.getDescription());
-            knowledgePoints.add(kp);
-        }
-
-        // 批量保存知识点
-        knowledgePointRepository.saveAll(knowledgePoints);
-
-        // 建立关系
-        // 重新加载所有知识点
-        Iterable<KnowledgePointNode> allPoints = knowledgePointRepository.findAllById(knowledgePointMap.keySet());
-        Map<String, KnowledgePointNode> pointMap = new HashMap<>();
-        allPoints.forEach(kp -> pointMap.put(kp.getName(), kp));
-
-        // 遍历关系 Map，建立节点间关系
-        for (Map.Entry<Pair<String, String>, String> entry : knowledgeRelationMap.entrySet()) {
-            String sourceName = entry.getKey().getFirst();
-            String targetName = entry.getKey().getSecond();
-            String relationType = entry.getValue();
-
-            KnowledgePointNode source = pointMap.get(sourceName);
-            KnowledgePointNode target = pointMap.get(targetName);
-
-            if (source == null || target == null) {
-                log.warn("知识点不存在，跳过关系: {} -> {} ({})", sourceName, targetName, relationType);
-                continue;
-            }
-
-            // 检查关系是否已存在
-            boolean relationExists = source.getRelatedToKnowledgePoints().stream()
-                    .anyMatch(r ->
-                            r.getTargetNode().getName().equals(targetName)
-                                    && r.getRelationType().equals(relationType));
-
-            if (!relationExists) {
-                // 创建关系实体，添加到源节点的关系列表中
-                KnowledgePointRelation relation = new KnowledgePointRelation(target, relationType);
-                relation.setRelationId(sourceName, targetName);
-                source.getRelatedToKnowledgePoints().add(relation);
-            }
-        }
-
-        // 建立关系完成的知识点节点集合
-        Collection<KnowledgePointNode> knowledgePointNodes = pointMap.values();
-
-        // 初始化 KnowledgeTextFragmentNode
-        KnowledgeTextFragmentNode knowledgeTextFragmentNode = new KnowledgeTextFragmentNode(sourceDocument.getText());
-        knowledgeTextFragmentNode.setKnowledgePointNodes(knowledgePointNodes.stream().toList());
-
-        // 批量保存所有更新过的源节点并创建关系
-        knowledgePointRepository.saveAll(knowledgePointNodes);
-        KnowledgeTextFragmentNode savedTextFragment = knowledgeTextFragmentRepository.save(knowledgeTextFragmentNode);
-
-        // 为父文档添加对应的文本块的元数据
-        sourceDocument.getMetadata().put("fragment_id", savedTextFragment.getId());
-
-        // 再次拆分成更细粒度的 Documents
-        TextSplitter sentenceSplitter = TokenTextSplitter.builder().withChunkSize(512).build();
-        List<Document> splittedDocs = sentenceSplitter.split(sourceDocument).stream().filter(
-                doc -> {
-                    // 过滤拆分出的空文本
-                    return doc.getText() != null || doc.getText().isBlank();
-                }).toList();
-
-        log.info("文档拆分数量: {}", splittedDocs.size());
-
-        // 向量化并存储, 可以通过documents继承的fragment_id反查KnowledgeTextFragmentNode
-        vectorStore.add(splittedDocs);
     }
 
     /**

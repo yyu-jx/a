@@ -8,7 +8,6 @@ spring:
     password: Gyx200722
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-
 server:
   servlet:
     encoding: # 避免流式输出的乱码

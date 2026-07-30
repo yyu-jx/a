@@ -1,4 +1,4 @@
-package com.superyoudi.businessservice.result;
+package com.superyoudi.businessservice.entity;
 
 import lombok.Data;
 

@@ -1,4 +1,4 @@
-package com.superyoudi.businessservice.pojo.vo;
+package com.superyoudi.businessservice.vo;
 
 import lombok.Data;
 

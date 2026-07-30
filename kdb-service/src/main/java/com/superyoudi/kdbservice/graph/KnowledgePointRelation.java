@@ -9,6 +9,8 @@ import org.springframework.data.neo4j.core.schema.RelationshipProperties;
 import org.springframework.data.neo4j.core.schema.TargetNode;
 
 /**
+ * 知识点关系节点。以手动构造的ID为唯一标识。
+ *
  * @author Sijayyx
  */
 @Data
@@ -18,7 +20,7 @@ import org.springframework.data.neo4j.core.schema.TargetNode;
 @EqualsAndHashCode(exclude = {"targetNode"})
 public class KnowledgePointRelation {
     @RelationshipId
-    private String id;
+    private String id; // 数据库内部ID
 
     private String relationId;
 
@@ -35,6 +37,7 @@ public class KnowledgePointRelation {
     /// | `RELATED_TO` | 一般关联关系 | 无向 | `(量子力学)-\\\[:RELATED_TO\\\]-\\\>(相对论)` |
     private String relationType;
 
+    /// 目标节点
     @TargetNode
     private KnowledgePointNode targetNode;
 
@@ -43,6 +46,12 @@ public class KnowledgePointRelation {
         this.relationType = relationType;
     }
 
+    /**
+     * 构造 ID
+     *
+     * @param source 源节点
+     * @param target 目标节点
+     */
     public void setRelationId(String source, String target) {
         this.relationId = source + "_" + relationType + "_" + target;
     }
