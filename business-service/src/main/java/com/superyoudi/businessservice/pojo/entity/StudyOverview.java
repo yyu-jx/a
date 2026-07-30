@@ -1,9 +1,9 @@
-package com.superyoudi.businessservice.pojo.vo;
+package com.superyoudi.businessservice.pojo.entity;
 
 import lombok.Data;
 
 @Data
-public class StudyOverviewVO {
+public class StudyOverview {
     /**
      * 学习课程总数
      */

@@ -1,6 +1,6 @@
 package com.superyoudi.businessservice.service;
 
-import com.superyoudi.businessservice.pojo.vo.StudyOverviewVO;
+import com.superyoudi.businessservice.pojo.entity.StudyOverview;
 
 public interface HomeService {
     /**
@@ -9,5 +9,5 @@ public interface HomeService {
      * @param userId 用户ID
      * @return 学习概览
      */
-    StudyOverviewVO getStudyOverview(Integer userId);
+    StudyOverview getStudyOverview(Integer userId);
 }

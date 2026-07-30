@@ -1,8 +1,7 @@
 package com.superyoudi.businessservice;
 
-import com.superyoudi.businessservice.mapper.StudentCourseProgressesMapper;
-import com.superyoudi.businessservice.pojo.vo.StudyOverviewVO;
-import com.superyoudi.businessservice.service.HomeService;
+import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
+import com.superyoudi.businessservice.pojo.entity.StudyOverview;
 import com.superyoudi.businessservice.service.impl.HomeserviceImpl;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -18,7 +17,7 @@ import static org.mockito.Mockito.when;
 public class HomeServiceTest {
 
     @Mock
-    private StudentCourseProgressesMapper studentCourseProgressesMapper;
+    private StudentCourseProgressMapper studentCourseProgressesMapper;
 
     @InjectMocks
     private HomeserviceImpl homeServiceImpl;
@@ -29,7 +28,7 @@ public class HomeServiceTest {
     @Test
     void getStudyOverview_HasData() {
         // 模拟mapper返回数据
-        StudyOverviewVO mockData = new StudyOverviewVO();
+        StudyOverview mockData = new StudyOverview();
         mockData.setStudyCourseTotal(3);
         mockData.setAvgTotalProgress(46.50);
         mockData.setAvgInteractionCount(32);
@@ -40,7 +39,7 @@ public class HomeServiceTest {
         when(studentCourseProgressesMapper.getAvgProgresses(any(Integer.class))).thenReturn(mockData);
 
         //执行真实HomeService里面业务方法
-        StudyOverviewVO result = homeServiceImpl.getStudyOverview(4);
+        StudyOverview result = homeServiceImpl.getStudyOverview(4);
 
         Assertions.assertNotNull(result);
         Assertions.assertEquals(3, result.getStudyCourseTotal());
@@ -57,7 +56,7 @@ public class HomeServiceTest {
     @Test
     void getStudyOverview_NoData() {
 
-        StudyOverviewVO mockData = new StudyOverviewVO();
+        StudyOverview mockData = new StudyOverview();
         mockData.setStudyCourseTotal(0);
         mockData.setAvgTotalProgress(null);
         mockData.setAvgInteractionCount(null);
@@ -67,7 +66,7 @@ public class HomeServiceTest {
 
         when(studentCourseProgressesMapper.getAvgProgresses(any(Integer.class))).thenReturn(mockData);
 
-        StudyOverviewVO result = homeServiceImpl.getStudyOverview(10);
+        StudyOverview result = homeServiceImpl.getStudyOverview(10);
 
         Assertions.assertNotNull(result);
         Assertions.assertEquals(0, result.getStudyCourseTotal());
