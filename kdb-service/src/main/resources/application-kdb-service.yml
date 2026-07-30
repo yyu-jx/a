@@ -1,6 +1,4 @@
 spring:
-  profiles:
-    include: ai-service
   neo4j:
     uri: bolt://localhost:7687
     authentication:

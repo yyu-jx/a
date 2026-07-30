@@ -1,20 +1,29 @@
 package com.superyoudi.businessservice.service.impl;
 
-import com.superyoudi.businessservice.mapper.StudentCourseProgressesMapper;
-import com.superyoudi.businessservice.vo.StudyOverviewVO;
+import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
+import com.superyoudi.businessservice.pojo.entity.StudyOverview;
 import com.superyoudi.businessservice.service.HomeService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class HomeserviceImpl implements HomeService {
 
-    @Autowired
-    private StudentCourseProgressesMapper studentCourseProgressesMapper;
 
+    private final StudentCourseProgressMapper studentCourseProgressesMapper;
+
+    /**
+     * 获取学习概览
+     *
+     * @param userId 用户ID
+     * @return 学习概览
+     */
     @Override
-    public StudyOverviewVO getStudyOverview(Integer userId){
-        StudyOverviewVO vo=studentCourseProgressesMapper.getAvgProgresses(userId);
+    public StudyOverview getStudyOverview(Integer userId){
+        //拿到学习概览数据
+        StudyOverview vo=studentCourseProgressesMapper.getAvgProgresses(userId);
+        //如果课程总数为0，则吧其他数据设置为0
         if(vo.getStudyCourseTotal()==0){
             vo.setStudyCourseTotal(0);
             vo.setAvgTotalProgress(0.0);

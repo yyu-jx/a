@@ -7,8 +7,7 @@ import org.springframework.data.neo4j.repository.config.EnableNeo4jRepositories;
 /**
  * @author Sijayyx
  */
-@SpringBootApplication(scanBasePackages = {"com.superyoudi"})
-@EnableNeo4jRepositories(basePackages = {"com.superyoudi.kdbservice.repository"})
+@SpringBootApplication
 class KdbServiceApplication {
 
     public static void main(String[] args) {
