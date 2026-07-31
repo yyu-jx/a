@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
  * 对应数据库 learning_paths 学习路径表
  */
 @Data
-public class LearningPath {
+public class LearningPaths {
 
     /**
      * 主键id
