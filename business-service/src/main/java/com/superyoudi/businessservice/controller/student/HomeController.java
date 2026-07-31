@@ -2,6 +2,7 @@ package com.superyoudi.businessservice.controller.student;
 
 import com.superyoudi.common.entity.Result;
 import com.superyoudi.businessservice.pojo.entity.StudyOverview;
+import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
 import com.superyoudi.businessservice.service.HomeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +27,12 @@ public class HomeController {
     public Result<StudyOverview> studyOverview(Integer userId) {
         StudyOverview studyOverviewVO=homeService.getStudyOverview(userId);
         return Result.success(studyOverviewVO);
+    }
+
+    @GetMapping("/latest")
+    public Result<LastStudyRecordVO> getLatestStudyRecord(Integer userId) {
+        LastStudyRecordVO vo = homeService.getLatestStudyRecord(userId);
+        return Result.success(vo);
     }
 
 }

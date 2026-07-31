@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.neo4j.repository.config.EnableNeo4jRepositories;
 
 @Slf4j
-@SpringBootApplication(scanBasePackages = {"com.superyoudi"})
+@SpringBootApplication(scanBasePackages = "com.superyoudi.*")
 @EnableNeo4jRepositories(basePackages = {"com.superyoudi.kdbservice.repository"})
 public class EduAiPlatformApplication {
 

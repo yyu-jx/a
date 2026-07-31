@@ -1,0 +1,108 @@
+package com.superyoudi.businessservice.service.impl;
+
+import com.superyoudi.businessservice.mapper.CoursesMapper;
+import com.superyoudi.businessservice.mapper.LearningPathNodesMapper;
+import com.superyoudi.businessservice.mapper.LearningPathsMapper;
+import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
+
+import com.superyoudi.businessservice.pojo.entity.LearningPaths;
+import com.superyoudi.businessservice.pojo.entity.StudyOverview;
+import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
+import com.superyoudi.businessservice.service.HomeService;
+import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
+import com.superyoudi.kdbservice.service.KnowledgeHomeService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class HomeServiceImpl implements HomeService {
+
+
+    private final StudentCourseProgressMapper studentCourseProgressesMapper;
+    private final LearningPathsMapper learningPathsMapper;
+    private final LearningPathNodesMapper learningPathNodesMapper;
+    private final KnowledgeHomeService knowledgeHomeService;
+    private final CoursesMapper coursesMapper;
+
+    /**
+     * 获取最近一次学习记录
+     *
+     * @param userId 用户ID
+     * @return 最近一次学习记录
+     */
+    @Override
+    public LastStudyRecordVO getLatestStudyRecord(Integer userId) {
+        // ========== 步骤1：查询学生【最新的学习路径】按updated_at倒序取第一条 ==========
+        LearningPaths latestPath = learningPathsMapper.selectLatestPathByStudentId(userId);
+        if (latestPath == null) {
+            // 无学习记录，可以返回null或者抛业务异常，前端展示「暂无学习记录」
+            return null;
+        }
+        Long pathId = latestPath.getId();
+        Long courseId = latestPath.getCourseId();
+
+        // ========== 步骤2：查询当前知识点ID ==========
+        // 优先查询 status = proceeding 进行中的节点
+        String currentKnowledgeId = learningPathNodesMapper.selectProceedingKnowledgeId(pathId);
+        // 如果没有进行中的节点 → 取更新时间最新的节点
+        if (currentKnowledgeId == null) {
+            currentKnowledgeId = learningPathNodesMapper.selectLatestUpdateKnowledgeId(pathId);
+        }
+
+        // ========== 步骤3：剩余未完成节点数量统计 status != completed ==========
+        Integer remainingUntestedCount = learningPathNodesMapper.countUntestedNode(pathId);
+
+        // ========== 步骤4：远程调用kdb-service 查询Neo4j知识点名称 ==========
+        String knowledgeTitle = null;
+        if (currentKnowledgeId != null) {
+            try {
+                List<KnowledgePointDTO> dtoList = knowledgeHomeService.batchGetKnowledge(List.of(currentKnowledgeId));
+                if (!dtoList.isEmpty()) {
+                    knowledgeTitle = dtoList.get(0).getKnowledgeTitle();
+                }
+            } catch (Exception e) {
+            }
+        }
+        // ========== 步骤5：查询课程名称 ==========
+        String courseName=coursesMapper.getNameById(courseId);
+
+        // ========== 步骤6：组装VO返回 ==========
+        LastStudyRecordVO vo = new LastStudyRecordVO();
+        vo.setPathId(pathId);
+        vo.setCourseId(courseId);
+        vo.setCourseName(courseName);
+        vo.setCurrentKnowledgeId(currentKnowledgeId);
+        vo.setCurrentKnowledgeTitle(knowledgeTitle);
+        vo.setRemainingUntestedCount(remainingUntestedCount);
+        vo.setLastStudyTime(latestPath.getUpdatedAt().toString());
+        return vo;
+    }
+
+    /**
+     * 获取学习概览
+     *
+     * @param userId 用户ID
+     * @return 学习概览
+     */
+    @Override
+    public StudyOverview getStudyOverview(Integer userId){
+        //拿到学习概览数据
+        StudyOverview vo=studentCourseProgressesMapper.getAvgProgresses(userId);
+        //如果课程总数为0，则吧其他数据设置为0
+        if(vo.getStudyCourseTotal()==0){
+            vo.setStudyCourseTotal(0);
+            vo.setAvgTotalProgress(0.0);
+            vo.setAvgInteractionCount(0);
+            vo.setAvgTaskScore(0.0);
+            vo.setAvgKnowledgeCoverRate(0.0);
+            vo.setAvgTaskCompletionRate(0.0);
+            return vo;
+        }else {
+            return vo;
+        }
+    }
+
+}
