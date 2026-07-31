@@ -13,6 +13,11 @@
     <dependencies>
         <dependency>
             <groupId>com.superyoudi</groupId>
+            <artifactId>common</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.superyoudi</groupId>
             <artifactId>ai-service</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>

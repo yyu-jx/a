@@ -11,6 +11,11 @@
 
     <artifactId>ai-service</artifactId>
     <dependencies>
+        <dependency>
+            <groupId>com.superyoudi</groupId>
+            <artifactId>common</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
         <!-- WebSocket -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

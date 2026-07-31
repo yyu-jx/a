@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Deprecated
 public class PptStatusMessage {
     private String status; // start | generating | editing | done
     private Integer slideId; // [0, n], 非生成/修改时标记为-1, start时为总页数

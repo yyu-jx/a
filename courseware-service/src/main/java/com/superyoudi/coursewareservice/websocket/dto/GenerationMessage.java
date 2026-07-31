@@ -12,8 +12,10 @@ import java.util.Map;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Deprecated
 public class GenerationMessage {
     private Integer userId;
+    private Integer coursewareId;
     private String type; // message | ppt | word | file_info | error
     private Object data;
 
@@ -24,8 +26,8 @@ public class GenerationMessage {
      * @param msg    消息
      * @return 通用消息
      */
-    public static GenerationMessage ofMessage(Integer userId, String msg) {
-        return new GenerationMessage(userId, "general", msg);
+    public static GenerationMessage ofMessage(Integer userId, Integer coursewareId, String msg) {
+        return new GenerationMessage(userId, coursewareId, "general", msg);
     }
 
     /**
@@ -35,8 +37,8 @@ public class GenerationMessage {
      * @param data   PPT数据
      * @return PPT消息
      */
-    public static GenerationMessage ofPpt(Integer userId, PptStatusMessage data) {
-        return new GenerationMessage(userId, "ppt", data);
+    public static GenerationMessage ofPpt(Integer userId, Integer coursewareId, PptStatusMessage data) {
+        return new GenerationMessage(userId, coursewareId, "ppt", data);
     }
 
     /**
@@ -47,8 +49,8 @@ public class GenerationMessage {
      * @return Word消息
      */
     @Deprecated
-    public static GenerationMessage ofWord(Integer userId, Object data) {
-        return new GenerationMessage(userId, "word", data);
+    public static GenerationMessage ofWord(Integer userId, Integer coursewareId, Object data) {
+        return new GenerationMessage(userId, coursewareId, "word", data);
     }
 
     /**
@@ -58,8 +60,8 @@ public class GenerationMessage {
      * @param data   文件信息
      * @return 文件信息消息
      */
-    public static GenerationMessage ofFileInfo(Integer userId, Map<String, String> data) {
-        return new GenerationMessage(userId, "file_info", data);
+    public static GenerationMessage ofFileInfo(Integer userId, Integer coursewareId, Map<String, String> data) {
+        return new GenerationMessage(userId, coursewareId, "file_info", data);
     }
 
     /**
@@ -70,7 +72,7 @@ public class GenerationMessage {
      * @return 错误消息
      */
     @Deprecated
-    public static GenerationMessage ofError(Integer userId, Object data) {
-        return new GenerationMessage(userId, "error", data);
+    public static GenerationMessage ofError(Integer userId, Integer coursewareId, Object data) {
+        return new GenerationMessage(userId, coursewareId, "error", data);
     }
 }

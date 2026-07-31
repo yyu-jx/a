@@ -143,10 +143,11 @@ public class GraphConfig {
         var pptOutlineGenNode = AsyncNodeAction.node_async(new PptOutlineGenNode(chatModel));
         var pptHitlNode = new HumanFeedbackNode();
 
-        var pptGenerationNode = AsyncNodeAction.node_async(new HtmlPptGenNode(chatModel,
-                new HtmlPptTools(playwrightManager.createPage(), playwrightManager.createPage(), coursewareGenerationService)));
-        var wordGenerationNode = AsyncNodeAction.node_async(new HtmlWordGenNode(chatModel,
-                new HtmlWordTools(playwrightManager.createPage())));
+        HtmlPptTools htmlPptTools = new HtmlPptTools(playwrightManager.createPage(), playwrightManager.createPage(), coursewareGenerationService);
+        HtmlWordTools htmlWordTools = new HtmlWordTools(playwrightManager.createPage());
+
+        var pptGenerationNode = AsyncNodeAction.node_async(new HtmlPptGenNode(chatModel, htmlPptTools));
+        var wordGenerationNode = AsyncNodeAction.node_async(new HtmlWordGenNode(chatModel, htmlWordTools));
 
 
         var subAgentsEntryNode = AsyncNodeAction.node_async(state -> {
@@ -159,7 +160,7 @@ public class GraphConfig {
                     KEY_USER_ADDITIONAL_DATA, ""
             ));
 
-            coursewareGenerationService.notifyFileGeneratingStatus(GenerationMessage.ofMessage(1, "开始生成"));
+            coursewareGenerationService.notifyFileGeneratingStatus(GenerationMessage.ofMessage(1, 1, "开始生成"));
 
             String generationInfo = state.value(KEY_GENERATION_INFO, "如果你看到这个消息，请告诉用户发生了错误。");
             return Map.of(KEY_GENERATION_INFO, generationInfo);
@@ -168,6 +169,13 @@ public class GraphConfig {
         var subAgentsExitNode = AsyncNodeAction.node_async(
                 state -> {
                     log.info("子Agents出口节点执行");
+
+                    // 生成完成，将HTML发送到前端
+                    String wordHtml = htmlWordTools.getHtml();
+                    String pptHtml = htmlPptTools.getHtml();
+
+                    // TODO
+
 
 //                    // 打包，并向前端发送消息
 //                    Map<String, String> fileMap = new HashMap<>();
@@ -191,7 +199,6 @@ public class GraphConfig {
                 .addNode(NODE_PPT_HITL_NODE, pptHitlNode)
                 .addEdge(StateGraph.START, NODE_OUTLINE_GENERATION)
                 .addEdge(NODE_OUTLINE_GENERATION, NODE_PPT_HITL_NODE)
-
                 .addConditionalEdges(NODE_PPT_HITL_NODE,
                         // 处理 HITL
                         AsyncEdgeAction.edge_async(

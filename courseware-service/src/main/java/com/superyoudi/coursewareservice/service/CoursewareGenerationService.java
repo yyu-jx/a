@@ -1,9 +1,11 @@
 package com.superyoudi.coursewareservice.service;
 
+import com.superyoudi.coursewareservice.dto.CoursewareGenData;
 import com.superyoudi.coursewareservice.websocket.dto.GenerationMessage;
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -15,12 +17,13 @@ import java.util.Map;
 @Service
 public interface CoursewareGenerationService {
 
-    /**
-     * 获取存储路径
-     *
-     * @return 存储路径
-     */
-    String getStoragePath();
+
+    String exportCourseware(CoursewareGenData coursewareGenData) throws IOException;
+
+//    void createPpt(PresentationData presentationData) throws IOException;
+//
+//    void createWord(WordData wordData);
+
 
     /**
      * 搜索用户文件

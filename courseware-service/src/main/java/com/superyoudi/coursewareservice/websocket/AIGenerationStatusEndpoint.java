@@ -50,12 +50,12 @@ public class AIGenerationStatusEndpoint {
      * @param userId    目标会话ID
      * @param fileNames AI传递的键值对数据（如文件名、文件路径、文件大小等）
      */
-    public static void notifyFileGenerateCompleted(Integer userId, Map<String, String> fileNames) {
+    public static void notifyFileGenerateCompleted(Integer userId, Integer coursewareId, Map<String, String> fileNames) {
         Session session = SESSIONS.get(userId);
         if (session != null && session.isOpen()) {
             log.info("[通知文件生成完成] 用户ID: {}, 传递数据: {}", userId, fileNames);
 
-            sendMessage(session, GenerationMessage.ofFileInfo(userId, fileNames));
+            sendMessage(session, GenerationMessage.ofFileInfo(userId, coursewareId, fileNames));
         } else {
             log.warn("[无法通知文件生成完成] 用户ID {} 对应的连接不存在或已关闭，传递数据: {}", userId, fileNames);
         }
@@ -92,7 +92,7 @@ public class AIGenerationStatusEndpoint {
      * @param userId  会话ID，用于区分不同的客户端连接
      */
     @OnOpen
-    public void onOpen(Session session, @PathParam("userId") Integer userId) {
+    public void onOpen(Session session, @PathParam("userId") Integer userId, @PathParam("coursewareId") Integer coursewareId) {
         log.info("[AI生成状态连接建立] 用户ID: {}", userId);
 
         session.setMaxIdleTimeout(600000);
@@ -102,14 +102,14 @@ public class AIGenerationStatusEndpoint {
         // 关闭旧的连接
         if (oldSession != null && oldSession.isOpen()) {
             try {
-                sendMessage(oldSession, GenerationMessage.ofMessage(userId, "重复的连接，此连接将被关闭"));
+                sendMessage(oldSession, GenerationMessage.ofMessage(userId, coursewareId, "重复的连接，此连接将被关闭"));
                 oldSession.close();
             } catch (IOException e) {
                 log.warn("关闭旧连接失败", e);
             }
         }
 
-        sendMessage(session, GenerationMessage.ofMessage(userId, "连接已建立，等待AI生成状态通知"));
+        sendMessage(session, GenerationMessage.ofMessage(userId, coursewareId, "连接已建立，等待AI生成状态通知"));
 //        sendMessage(session, GenerationMessage.ofFileInfo(userId, Map.of(FileZipper.FILE_PPT, "《赤壁赋》——旷达心境与文言虚词探析.pptx")));
         //        Map<String, String> fileMap = new HashMap<>();
 //        fileMap.put(FileZipper.FILE_PPT, "祝福1、2学时   课件.pptx");
