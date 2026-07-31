@@ -6,8 +6,6 @@ import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.action.InterruptionMetadata;
 import com.alibaba.cloud.ai.graph.streaming.OutputType;
 import com.alibaba.cloud.ai.graph.streaming.StreamingOutput;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.superyoudi.aiservice.dto.ChatMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.Message;
@@ -26,7 +24,7 @@ import static com.superyoudi.coursewareservice.config.GraphConfig.*;
 @Service
 public class CoursewareInteractionService {
 
-    private final ObjectMapper mapper = new ObjectMapper();
+
     private final CompiledGraph compiledGraph;
 
     public CoursewareInteractionService(CompiledGraph compiledGraph) {
@@ -44,12 +42,7 @@ public class CoursewareInteractionService {
         Integer userId = chatMessage.getUserId();
         String input = chatMessage.getMessage();
 
-        String chatAdditionalJson = ""; // ChatMessage的附加数据，转换为Json
-        try {
-            chatAdditionalJson = mapper.writeValueAsString(input);
-        } catch (JsonProcessingException e) {
-            log.error("ChatMessage JSON转换错误: {}", e.getMessage());
-        }
+        Integer coursewareId = (Integer) chatMessage.getAdditionalData();
 
         // 构建线程ID
         String threadId = constructThreadId(userId);
@@ -65,7 +58,7 @@ public class CoursewareInteractionService {
         return compiledGraph.stream(Map.of(
                         KEY_USER_ID, userId,
                         KEY_INPUT, input,
-                        KEY_USER_ADDITIONAL_DATA, chatAdditionalJson
+                        KEY_COURSEWARE_ID, coursewareId
                 ), config)
                 .map(output -> handleStreamingOutput(output, threadId));
     }
@@ -108,6 +101,7 @@ public class CoursewareInteractionService {
                     节点%s已中断。
                     PPT大纲:
                     %s
+                    
                     [DONE]
                     """, nodeName, outline);
 

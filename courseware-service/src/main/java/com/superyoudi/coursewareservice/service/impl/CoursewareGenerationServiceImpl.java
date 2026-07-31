@@ -1,7 +1,10 @@
 package com.superyoudi.coursewareservice.service.impl;
 
+import com.microsoft.playwright.Page;
 import com.superyoudi.coursewareservice.component.FileZipper;
+import com.superyoudi.coursewareservice.component.PlaywrightManager;
 import com.superyoudi.coursewareservice.dto.CoursewareGenData;
+import com.superyoudi.coursewareservice.dto.GenerationStatus;
 import com.superyoudi.coursewareservice.model.common.TableData;
 import com.superyoudi.coursewareservice.model.ppt.PresentationData;
 import com.superyoudi.coursewareservice.model.ppt.SlideData;
@@ -11,8 +14,10 @@ import com.superyoudi.coursewareservice.model.word.WordElement;
 import com.superyoudi.coursewareservice.model.word.WordImage;
 import com.superyoudi.coursewareservice.model.word.WordParagraph;
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;
+import com.superyoudi.coursewareservice.utils.SimpleCache;
 import com.superyoudi.coursewareservice.utils.word.WordTableUtils;
-import com.superyoudi.coursewareservice.websocket.dto.GenerationMessage;
+import com.superyoudi.coursewareservice.websocket.CoursewareGenerationEndpoint;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.xslf.usermodel.XMLSlideShow;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
@@ -46,7 +51,13 @@ import static com.superyoudi.coursewareservice.utils.word.WordParagraphUtils.cre
 // TODO
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class CoursewareGenerationServiceImpl implements CoursewareGenerationService {
+
+    private final SimpleCache<Integer, Page> pptSlidePageCache = new SimpleCache<>();
+    private final SimpleCache<Integer, Page> documentPageCache = new SimpleCache<>();
+
+    private final PlaywrightManager playwrightManager;
 
     @Value("${app.storage.exports}")
     private String exportFilePath;
@@ -75,6 +86,42 @@ public class CoursewareGenerationServiceImpl implements CoursewareGenerationServ
         // 存表 TODO
 
         return zipPath;
+    }
+
+    /**
+     * 向前端 websocket 接口发送课件生成状态
+     */
+    @Override
+    public void notifyCoursewareGeneratingStatus(GenerationStatus message) {
+        CoursewareGenerationEndpoint.notifyGeneratingStatus(message);
+    }
+
+    @Override
+    public String getPptHtml(Integer coursewareId) {
+        String html = getPptSlidePage(coursewareId).innerHTML("body");
+        if (html == null || html.isBlank())
+            return null;
+
+        return html;
+    }
+
+    @Override
+    public String getWordHtml(Integer coursewareId) {
+        String html = getDocumentPage(coursewareId).innerHTML("body");
+        if (html == null || html.isBlank())
+            return null;
+
+        return html;
+    }
+
+    @Override
+    public Page getPptSlidePage(Integer coursewareId) {
+        return pptSlidePageCache.getOrCreate(coursewareId, playwrightManager::createPage);
+    }
+
+    @Override
+    public Page getDocumentPage(Integer coursewareId) {
+        return documentPageCache.getOrCreate(coursewareId, playwrightManager::createPage);
     }
 
     /**
@@ -207,13 +254,4 @@ public class CoursewareGenerationServiceImpl implements CoursewareGenerationServ
         return "";
     }
 
-    @Override
-    public void packageFileAndNotify(Integer userId, Map<String, String> originalFiles, String zipName) {
-
-    }
-
-    @Override
-    public void notifyFileGeneratingStatus(GenerationMessage message) {
-
-    }
 }

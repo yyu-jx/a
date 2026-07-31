@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Component
+@Deprecated
 @ServerEndpoint(value = "/generate", configurator = HtmlEndpoint.Configurator.class)
 public class HtmlEndpoint {
 

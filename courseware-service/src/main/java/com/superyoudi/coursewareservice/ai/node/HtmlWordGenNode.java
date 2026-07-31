@@ -5,6 +5,7 @@ import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 import com.superyoudi.coursewareservice.ai.tools.HtmlWordTools;
+import com.superyoudi.coursewareservice.config.GraphConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 
@@ -115,7 +116,10 @@ public class HtmlWordGenNode implements NodeAction {
 
 
     @Override
-    public Map<String, Object> apply(OverAllState state) throws Exception {
+    public Map<String, Object> apply(OverAllState state) {
+
+        Integer coursewareId = state.value(GraphConfig.KEY_COURSEWARE_ID, Integer.class).orElse(null);
+
         String result = "";
 //        try {
 //            result = reactAgent.call(state.value("input", "错误")).getText();
@@ -123,7 +127,7 @@ public class HtmlWordGenNode implements NodeAction {
 //            throw new RuntimeException(e);
 //        }
 
-        log.info("HtmlWordGenNode result: {}", htmlWordTools.getHtml());
+        log.info("HtmlWordGenNode result: {}", htmlWordTools.getHtml(coursewareId));
 
         return Map.of("result", result);
 

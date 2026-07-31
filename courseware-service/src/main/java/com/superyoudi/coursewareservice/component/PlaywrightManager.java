@@ -6,6 +6,7 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -39,6 +40,7 @@ public class PlaywrightManager {
     /**
      * 创建页面
      */
+    @Bean
     public Page createPage() {
         return createPage(createContext());
     }
