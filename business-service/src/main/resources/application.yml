@@ -1,6 +1,8 @@
 spring:
-  profiles:
-    include: ai-service,kdb-service
+  config:
+    import:
+      - optional:classpath:/application-ai-service.yml
+      - optional:classpath:/application-kdb-service.yml
   # MySQL 配置
   datasource:
     url: jdbc:mysql://localhost:3306/edu_ai
