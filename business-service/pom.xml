@@ -46,12 +46,6 @@
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.superyoudi</groupId>
-            <artifactId>kdb-service</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-        </dependency>
-
 
         <!--      -->
 
@@ -74,12 +68,6 @@
         </dependency>
 
 
-        <dependency>
-            <groupId>org.mybatis.spring.boot</groupId>
-            <artifactId>mybatis-spring-boot-starter-test</artifactId>
-            <version>3.0.5</version>
-            <scope>test</scope>
-        </dependency>
 
     </dependencies>
 
