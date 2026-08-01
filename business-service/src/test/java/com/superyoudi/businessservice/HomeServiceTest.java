@@ -1,12 +1,11 @@
 package com.superyoudi.businessservice;
 
-import com.superyoudi.businessservice.mapper.CoursesMapper;
-import com.superyoudi.businessservice.mapper.LearningPathNodesMapper;
-import com.superyoudi.businessservice.mapper.LearningPathsMapper;
-import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
+import com.superyoudi.businessservice.mapper.*;
 import com.superyoudi.businessservice.pojo.entity.LearningPaths;
+import com.superyoudi.businessservice.pojo.entity.StudentKnowledgeMastery;
 import com.superyoudi.businessservice.pojo.entity.StudyOverview;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
+import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;
 import com.superyoudi.businessservice.service.impl.HomeServiceImpl;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.service.KnowledgeHomeService;
@@ -35,7 +34,7 @@ public class HomeServiceTest {
     @InjectMocks
     private HomeServiceImpl homeService;
 
-    // 所有依赖mock
+
     @Mock
     private LearningPathsMapper learningPathsMapper;
     @Mock
@@ -44,6 +43,10 @@ public class HomeServiceTest {
     private KnowledgeHomeService knowledgeHomeService;
     @Mock
     private CoursesMapper coursesMapper;
+
+    @Mock
+    private KnowledgeMasteryMapper knowledgeMasteryMapper;
+
 
 //获取整体学习进度均值接口
     /**
@@ -154,5 +157,62 @@ public class HomeServiceTest {
 
         verify(learningPathNodesMapper, never()).selectLatestUpdateKnowledgeId(any());
     }
+
+// 获取薄弱知识点接口
+
+    /**
+     * 场景1：用户存在学习数据，正常返回TOP5薄弱知识点
+     */
+    @Test
+    void getTop5WeakKnowledge_HasData() {
+        // 1. 构造mapper模拟返回数据
+        StudentKnowledgeMastery mastery = new StudentKnowledgeMastery();
+        mastery.setKnowledgeId("kp_022");
+        mastery.setErrorRate(62.5);
+
+        List<StudentKnowledgeMastery> mockRawList = List.of(mastery);
+
+        // mock mapper查询
+        when(knowledgeMasteryMapper.selectTop5WeakKnowledge(anyInt()))
+                .thenReturn(mockRawList);
+
+        // 构造批量查询知识点返回DTO
+        KnowledgePointDTO dto = new KnowledgePointDTO();
+        dto.setKnowledgeId("kp_022");
+        dto.setKnowledgeTitle("虚拟内存");
+        List<KnowledgePointDTO> mockDtoList = List.of(dto);
+
+        when(knowledgeHomeService.batchGetKnowledge(anyList()))
+                .thenReturn(mockDtoList);
+
+        // 2. 执行方法
+        List<WeakKnowledgeVO> result = homeService.getTop5WeakKnowledge(1);
+
+        // 3. 断言校验
+        org.junit.jupiter.api.Assertions.assertNotNull(result);
+        org.junit.jupiter.api.Assertions.assertEquals(1, result.size());
+        WeakKnowledgeVO vo = result.get(0);
+        org.junit.jupiter.api.Assertions.assertEquals("kp_022", vo.getKnowledgeId());
+        org.junit.jupiter.api.Assertions.assertEquals("虚拟内存", vo.getKnowledgeName());
+        org.junit.jupiter.api.Assertions.assertEquals(62.5, vo.getErrorRate());
+    }
+
+
+
+    /**
+     * 场景2：数据库没有知识点掌握数据，返回空集合
+     */
+    @Test
+    void getTop5WeakKnowledge_EmptyData() {
+        // mock返回空列表
+        when(knowledgeMasteryMapper.selectTop5WeakKnowledge(anyInt()))
+                .thenReturn(List.of());
+
+        List<WeakKnowledgeVO> result = homeService.getTop5WeakKnowledge(1);
+
+        org.junit.jupiter.api.Assertions.assertNotNull(result);
+        org.junit.jupiter.api.Assertions.assertTrue(result.isEmpty());
+    }
+
 
 }
