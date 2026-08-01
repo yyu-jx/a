@@ -1,20 +1,22 @@
 package com.superyoudi.businessservice.service.impl;
 
-import com.superyoudi.businessservice.mapper.CoursesMapper;
-import com.superyoudi.businessservice.mapper.LearningPathNodesMapper;
-import com.superyoudi.businessservice.mapper.LearningPathsMapper;
-import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
+import com.superyoudi.businessservice.mapper.*;
 
 import com.superyoudi.businessservice.pojo.entity.LearningPaths;
+import com.superyoudi.businessservice.pojo.entity.StudentKnowledgeMastery;
 import com.superyoudi.businessservice.pojo.entity.StudyOverview;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
+import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;
 import com.superyoudi.businessservice.service.HomeService;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.service.KnowledgeHomeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ public class HomeServiceImpl implements HomeService {
     private final LearningPathNodesMapper learningPathNodesMapper;
     private final KnowledgeHomeService knowledgeHomeService;
     private final CoursesMapper coursesMapper;
+    private final KnowledgeMasteryMapper knowledgeMasteryMapper;
 
     /**
      * 获取最近一次学习记录
@@ -104,5 +107,47 @@ public class HomeServiceImpl implements HomeService {
             return vo;
         }
     }
+
+    /**
+     * 获取学生弱项TOP5知识点
+     *
+     * @param userId 学生ID
+     * @return 薄弱知识点列表
+     */
+    @Override
+    public List<WeakKnowledgeVO> getTop5WeakKnowledge(Integer userId) {
+        List<StudentKnowledgeMastery> rawList = knowledgeMasteryMapper.selectTop5WeakKnowledge(userId);
+        if (rawList.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 提取知识点ID集合
+        List<String> knowledgeIdList = rawList.stream()
+                .map(StudentKnowledgeMastery::getKnowledgeId)
+                .collect(Collectors.toList());
+
+        // 调用你现有的批量方法
+        List<KnowledgePointDTO> dtoList = knowledgeHomeService.batchGetKnowledge(knowledgeIdList);
+
+        // List 转 Map：key=知识点ID，value=知识点标题
+        Map<String, String> knowledgeNameMap = dtoList.stream()
+                .collect(Collectors.toMap(
+                        KnowledgePointDTO::getKnowledgeId,
+                        KnowledgePointDTO::getKnowledgeTitle,
+                        // 重复id兼容（防止重复节点冲突）
+                        (oldVal, newVal) -> newVal
+                ));
+
+        // 组装VO
+        return rawList.stream().map(d -> {
+            WeakKnowledgeVO vo = new WeakKnowledgeVO();
+            vo.setKnowledgeId(d.getKnowledgeId());
+            vo.setErrorRate(d.getErrorRate());
+            // 取不到名称默认值
+            vo.setKnowledgeName(knowledgeNameMap.getOrDefault(d.getKnowledgeId(), "未知知识点"));
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
 
 }
