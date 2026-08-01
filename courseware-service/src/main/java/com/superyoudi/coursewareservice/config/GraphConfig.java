@@ -14,6 +14,7 @@ import com.superyoudi.coursewareservice.ai.tools.HtmlWordTools;
 import com.superyoudi.coursewareservice.ai.tools.RagTools;
 import com.superyoudi.coursewareservice.dto.GenerationStatus;
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;
+import com.superyoudi.coursewareservice.service.CoursewareRecordService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
@@ -120,7 +121,7 @@ public class GraphConfig {
     /// @return 工作流图的Bean
     /// @author Sijayyx
     @Bean("coursewareGraph")
-    public CompiledGraph coursewareGraph(ChatClient.Builder chatClient, ChatModel chatModel) throws GraphStateException {
+    public CompiledGraph coursewareGraph(ChatClient.Builder chatClient, ChatModel chatModel, CoursewareRecordService coursewareRecordService) throws GraphStateException {
 
         log.info("正在初始化 CoursewareGraph。");
 
@@ -169,12 +170,14 @@ public class GraphConfig {
                     log.info("子Agents出口节点执行");
 
                     // 生成完成，将HTML发送到前端
-                    Integer coursewareId = state.value(KEY_COURSEWARE_ID, Integer.class).orElse(null);
-                    coursewareGenerationService.notifyCoursewareGeneratingStatus(
-                            GenerationStatus.success(coursewareId,
-                                    coursewareGenerationService.getPptHtml(coursewareId),
-                                    coursewareGenerationService.getWordHtml(coursewareId))
-                    );
+                    Long coursewareId = state.value(KEY_COURSEWARE_ID, Long.class).orElse(null);
+                    String pptHtml = coursewareGenerationService.getPptHtml(coursewareId);
+                    String wordHtml = coursewareGenerationService.getWordHtml(coursewareId);
+                    coursewareGenerationService
+                            .notifyCoursewareGeneratingStatus(GenerationStatus.success(coursewareId, pptHtml, wordHtml));
+
+                    // 存表
+                    coursewareRecordService.saveHtmlColumns(coursewareId, pptHtml, wordHtml);
 
                     return Map.of(KEY_AGENTS_INFO, state.value(KEY_AGENTS_INFO, "成功"));
                 }

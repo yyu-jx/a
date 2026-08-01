@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CoursewareGenerationEndpoint {
 
     // 存储所有连接的会话
-    private static final ConcurrentHashMap<Integer, Session> SESSIONS = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Long, Session> SESSIONS = new ConcurrentHashMap<>();
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
@@ -32,7 +32,7 @@ public class CoursewareGenerationEndpoint {
      * AI 调用此方法通知前端文件生成状态
      */
     public static void notifyGeneratingStatus(GenerationStatus generationStatus) {
-        int coursewareId = generationStatus.getCoursewareId();
+        long coursewareId = generationStatus.getCoursewareId();
         Session session = SESSIONS.get(coursewareId);
         if (session != null && session.isOpen()) {
             sendMessage(session, generationStatus);
@@ -73,7 +73,7 @@ public class CoursewareGenerationEndpoint {
      */
     @OnOpen
     @SuppressWarnings("unused")
-    public void onOpen(Session session, @PathParam("coursewareId") Integer coursewareId) {
+    public void onOpen(Session session, @PathParam("coursewareId") Long coursewareId) {
         log.info("[AI生成状态连接建立] 用户ID: {}", coursewareId);
 
         session.setMaxIdleTimeout(600000);
@@ -90,25 +90,25 @@ public class CoursewareGenerationEndpoint {
             }
         }
 
-        new Thread(() -> {
-            try {
-                sendHeartbeat(session);
-                Thread.sleep(1000);
-                sendHeartbeat(session);
-                Thread.sleep(1000);
-                sendHeartbeat(session);
-                Thread.sleep(1000);
-                sendHeartbeat(session);
-                Thread.sleep(1000);
-                sendHeartbeat(session);
-                Thread.sleep(1000);
-                sendHeartbeat(session);
-                Thread.sleep(1000);
-                sendHeartbeat(session);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }).start();
+//        new Thread(() -> {
+//            try {
+//                sendHeartbeat(session);
+//                Thread.sleep(1000);
+//                sendHeartbeat(session);
+//                Thread.sleep(1000);
+//                sendHeartbeat(session);
+//                Thread.sleep(1000);
+//                sendHeartbeat(session);
+//                Thread.sleep(1000);
+//                sendHeartbeat(session);
+//                Thread.sleep(1000);
+//                sendHeartbeat(session);
+//                Thread.sleep(1000);
+//                sendHeartbeat(session);
+//            } catch (InterruptedException e) {
+//                throw new RuntimeException(e);
+//            }
+//        }).start();
 
     }
 

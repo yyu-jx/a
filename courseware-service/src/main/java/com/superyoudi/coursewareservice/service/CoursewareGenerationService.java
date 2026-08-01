@@ -2,6 +2,7 @@ package com.superyoudi.coursewareservice.service;
 
 import com.microsoft.playwright.Page;
 import com.superyoudi.coursewareservice.dto.CoursewareGenData;
+import com.superyoudi.coursewareservice.dto.CoursewareRecord;
 import com.superyoudi.coursewareservice.dto.GenerationStatus;
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Service;
@@ -17,15 +18,17 @@ import java.util.List;
 @Service
 public interface CoursewareGenerationService {
 
+    CoursewareRecord recoverCoursewareRecord(Long id);
+
     String exportCourseware(CoursewareGenData coursewareGenData) throws IOException;
 
-    String getPptHtml(Integer coursewareId);
+    String getPptHtml(Long coursewareId);
 
-    String getWordHtml(Integer coursewareId);
+    String getWordHtml(Long coursewareId);
 
-    Page getPptSlidePage(Integer coursewareId);
+    Page getPptSlidePage(Long coursewareId);
 
-    Page getDocumentPage(Integer coursewareId);
+    Page getDocumentPage(Long coursewareId);
 
     void notifyCoursewareGeneratingStatus(GenerationStatus message);
 

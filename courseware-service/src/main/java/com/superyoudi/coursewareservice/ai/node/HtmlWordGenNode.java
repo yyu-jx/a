@@ -118,7 +118,7 @@ public class HtmlWordGenNode implements NodeAction {
     @Override
     public Map<String, Object> apply(OverAllState state) {
 
-        Integer coursewareId = state.value(GraphConfig.KEY_COURSEWARE_ID, Integer.class).orElse(null);
+        Long coursewareId = state.value(GraphConfig.KEY_COURSEWARE_ID, Long.class).orElse(null);
 
         String result = "";
 //        try {

@@ -2,11 +2,9 @@ package com.superyoudi.coursewareservice.controller;
 
 import com.superyoudi.common.entity.Result;
 import com.superyoudi.coursewareservice.dto.CoursewareGenData;
+import com.superyoudi.coursewareservice.dto.CoursewareRecord;
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 
@@ -24,11 +22,17 @@ public class CoursewareGenerationController {
         this.coursewareGenerationService = coursewareGenerationService;
     }
 
+    @GetMapping("/record/{coursewareRecordId}")
+    public Result<CoursewareRecord> recoverCoursewareRecord(@PathVariable Long coursewareRecordId) {
+        return Result.success(coursewareGenerationService.recoverCoursewareRecord(coursewareRecordId));
+    }
+
+
     @PostMapping("/export")
     public Result<String> exportCourseware(@RequestBody CoursewareGenData data) {
         try {
-            coursewareGenerationService.exportCourseware(data);
-            return Result.success();
+            String zipName = coursewareGenerationService.exportCourseware(data);
+            return Result.success(zipName);
         } catch (IOException e) {
             return Result.error("课件生成失败");
         }

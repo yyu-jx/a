@@ -2,20 +2,21 @@ package com.superyoudi.coursewareservice.ai.tools;
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.superyoudi.coursewareservice.dto.GenerationStatus;
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;
 import com.superyoudi.coursewareservice.utils.HtmlDomUtils;
 import com.superyoudi.coursewareservice.utils.HtmlLayoutUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.stream.Stream;
 
 @Slf4j
 @Component
@@ -31,28 +32,32 @@ public class HtmlPptTools {
     }
 
     /**
-     * 读取目录中所有的desc.md文件，并按照指定格式输出为字符串
+     * 读取resourse目录中所有的desc.md文件，并按照指定格式输出为字符串
      */
-    private static String combineAllMdFiles(String directoryPath) throws IOException {
+    private static String combineAllMdFiles() throws IOException {
         StringBuilder result = new StringBuilder();
 
-        Path startPath = Path.of(directoryPath);
+        ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
 
-        try (Stream<Path> paths = Files.walk(startPath)) {
-            paths.filter(Files::isRegularFile)
-                    .filter(p -> p.getFileName().toString().equals("desc.md"))
-                    .forEach(p -> {
-                        try {
-                            String content = Files.readString(p);
+        // 搜索 classpath 下所有 desc.md
+        String searchPattern = """
+                classpath:ppt-templates/**/desc.md
+                """;
+        Resource[] resources = resolver.getResources(searchPattern);
 
-                            // 如果已经添加了内容，添加分隔符
-                            if (!result.isEmpty()) result.append("\n---\n");
+        for (Resource resource : resources) {
+            try {
+                // 读取
+                String content = resource.getContentAsString(StandardCharsets.UTF_8);
 
-                            result.append(content);
-                        } catch (IOException e) {
-                            log.error("提取MD文件出现错误。", e);
-                        }
-                    });
+                if (!result.isEmpty()) {
+                    result.append("\n---\n");
+                }
+                result.append(content);
+
+            } catch (IOException e) {
+                log.error("读取文件失败: {}", resource.getFilename(), e);
+            }
         }
 
         return result.toString();
@@ -61,7 +66,7 @@ public class HtmlPptTools {
     @SuppressWarnings("unused")
     @Tool(name = "add_slide", description = "按顺序添加一个幻灯片的基础容器")
     public String addSlideContainer(
-            @ToolParam(description = "课件记录ID") Integer coursewareId,
+            @ToolParam(description = "课件记录ID") Long coursewareId,
             @ToolParam(description = """
                     页面的主容器。格式必须如下:
                     <div class="slide-container"
@@ -77,12 +82,15 @@ public class HtmlPptTools {
 
         HtmlDomUtils.appendChild(bodyLocator, html);
 
+        coursewareGenerationService.notifyCoursewareGeneratingStatus(GenerationStatus.generatingPpt(coursewareId,
+                getUserSlidePage(coursewareId).innerHTML("body")));
+
         return "成功";
     }
 
     @SuppressWarnings("unused")
     @Tool(name = "insert_slide", description = "在指定位置插入一个幻灯片的基础容器")
-    public String insertSlide(@ToolParam(description = "课件记录ID") Integer coursewareId,
+    public String insertSlide(@ToolParam(description = "课件记录ID") Long coursewareId,
                               @ToolParam(description = "目标页面索引，从0开始") Integer slideId,
                               @ToolParam(description = """
                                       页面的主容器。格式必须如下:
@@ -103,7 +111,7 @@ public class HtmlPptTools {
 
     @SuppressWarnings("unused")
     @Tool(name = "remove_slide", description = "删除指定页面")
-    public String removeSlideContainer(@ToolParam(description = "课件记录ID") Integer coursewareId,
+    public String removeSlideContainer(@ToolParam(description = "课件记录ID") Long coursewareId,
                                        @ToolParam(description = "目标页面索引，从0开始") Integer slideId) {
         Locator slideLocator = HtmlLayoutUtils.getSlideLocator(getUserSlidePage(coursewareId), slideId);
         HtmlDomUtils.removeElement(slideLocator);
@@ -112,7 +120,7 @@ public class HtmlPptTools {
 
     @SuppressWarnings("unused")
     @Tool(name = "reorder_slide", description = "重新排序多张幻灯片")
-    public String reorderSlide(@ToolParam(description = "课件记录ID") Integer coursewareId,
+    public String reorderSlide(@ToolParam(description = "课件记录ID") Long coursewareId,
                                @ToolParam(description = "要移动的幻灯片的起始索引，从0开始") Integer fromIndex,
                                @ToolParam(description = "移动的数量，最小为1") Integer length,
                                @ToolParam(description = "目标位置索引，从0开始") Integer targetIndex
@@ -150,7 +158,7 @@ public class HtmlPptTools {
 
     @SuppressWarnings("unused")
     @Tool(name = "append_child_element", description = "在指定父级元素下追加一个子元素")
-    public String appendChildElement(@ToolParam(description = "课件记录ID") Integer coursewareId,
+    public String appendChildElement(@ToolParam(description = "课件记录ID") Long coursewareId,
                                      @ToolParam(description = "目标页面索引，从0开始") Integer slideId,
                                      @ToolParam(description = "追加的HTML元素。内容必须严格遵守指令。") String html,
                                      @ToolParam(description = "父级元素名称") String parentName) {
@@ -182,7 +190,7 @@ public class HtmlPptTools {
 
     @SuppressWarnings("unused")
     @Tool(name = "replace_element", description = "替换指定元素")
-    public String replaceElement(@ToolParam(description = "课件记录ID") Integer coursewareId, @ToolParam(description = "目标页面索引，从0开始") Integer slideId,
+    public String replaceElement(@ToolParam(description = "课件记录ID") Long coursewareId, @ToolParam(description = "目标页面索引，从0开始") Integer slideId,
                                  @ToolParam(description = "替换的HTML元素。内容必须严格遵守指令。") String html,
                                  @ToolParam(description = "被替换的目标元素名称") String targetName) {
 
@@ -199,7 +207,7 @@ public class HtmlPptTools {
 
     @SuppressWarnings("unused")
     @Tool(name = "replace_outer_html", description = "只替换指定元素的外层HTML文本，保留内部元素")
-    public String replaceOuterHtml(@ToolParam(description = "课件记录ID") Integer coursewareId, @ToolParam(description = "目标页面索引，从0开始") Integer slideId,
+    public String replaceOuterHtml(@ToolParam(description = "课件记录ID") Long coursewareId, @ToolParam(description = "目标页面索引，从0开始") Integer slideId,
                                    @ToolParam(description = "新的HTML标签，不需要含有子元素。内容必须严格遵守指令。") String html,
                                    @ToolParam(description = "被替换的目标元素名称") String targetName) {
 
@@ -214,7 +222,7 @@ public class HtmlPptTools {
 
     @SuppressWarnings("unused")
     @Tool(name = "insert_before_element", description = "在指定元素之前插入一个元素")
-    public String insertBeforeElement(@ToolParam(description = "课件记录ID") Integer coursewareId, @ToolParam(description = "目标页面索引，从0开始") Integer slideId,
+    public String insertBeforeElement(@ToolParam(description = "课件记录ID") Long coursewareId, @ToolParam(description = "目标页面索引，从0开始") Integer slideId,
                                       @ToolParam(description = "插入的HTML元素。内容必须严格遵守指令。") String html,
                                       @ToolParam(description = "目标元素名称") String targetName) {
 
@@ -231,7 +239,7 @@ public class HtmlPptTools {
 
     @SuppressWarnings("unused")
     @Tool(name = "insert_after_element", description = "在指定元素之后插入一个元素")
-    public String insertAfterElement(@ToolParam(description = "课件记录ID") Integer coursewareId, @ToolParam(description = "目标页面索引，从0开始") Integer slideId,
+    public String insertAfterElement(@ToolParam(description = "课件记录ID") Long coursewareId, @ToolParam(description = "目标页面索引，从0开始") Integer slideId,
                                      @ToolParam(description = "插入的HTML元素。内容必须严格遵守指令。") String html,
                                      @ToolParam(description = "目标元素名称") String targetName) {
 
@@ -249,7 +257,7 @@ public class HtmlPptTools {
 
     @SuppressWarnings("unused")
     @Tool(name = "get_element_structure", description = "获取指定元素的结构")
-    public String getElementStructure(@ToolParam(description = "课件记录ID") Integer coursewareId, @ToolParam(description = "目标页面索引，从0开始") Integer slideId,
+    public String getElementStructure(@ToolParam(description = "课件记录ID") Long coursewareId, @ToolParam(description = "目标页面索引，从0开始") Integer slideId,
                                       @ToolParam(description = "元素名称") String elementName) {
 
         String string = HtmlDomUtils.traverseElementInfo(getUserSlidePage(coursewareId), String.format("[data-element-name=\"%s\"]", elementName));
@@ -259,7 +267,7 @@ public class HtmlPptTools {
 
     @SuppressWarnings("unused")
     @Tool(name = "remove_element", description = "删除指定元素")
-    public String removeElement(@ToolParam(description = "课件记录ID") Integer coursewareId, @ToolParam(description = "目标页面ID") Integer slideId,
+    public String removeElement(@ToolParam(description = "课件记录ID") Long coursewareId, @ToolParam(description = "目标页面ID") Integer slideId,
                                 @ToolParam(description = "元素名称") String elementName) {
 
         Locator elementLocator = HtmlLayoutUtils.getLocatorByAttributeName(getUserSlidePage(coursewareId), slideId, "data-element-name", elementName);
@@ -274,7 +282,7 @@ public class HtmlPptTools {
 
     @SuppressWarnings("unused")
     @Tool(name = "get_slide_structure", description = "获取整个页面的结构")
-    public String getSlideStructure(@ToolParam(description = "课件记录ID") Integer coursewareId,
+    public String getSlideStructure(@ToolParam(description = "课件记录ID") Long coursewareId,
                                     @ToolParam(description = "目标页面索引，从0开始") Integer slideId
     ) {
         String string = HtmlDomUtils.traverseElementInfo(getUserSlidePage(coursewareId), String.format("body > :nth-child(%d)", slideId + 1));
@@ -285,7 +293,7 @@ public class HtmlPptTools {
 
     @SuppressWarnings("unused")
     @Tool(name = "get_slide_list", description = "获取所有页面的索引及名称")
-    public String getSlideList(@ToolParam(description = "课件记录ID") Integer coursewareId) {
+    public String getSlideList(@ToolParam(description = "课件记录ID") Long coursewareId) {
         Locator bodyLocator = getUserSlidePage(coursewareId).locator("body");
         String slideNames = (String) bodyLocator.evaluate("""
                 (element) => {
@@ -305,7 +313,7 @@ public class HtmlPptTools {
 
     @SuppressWarnings("unused")
     @Tool(name = "get_element_html", description = "获取指定元素的HTML文本")
-    public String getElementHtml(@ToolParam(description = "课件记录ID") Integer coursewareId, @ToolParam(description = "目标页面ID") Integer slideId,
+    public String getElementHtml(@ToolParam(description = "课件记录ID") Long coursewareId, @ToolParam(description = "目标页面ID") Integer slideId,
                                  @ToolParam(description = "元素名称") String elementName) {
 
         Locator locator = HtmlLayoutUtils.getLocatorByAttributeName(getUserSlidePage(coursewareId), slideId, "data-element-name", elementName);
@@ -332,7 +340,10 @@ public class HtmlPptTools {
 
     @SuppressWarnings("unused")
     @Tool(name = "get_user_files", description = "获取用户上传的所有文件信息，包含文件名，描述")
-    public String getUserFiles(@ToolParam(description = "课件记录ID") Integer coursewareId) {
+    public String getUserFiles(@ToolParam(description = "课件记录ID") Long coursewareId) {
+
+        // TODO
+
         return """
                 URL: "../public/moon.png"
                 描述: 一张月球的图片，宽高16:10
@@ -343,10 +354,10 @@ public class HtmlPptTools {
     @Tool(name = "get_templates", description = "获取可用的模板列表")
     public String getTemplates() {
         try {
-            // TODO 模板获取
-            return combineAllMdFiles("E:\\DevStudy\\multi-modal-teach-ai-backend\\src\\main\\resources\\ppt-templates\\templates");
+            return combineAllMdFiles();
         } catch (IOException e) {
-            return "读取失败!";
+            log.error("读取模板失败: {}", e.getMessage());
+            return "读取模板失败: " + e.getMessage();
         }
     }
 
@@ -354,19 +365,31 @@ public class HtmlPptTools {
     @Tool(name = "get_html_template", description = "获取指定模板的HTML")
     public String getHtmlTemplate(@ToolParam(description = "模板名称") String templateName) {
         try {
-            // TODO
-            Path htmlFilePath = Path.of("E:\\DevStudy\\multi-modal-teach-ai-backend\\src\\main\\resources\\ppt-templates\\templates\\"
-                    + templateName + "\\" + templateName + ".html");
+            ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+
+            // 搜索路径
+            String searchPattern = "classpath:ppt-templates/" + templateName + "/" + templateName + ".html";
+            Resource[] resources = resolver.getResources(searchPattern);
 
             // 检查文件是否存在
-            if (!Files.exists(htmlFilePath)) {
-                String err = "文件不存在: " + htmlFilePath;
+            if (resources.length == 0) {
+                String err = "文件不存在: ppt-templates/" + templateName + "/" + templateName + ".html";
+                log.error(err);
+                return err;
+            }
+
+            // 获取第一个匹配的资源
+            Resource resource = resources[0];
+
+            // 检查是否可读
+            if (!resource.isReadable()) {
+                String err = "文件不可读: " + resource.getFilename();
                 log.error(err);
                 return err;
             }
 
             // 读取并返回HTML内容
-            return Files.readString(htmlFilePath, StandardCharsets.UTF_8);
+            return resource.getContentAsString(StandardCharsets.UTF_8);
 
         } catch (IOException e) {
             String err = "读取HTML文件失败: " + e.getMessage();
@@ -375,7 +398,7 @@ public class HtmlPptTools {
         }
     }
 
-    public String getHtml(@ToolParam(description = "课件记录ID") Integer coursewareId) {
+    public String getHtml(@ToolParam(description = "课件记录ID") Long coursewareId) {
         if (coursewareId == null) {
             return null;
         }
@@ -383,7 +406,7 @@ public class HtmlPptTools {
         return getUserSlidePage(coursewareId).innerHTML("body");
     }
 
-    private Page getUserSlidePage(Integer coursewareId) {
+    private Page getUserSlidePage(Long coursewareId) {
         return coursewareGenerationService.getPptSlidePage(coursewareId);
     }
 }

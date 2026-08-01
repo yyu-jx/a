@@ -13,8 +13,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CoursewareGenData {
-    private Integer userId;
-    private Integer coursewareRecordId;
+    private Long userId;
+    private Long chatId;
+    private Long coursewareRecordId;
     private PresentationData presentationData;
     private WordData wordData;
 }

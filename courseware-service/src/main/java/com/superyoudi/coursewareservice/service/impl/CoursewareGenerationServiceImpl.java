@@ -4,6 +4,7 @@ import com.microsoft.playwright.Page;
 import com.superyoudi.coursewareservice.component.FileZipper;
 import com.superyoudi.coursewareservice.component.PlaywrightManager;
 import com.superyoudi.coursewareservice.dto.CoursewareGenData;
+import com.superyoudi.coursewareservice.dto.CoursewareRecord;
 import com.superyoudi.coursewareservice.dto.GenerationStatus;
 import com.superyoudi.coursewareservice.model.common.TableData;
 import com.superyoudi.coursewareservice.model.ppt.PresentationData;
@@ -14,6 +15,8 @@ import com.superyoudi.coursewareservice.model.word.WordElement;
 import com.superyoudi.coursewareservice.model.word.WordImage;
 import com.superyoudi.coursewareservice.model.word.WordParagraph;
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;
+import com.superyoudi.coursewareservice.service.CoursewareRecordService;
+import com.superyoudi.coursewareservice.utils.HtmlDomUtils;
 import com.superyoudi.coursewareservice.utils.SimpleCache;
 import com.superyoudi.coursewareservice.utils.word.WordTableUtils;
 import com.superyoudi.coursewareservice.websocket.CoursewareGenerationEndpoint;
@@ -30,8 +33,8 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.awt.*;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -54,13 +57,44 @@ import static com.superyoudi.coursewareservice.utils.word.WordParagraphUtils.cre
 @RequiredArgsConstructor
 public class CoursewareGenerationServiceImpl implements CoursewareGenerationService {
 
-    private final SimpleCache<Integer, Page> pptSlidePageCache = new SimpleCache<>();
-    private final SimpleCache<Integer, Page> documentPageCache = new SimpleCache<>();
+    private final SimpleCache<Long, Page> pptSlidePageCache = new SimpleCache<>();
+    private final SimpleCache<Long, Page> documentPageCache = new SimpleCache<>();
 
     private final PlaywrightManager playwrightManager;
+    private final CoursewareRecordService coursewareRecordService;
 
     @Value("${app.storage.exports}")
     private String exportFilePath;
+
+    @Override
+    public CoursewareRecord recoverCoursewareRecord(Long id) {
+
+        // 查表
+        // 如果不存在，则创建，并返回携带新ID的表
+        CoursewareRecord cr = coursewareRecordService.getById(id);
+        if (cr == null) {
+            CoursewareRecord newCr = new CoursewareRecord();
+            Long newId = coursewareRecordService.insert(newCr);
+
+            newCr.setId(newId);
+            cr = newCr;
+            return cr;
+        }
+
+        // 恢复缓存
+        // 如果任一html文本为空，就不构建对应的缓存
+        if (cr.getPptHtml() != null) {
+            Page pptSlidePage = pptSlidePageCache.getOrCreate(id, playwrightManager::createPage);
+            HtmlDomUtils.setPageHtml(pptSlidePage, cr.getPptHtml());
+        }
+
+        if (cr.getWordHtml() != null) {
+            Page documentPage = documentPageCache.getOrCreate(id, playwrightManager::createPage);
+            HtmlDomUtils.setPageHtml(documentPage, cr.getWordHtml());
+        }
+
+        return cr;
+    }
 
     /**
      * 导出课件，返回压缩包文件名
@@ -69,6 +103,8 @@ public class CoursewareGenerationServiceImpl implements CoursewareGenerationServ
      */
     public String exportCourseware(CoursewareGenData coursewareGenData) throws IOException {
         // 解析
+
+        // 这里的InputSteam还没有写入文件
         InputStream pptIs = createPpt(coursewareGenData.getPresentationData());
         InputStream wordIs = createWord(coursewareGenData.getWordData());
         String pptName = coursewareGenData.getPresentationData().getPptName();
@@ -81,11 +117,11 @@ public class CoursewareGenerationServiceImpl implements CoursewareGenerationServ
             wordName = "word" + System.currentTimeMillis() + ".docx";
 
         // 压缩
-        String zipPath = FileZipper.compressInputStreamToZip(Map.of(pptName, pptIs, wordName, wordIs), exportFilePath, pptName + ".zip");
+        String zipName = FileZipper.compressInputStreamToZip(Map.of(pptName, pptIs, wordName, wordIs), exportFilePath, pptName + ".zip");
 
-        // 存表 TODO
+        // TODO 存文件表
 
-        return zipPath;
+        return zipName;
     }
 
     /**
@@ -97,7 +133,7 @@ public class CoursewareGenerationServiceImpl implements CoursewareGenerationServ
     }
 
     @Override
-    public String getPptHtml(Integer coursewareId) {
+    public String getPptHtml(Long coursewareId) {
         String html = getPptSlidePage(coursewareId).innerHTML("body");
         if (html == null || html.isBlank())
             return null;
@@ -106,7 +142,7 @@ public class CoursewareGenerationServiceImpl implements CoursewareGenerationServ
     }
 
     @Override
-    public String getWordHtml(Integer coursewareId) {
+    public String getWordHtml(Long coursewareId) {
         String html = getDocumentPage(coursewareId).innerHTML("body");
         if (html == null || html.isBlank())
             return null;
@@ -115,19 +151,19 @@ public class CoursewareGenerationServiceImpl implements CoursewareGenerationServ
     }
 
     @Override
-    public Page getPptSlidePage(Integer coursewareId) {
+    public Page getPptSlidePage(Long coursewareId) {
         return pptSlidePageCache.getOrCreate(coursewareId, playwrightManager::createPage);
     }
 
     @Override
-    public Page getDocumentPage(Integer coursewareId) {
+    public Page getDocumentPage(Long coursewareId) {
         return documentPageCache.getOrCreate(coursewareId, playwrightManager::createPage);
     }
 
     /**
      * 生成 PPT
      *
-     * @return 文件名，包含扩展名。若生成错误，返回null
+     * @return PPTX 输入流
      */
     private InputStream createPpt(PresentationData presentationData) {
         if (presentationData == null) {
@@ -167,17 +203,13 @@ public class CoursewareGenerationServiceImpl implements CoursewareGenerationServ
 
             }
 
-            String storagePath = "D:\\Desktop\\test1.pptx";
-
-            // 保存到磁盘
-            try (FileOutputStream fileOutputStream = new FileOutputStream(storagePath)) {
-                ppt.write(fileOutputStream);
+            try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                ppt.write(baos);
                 ppt.close();
+                pptInputStream.close();
+
+                return new ByteArrayInputStream(baos.toByteArray());
             }
-            pptInputStream.close();
-
-            return new FileInputStream(storagePath); // TODO
-
         } catch (Exception e) {
             log.error("保存PPT文件失败", e);
             return null;
@@ -188,8 +220,7 @@ public class CoursewareGenerationServiceImpl implements CoursewareGenerationServ
     /**
      * 生成Word
      *
-     * @param wordData
-     * @return 文件名，包含扩展名。若生成错误，返回null
+     * @return Word 输入流
      */
     public InputStream createWord(WordData wordData) {
 
@@ -224,16 +255,13 @@ public class CoursewareGenerationServiceImpl implements CoursewareGenerationServ
             }
         }
 
-        try {
-            String storagePath = "D:\\Desktop\\test1.docx";
-            FileOutputStream outputStream = new FileOutputStream(storagePath);
-            document.write(outputStream);
-            outputStream.close();
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            document.write(baos);
             document.close();
 
-            return new FileInputStream(storagePath);
+            return new ByteArrayInputStream(baos.toByteArray());
         } catch (Exception e) {
-            log.error("保存Word文件失败", e);
+            log.error("生成Word文件失败", e);
             return null;
         }
 

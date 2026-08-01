@@ -42,7 +42,7 @@ public class CoursewareInteractionService {
         Integer userId = chatMessage.getUserId();
         String input = chatMessage.getMessage();
 
-        Integer coursewareId = (Integer) chatMessage.getAdditionalData();
+        Long coursewareId = (Long) chatMessage.getAdditionalData();
 
         // 构建线程ID
         String threadId = constructThreadId(userId);
