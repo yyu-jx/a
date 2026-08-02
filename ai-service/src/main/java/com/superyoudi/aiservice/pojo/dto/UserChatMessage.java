@@ -1,4 +1,4 @@
-package com.superyoudi.aiservice.dto;
+package com.superyoudi.aiservice.pojo.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ChatMessage  {
+public class UserChatMessage {
 
     /// 用户ID
     private Integer userId;

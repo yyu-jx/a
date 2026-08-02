@@ -1,4 +1,4 @@
-package com.superyoudi.businessservice.pojo.entity;
+package com.superyoudi.aiservice.pojo.dto;
 
 import lombok.Data;
 import java.time.LocalDateTime;

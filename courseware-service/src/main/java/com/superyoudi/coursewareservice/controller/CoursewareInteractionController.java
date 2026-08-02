@@ -2,7 +2,7 @@ package com.superyoudi.coursewareservice.controller;
 
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.AsyncNodeAction;
-import com.superyoudi.aiservice.dto.ChatMessage;
+import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
 import com.superyoudi.coursewareservice.ai.node.HtmlPptGenNode;
 import com.superyoudi.coursewareservice.ai.tools.HtmlPptTools;
 import com.superyoudi.coursewareservice.config.GraphConfig;
@@ -34,19 +34,19 @@ class CoursewareInteractionController {
     /**
      * 聊天接口
      *
-     * @param chatMessage 聊天信息
+     * @param userChatMessage 聊天信息
      * @return 流式输出
      * @author Sijayyx
      */
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> doChat(@RequestBody ChatMessage chatMessage) {
+    public Flux<String> doChat(@RequestBody UserChatMessage userChatMessage) {
         // TODO 使用SSE或者WebSocket让AI主动发话
-        return interactionService.executeWorkflowGraph(chatMessage);
+        return interactionService.executeWorkflowGraph(userChatMessage);
     }
 
     @PostMapping(value = "/chat/resume", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> doResume(@RequestBody ChatMessage chatMessage) {
-        return interactionService.resumeWorkflowGraph(chatMessage);
+    public Flux<String> doResume(@RequestBody UserChatMessage userChatMessage) {
+        return interactionService.resumeWorkflowGraph(userChatMessage);
     }
 
     @GetMapping(value = "/tppt")
@@ -118,13 +118,13 @@ class CoursewareInteractionController {
     // 测试接口
     @GetMapping(value = "/tchat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> testChat(@RequestParam String input) {
-        return interactionService.executeWorkflowGraph(new ChatMessage(1, input, null));
+        return interactionService.executeWorkflowGraph(new UserChatMessage(1, input, null));
     }
 
     // 测试接口
     @GetMapping(value = "/tresume", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> testResme(@RequestParam String approve) { // TODO ChatMessage
-        return interactionService.resumeWorkflowGraph(new ChatMessage(1, "", approve));
+    public Flux<String> testResme(@RequestParam String approve) { // TODO UserChatMessage
+        return interactionService.resumeWorkflowGraph(new UserChatMessage(1, "", approve));
     }
 
 }

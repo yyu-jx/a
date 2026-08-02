@@ -1,7 +1,7 @@
 package com.superyoudi.businessservice.service.impl;
 
-import com.superyoudi.businessservice.mapper.CoursesMapper;
-import com.superyoudi.businessservice.pojo.entity.Courses;
+import com.superyoudi.businessservice.mapper.CourseMapper;
+import com.superyoudi.businessservice.pojo.entity.Course;
 import com.superyoudi.businessservice.pojo.vo.CoursesVO;
 import com.superyoudi.businessservice.service.CourseService;
 import com.superyoudi.common.exception.CourseNotExistException;
@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class CourseServiceImpl implements CourseService {
 
-    private final CoursesMapper coursesMapper;
+    private final CourseMapper courseMapper;
 
     /**
      * 获取单门课程详情
@@ -23,14 +23,14 @@ public class CourseServiceImpl implements CourseService {
      */
     @Override
     public CoursesVO getCourseInfo(Long courseId) {
-        Courses courses = coursesMapper.selectCourseDetailById(courseId);
-        if (courses == null) {
+        Course course = courseMapper.selectCourseDetailById(courseId);
+        if (course == null) {
             // 抛出业务异常：课程不存在
             throw new CourseNotExistException("课程不存在");
         }
 
         CoursesVO vo = new CoursesVO();
-        BeanUtils.copyProperties(courses, vo);
+        BeanUtils.copyProperties(course, vo);
 
         return vo;
     }

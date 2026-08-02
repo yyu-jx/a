@@ -30,9 +30,9 @@ CREATE TABLE `classes`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='班级表';
 
--- 3. 课程表 courses
-DROP TABLE IF EXISTS `courses`;
-CREATE TABLE `courses`
+-- 3. 课程表 course
+DROP TABLE IF EXISTS `course`;
+CREATE TABLE `course`
 (
     `id`          BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
     `name`        VARCHAR(128)                NOT NULL COMMENT '课程名称',
@@ -266,13 +266,13 @@ CREATE TABLE `chat_session`
 DROP TABLE IF EXISTS `chat_messages`;
 CREATE TABLE `chat_messages`
 (
-    `id`        BIGINT AUTO_INCREMENT PRIMARY KEY,
-    `chat_id`   BIGINT                                NOT NULL,
-    `msg_seq`   INT                                   NOT NULL COMMENT '会话内序号',
-    `msg_type`  ENUM ('text','media','file','system') NOT NULL,
-    `sender_id` BIGINT                                NOT NULL,
-    `message`   TEXT COMMENT '消息JSON/URL',
-    `sent_at`   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `id`       BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `chat_id`  BIGINT                       NOT NULL,
+    `msg_seq`  INT                          NOT NULL COMMENT '会话内序号',
+    `msg_type` ENUM ('text','media','file') NOT NULL,
+    `role`     ENUM ('user','ai','system')  NOT NULL,
+    `message`  TEXT COMMENT '消息JSON/URL',
+    `sent_at`  DATETIME DEFAULT CURRENT_TIMESTAMP,
     KEY idx_chat (`chat_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='对话消息';

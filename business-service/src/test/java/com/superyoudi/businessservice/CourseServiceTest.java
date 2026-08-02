@@ -1,7 +1,7 @@
 package com.superyoudi.businessservice;
 
-import com.superyoudi.businessservice.mapper.CoursesMapper;
-import com.superyoudi.businessservice.pojo.entity.Courses;
+import com.superyoudi.businessservice.mapper.CourseMapper;
+import com.superyoudi.businessservice.pojo.entity.Course;
 import com.superyoudi.businessservice.pojo.vo.CoursesVO;
 import com.superyoudi.businessservice.service.impl.CourseServiceImpl;
 import com.superyoudi.common.exception.CourseNotExistException;
@@ -18,7 +18,7 @@ public class CourseServiceTest {
 
     // Mock Mapper 依赖
     @Mock
-    private CoursesMapper coursesMapper;
+    private CourseMapper courseMapper;
 
     // 将mock注入到待测试Service
     @InjectMocks
@@ -30,13 +30,13 @@ public class CourseServiceTest {
     @Test
     void getCourseInfo_Success() {
         // 1.构造模拟DO数据
-        Courses mockCourse = new Courses();
+        Course mockCourse = new Course();
         mockCourse.setId(1l);
         mockCourse.setName("Java基础课程");
         mockCourse.setTeacherName("张老师");
 
         // 模拟mapper返回数据
-        Mockito.when(coursesMapper.selectCourseDetailById(Mockito.anyLong()))
+        Mockito.when(courseMapper.selectCourseDetailById(Mockito.anyLong()))
                 .thenReturn(mockCourse);
 
         // 2.执行方法
@@ -55,7 +55,7 @@ public class CourseServiceTest {
     @Test
     void getCourseInfo_NotFound_ThrowException() {
         // mock返回null
-        Mockito.when(coursesMapper.selectCourseDetailById(999l))
+        Mockito.when(courseMapper.selectCourseDetailById(999l))
                 .thenReturn(null);
 
         // 断言抛出指定异常

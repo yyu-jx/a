@@ -42,7 +42,7 @@ public class HomeServiceTest {
     @Mock
     private KnowledgeHomeService knowledgeHomeService;
     @Mock
-    private CoursesMapper coursesMapper;
+    private CourseMapper courseMapper;
 
     @Mock
     private KnowledgeMasteryMapper knowledgeMasteryMapper;
@@ -142,7 +142,7 @@ public class HomeServiceTest {
         when(learningPathNodesMapper.selectProceedingKnowledgeId(mockPathId)).thenReturn(mockKpId);
         when(learningPathNodesMapper.countUntestedNode(mockPathId)).thenReturn(2);
         when(knowledgeHomeService.batchGetKnowledge(List.of(mockKpId))).thenReturn(List.of(dto));
-        when(coursesMapper.getNameById(mockCourseId)).thenReturn("操作系统 — 内存管理");
+        when(courseMapper.getNameById(mockCourseId)).thenReturn("操作系统 — 内存管理");
 
         LastStudyRecordVO vo = homeService.getLatestStudyRecord(userId);
 

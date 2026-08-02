@@ -1,8 +1,5 @@
 package com.superyoudi.businessservice.controller.student;
 
-import com.superyoudi.businessservice.pojo.entity.Courses;
-
-
 
 import com.superyoudi.businessservice.pojo.vo.CoursesVO;
 import com.superyoudi.businessservice.service.CourseService;
@@ -10,7 +7,6 @@ import com.superyoudi.common.entity.Result;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController

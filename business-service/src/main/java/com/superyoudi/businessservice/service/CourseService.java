@@ -1,6 +1,5 @@
 package com.superyoudi.businessservice.service;
 
-import com.superyoudi.businessservice.pojo.entity.Courses;
 import com.superyoudi.businessservice.pojo.vo.CoursesVO;
 
 public interface CourseService {

@@ -2,6 +2,7 @@ package com.superyoudi.coursewareservice.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.superyoudi.common.utils.MathUtils;
 import io.humble.video.*;
 import io.humble.video.awt.MediaPictureConverter;
 import io.humble.video.awt.MediaPictureConverterFactory;
@@ -293,7 +294,6 @@ public class UniversalUtils {
     public static String cleanYamlText(String yamlText) {
         return yamlText.replaceAll("```yaml", "").replaceAll("```", "");
     }
-
 
     /**
      * 将16进制颜色转换为Color对象
