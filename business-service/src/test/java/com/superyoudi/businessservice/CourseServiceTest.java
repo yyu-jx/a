@@ -31,16 +31,16 @@ public class CourseServiceTest {
     void getCourseInfo_Success() {
         // 1.构造模拟DO数据
         Courses mockCourse = new Courses();
-        mockCourse.setId(1);
+        mockCourse.setId(1l);
         mockCourse.setName("Java基础课程");
         mockCourse.setTeacherName("张老师");
 
         // 模拟mapper返回数据
-        Mockito.when(coursesMapper.selectCourseDetailById(Mockito.anyInt()))
+        Mockito.when(coursesMapper.selectCourseDetailById(Mockito.anyLong()))
                 .thenReturn(mockCourse);
 
         // 2.执行方法
-        CoursesVO vo = courseService.getCourseInfo(1);
+        CoursesVO vo = courseService.getCourseInfo(1l);
 
         // 3.断言校验
         Assertions.assertNotNull(vo);
@@ -55,12 +55,12 @@ public class CourseServiceTest {
     @Test
     void getCourseInfo_NotFound_ThrowException() {
         // mock返回null
-        Mockito.when(coursesMapper.selectCourseDetailById(999))
+        Mockito.when(coursesMapper.selectCourseDetailById(999l))
                 .thenReturn(null);
 
         // 断言抛出指定异常
         CourseNotExistException exception = Assertions.assertThrows(CourseNotExistException.class, () -> {
-            courseService.getCourseInfo(999);
+            courseService.getCourseInfo(999l);
         });
         Assertions.assertEquals("课程不存在", exception.getMessage());
     }

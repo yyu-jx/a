@@ -15,5 +15,5 @@ public interface LearningPathsMapper {
             "FROM learning_paths " +
             "WHERE student_id = #{studentId} " +
             "ORDER BY updated_at DESC LIMIT 1")
-    LearningPaths selectLatestPathByStudentId(Integer studentId);
+    LearningPaths selectLatestPathByStudentId(Long studentId);
 }

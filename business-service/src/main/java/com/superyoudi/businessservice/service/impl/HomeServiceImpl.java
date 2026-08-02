@@ -37,7 +37,7 @@ public class HomeServiceImpl implements HomeService {
      * @return 最近一次学习记录
      */
     @Override
-    public LastStudyRecordVO getLatestStudyRecord(Integer userId) {
+    public LastStudyRecordVO getLatestStudyRecord(Long userId) {
         // ========== 步骤1：查询学生【最新的学习路径】按updated_at倒序取第一条 ==========
         LearningPaths latestPath = learningPathsMapper.selectLatestPathByStudentId(userId);
         if (latestPath == null) {
@@ -91,7 +91,7 @@ public class HomeServiceImpl implements HomeService {
      * @return 学习概览
      */
     @Override
-    public StudyOverview getStudyOverview(Integer userId){
+    public StudyOverview getStudyOverview(Long userId){
         //拿到学习概览数据
         StudyOverview vo=studentCourseProgressesMapper.getAvgProgresses(userId);
         //如果课程总数为0，则吧其他数据设置为0
@@ -115,7 +115,7 @@ public class HomeServiceImpl implements HomeService {
      * @return 薄弱知识点列表
      */
     @Override
-    public List<WeakKnowledgeVO> getTop5WeakKnowledge(Integer userId) {
+    public List<WeakKnowledgeVO> getTop5WeakKnowledge(Long userId) {
         List<StudentKnowledgeMastery> rawList = knowledgeMasteryMapper.selectTop5WeakKnowledge(userId);
         if (rawList.isEmpty()) {
             return Collections.emptyList();

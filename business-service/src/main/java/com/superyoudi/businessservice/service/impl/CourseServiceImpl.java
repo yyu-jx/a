@@ -22,7 +22,7 @@ public class CourseServiceImpl implements CourseService {
      * @return 课程信息
      */
     @Override
-    public CoursesVO getCourseInfo(Integer courseId) {
+    public CoursesVO getCourseInfo(Long courseId) {
         Courses courses = coursesMapper.selectCourseDetailById(courseId);
         if (courses == null) {
             // 抛出业务异常：课程不存在

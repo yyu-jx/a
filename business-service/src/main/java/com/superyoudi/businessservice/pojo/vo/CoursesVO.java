@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Data
 public class CoursesVO {
 
-    private Integer id;
+    private Long id;
 
     /** 课程名称 */
     private String name;

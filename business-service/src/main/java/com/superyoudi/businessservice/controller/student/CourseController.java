@@ -25,7 +25,7 @@ public class CourseController {
      * @return 课程信息
      */
     @GetMapping("/course/{courseId}")
-    public Result<CoursesVO> getCourse(@PathVariable Integer courseId) {
+    public Result<CoursesVO> getCourse(@PathVariable Long courseId) {
         CoursesVO courseInfo = courseService.getCourseInfo(courseId);
         return Result.success(courseInfo);
     }

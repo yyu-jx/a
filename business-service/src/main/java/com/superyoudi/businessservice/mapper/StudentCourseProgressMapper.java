@@ -23,5 +23,5 @@ public interface StudentCourseProgressMapper {
             "  AVG(task_completion_rate) AS avg_task_completion_rate\n" +
             "FROM student_course_progresses\n" +
             "WHERE student_id = #{studentId};")
-    StudyOverview getAvgProgresses(Integer studentId);
+    StudyOverview getAvgProgresses(Long studentId);
 }

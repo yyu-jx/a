@@ -22,5 +22,5 @@ public interface CoursesMapper {
             "FROM courses c " +
             "LEFT JOIN users u ON c.teacher_id = u.id " +
             "WHERE c.id = #{courseId}")
-    Courses selectCourseDetailById(Integer courseId);
+    Courses selectCourseDetailById(Long courseId);
 }

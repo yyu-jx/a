@@ -11,5 +11,5 @@ public interface CourseService {
      * @param courseId 课程id
      * @return 课程信息
      */
-    CoursesVO getCourseInfo(Integer courseId);
+    CoursesVO getCourseInfo(Long courseId);
 }

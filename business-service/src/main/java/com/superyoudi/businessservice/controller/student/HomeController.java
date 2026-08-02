@@ -27,7 +27,7 @@ public class HomeController {
      * @author gaoyuxin
      */
     @GetMapping("/study/overview")
-    public Result<StudyOverview> studyOverview(Integer userId) {
+    public Result<StudyOverview> studyOverview(Long userId) {
         StudyOverview studyOverviewVO=homeService.getStudyOverview(userId);
         return Result.success(studyOverviewVO);
     }
@@ -39,7 +39,7 @@ public class HomeController {
      * @return 最近学习记录
      * @author gaoyuxin
      */
-    public Result<LastStudyRecordVO> getLatestStudyRecord(Integer userId) {
+    public Result<LastStudyRecordVO> getLatestStudyRecord(Long userId) {
         LastStudyRecordVO vo = homeService.getLatestStudyRecord(userId);
         return Result.success(vo);
     }
@@ -51,7 +51,7 @@ public class HomeController {
      * @return 薄弱知识点列表
      */
     @GetMapping("/weakests")
-    public Result<List<WeakKnowledgeVO>> getWeakestKnowledge(Integer userId) {
+    public Result<List<WeakKnowledgeVO>> getWeakestKnowledge(Long userId) {
         List<WeakKnowledgeVO> result = homeService.getTop5WeakKnowledge(userId);
         return Result.success(result);
     }
