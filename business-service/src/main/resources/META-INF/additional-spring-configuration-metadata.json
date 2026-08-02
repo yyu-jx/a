@@ -1,0 +1,13 @@
+{
+  "properties": [
+    {
+      "name": "app.storage.exports",
+      "type": "java.lang.String",
+      "description": "导出文件的路径."
+    },
+    {
+      "name": "app.storage.uploads",
+      "type": "java.lang.String",
+      "description": "上传文件的路径."
+    }
+  ] }

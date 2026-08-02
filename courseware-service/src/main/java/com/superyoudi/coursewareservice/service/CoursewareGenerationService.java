@@ -1,11 +1,14 @@
 package com.superyoudi.coursewareservice.service;
 
-import com.superyoudi.coursewareservice.websocket.dto.GenerationMessage;
+import com.microsoft.playwright.Page;
+import com.superyoudi.coursewareservice.dto.CoursewareGenData;
+import com.superyoudi.coursewareservice.dto.CoursewareRecord;
+import com.superyoudi.coursewareservice.dto.GenerationStatus;
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 智能体服务
@@ -15,12 +18,19 @@ import java.util.Map;
 @Service
 public interface CoursewareGenerationService {
 
-    /**
-     * 获取存储路径
-     *
-     * @return 存储路径
-     */
-    String getStoragePath();
+    CoursewareRecord recoverCoursewareRecord(Long id);
+
+    String exportCourseware(CoursewareGenData coursewareGenData) throws IOException;
+
+    String getPptHtml(Long coursewareId);
+
+    String getWordHtml(Long coursewareId);
+
+    Page getPptSlidePage(Long coursewareId);
+
+    Page getDocumentPage(Long coursewareId);
+
+    void notifyCoursewareGeneratingStatus(GenerationStatus message);
 
     /**
      * 搜索用户文件
@@ -49,21 +59,4 @@ public interface CoursewareGenerationService {
      */
     String generateImageUrl(String prompt, int width, int height);
 
-    /**
-     * 打包文件并通知用户
-     *
-     * @param userId        用户ID
-     * @param originalFiles 文件映射 - <类型, 文件名>
-     * @param zipName       压缩包名称
-     * @author Sijayyx
-     */
-    void packageFileAndNotify(Integer userId, Map<String, String> originalFiles, String zipName);
-
-    /**
-     * 通知用户文件生成进度
-     *
-     * @param message 进度信息
-     * @author Sijayyx
-     */
-    void notifyFileGeneratingStatus(GenerationMessage message);
 }

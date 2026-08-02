@@ -1,6 +1,6 @@
 package com.superyoudi.businessservice.controller.student;
 
-import com.superyoudi.businessservice.pojo.entity.Result;
+import com.superyoudi.common.entity.Result;
 import com.superyoudi.businessservice.pojo.entity.StudyOverview;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
 import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;

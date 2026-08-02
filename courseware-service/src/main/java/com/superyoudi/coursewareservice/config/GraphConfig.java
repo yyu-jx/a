@@ -12,9 +12,9 @@ import com.superyoudi.coursewareservice.ai.node.*;
 import com.superyoudi.coursewareservice.ai.tools.HtmlPptTools;
 import com.superyoudi.coursewareservice.ai.tools.HtmlWordTools;
 import com.superyoudi.coursewareservice.ai.tools.RagTools;
-import com.superyoudi.coursewareservice.component.PlaywrightManager;
+import com.superyoudi.coursewareservice.dto.GenerationStatus;
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;
-import com.superyoudi.coursewareservice.websocket.dto.GenerationMessage;
+import com.superyoudi.coursewareservice.service.CoursewareRecordService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
@@ -37,6 +37,8 @@ public class GraphConfig {
 
     /// 用户ID
     public static final String KEY_USER_ID = "user_id";
+    /// 课件生成记录ID
+    public static final String KEY_COURSEWARE_ID = "courseware_id";
     /// 用户输入
     public static final String KEY_INPUT = "input";
     /// HITL的用户反馈信息（如果有）
@@ -80,11 +82,13 @@ public class GraphConfig {
     public static final String SUBGRAPH_PPT_GENERATION = "pptGenSubGraph";
 
     private final CoursewareGenerationService coursewareGenerationService;
-    private final PlaywrightManager playwrightManager;
+    private final HtmlPptTools htmlPptTools;
+    private final HtmlWordTools htmlWordTools;
 
-    public GraphConfig(CoursewareGenerationService coursewareGenerationService, PlaywrightManager playwrightManager) {
+    public GraphConfig(CoursewareGenerationService coursewareGenerationService, HtmlPptTools htmlPptTools, HtmlWordTools htmlWordTools) {
         this.coursewareGenerationService = coursewareGenerationService;
-        this.playwrightManager = playwrightManager;
+        this.htmlPptTools = htmlPptTools;
+        this.htmlWordTools = htmlWordTools;
     }
 
     @Bean
@@ -117,21 +121,22 @@ public class GraphConfig {
     /// @return 工作流图的Bean
     /// @author Sijayyx
     @Bean("coursewareGraph")
-    public CompiledGraph coursewareGraph(ChatClient.Builder chatClient, ChatModel chatModel) throws GraphStateException {
+    public CompiledGraph coursewareGraph(ChatClient.Builder chatClient, ChatModel chatModel, CoursewareRecordService coursewareRecordService) throws GraphStateException {
 
         log.info("正在初始化 CoursewareGraph。");
 
-        KeyStrategyFactory keyStrategyFactory = () -> Map.of(
-                KEY_USER_ID, KeyStrategy.REPLACE,
-                KEY_INPUT, KeyStrategy.REPLACE,
-                KEY_RESPONSE, KeyStrategy.APPEND,
-                KEY_USER_ADDITIONAL_DATA, KeyStrategy.REPLACE,
-                KEY_GENERATION_INFO, KeyStrategy.REPLACE,
-                KEY_SHOULD_GENERATE, KeyStrategy.REPLACE,
-                KEY_AGENTS_INFO, KeyStrategy.APPEND,
-                KEY_PPT_OUTLINE, KeyStrategy.REPLACE,
-                KEY_HITL_USER_FEEDBACK, KeyStrategy.REPLACE,
-                KEY_HITL_APPROVE_STATUS, KeyStrategy.REPLACE
+        KeyStrategyFactory keyStrategyFactory = () -> Map.ofEntries(
+                Map.entry(KEY_USER_ID, KeyStrategy.REPLACE),
+                Map.entry(KEY_COURSEWARE_ID, KeyStrategy.REPLACE),
+                Map.entry(KEY_INPUT, KeyStrategy.REPLACE),
+                Map.entry(KEY_RESPONSE, KeyStrategy.APPEND),
+                Map.entry(KEY_USER_ADDITIONAL_DATA, KeyStrategy.REPLACE),
+                Map.entry(KEY_GENERATION_INFO, KeyStrategy.REPLACE),
+                Map.entry(KEY_SHOULD_GENERATE, KeyStrategy.REPLACE),
+                Map.entry(KEY_AGENTS_INFO, KeyStrategy.APPEND),
+                Map.entry(KEY_PPT_OUTLINE, KeyStrategy.REPLACE),
+                Map.entry(KEY_HITL_USER_FEEDBACK, KeyStrategy.REPLACE),
+                Map.entry(KEY_HITL_APPROVE_STATUS, KeyStrategy.REPLACE)
         );
 
         // 创建 rag 工具
@@ -143,10 +148,8 @@ public class GraphConfig {
         var pptOutlineGenNode = AsyncNodeAction.node_async(new PptOutlineGenNode(chatModel));
         var pptHitlNode = new HumanFeedbackNode();
 
-        var pptGenerationNode = AsyncNodeAction.node_async(new HtmlPptGenNode(chatModel,
-                new HtmlPptTools(playwrightManager.createPage(), playwrightManager.createPage(), coursewareGenerationService)));
-        var wordGenerationNode = AsyncNodeAction.node_async(new HtmlWordGenNode(chatModel,
-                new HtmlWordTools(playwrightManager.createPage())));
+        var pptGenerationNode = AsyncNodeAction.node_async(new HtmlPptGenNode(chatModel, htmlPptTools));
+        var wordGenerationNode = AsyncNodeAction.node_async(new HtmlWordGenNode(chatModel, htmlWordTools));
 
 
         var subAgentsEntryNode = AsyncNodeAction.node_async(state -> {
@@ -155,13 +158,10 @@ public class GraphConfig {
             // 清除AGENTS_INFO和用户输入
             state.updateState(Map.of(
                     KEY_AGENTS_INFO, List.of(),
-                    KEY_INPUT, "",
-                    KEY_USER_ADDITIONAL_DATA, ""
+                    KEY_INPUT, ""
             ));
 
-            coursewareGenerationService.notifyFileGeneratingStatus(GenerationMessage.ofMessage(1, "开始生成"));
-
-            String generationInfo = state.value(KEY_GENERATION_INFO, "如果你看到这个消息，请告诉用户发生了错误。");
+            String generationInfo = state.value(KEY_GENERATION_INFO, "错误");
             return Map.of(KEY_GENERATION_INFO, generationInfo);
         });
 
@@ -169,17 +169,16 @@ public class GraphConfig {
                 state -> {
                     log.info("子Agents出口节点执行");
 
-//                    // 打包，并向前端发送消息
-//                    Map<String, String> fileMap = new HashMap<>();
-//                    if (aiAgentService.getPptData() != null)
-//                        fileMap.put(FileZipper.FILE_PPT, aiAgentService.getPptData().getPptName() + ".pptx");
-//                    if (aiAgentService.getWordData() != null)
-//                        fileMap.put(FileZipper.FILE_WORD, aiAgentService.getWordData().getWordName() + ".docx");
-//
-//                    if (!fileMap.isEmpty()) {
-//                        String zipName = UUID.randomUUID().toString();
-//                        aiAgentService.packageFileAndNotify(1, fileMap, zipName);
-//                    }
+                    // 生成完成，将HTML发送到前端
+                    Long coursewareId = state.value(KEY_COURSEWARE_ID, Long.class).orElse(null);
+                    String pptHtml = coursewareGenerationService.getPptHtml(coursewareId);
+                    String wordHtml = coursewareGenerationService.getWordHtml(coursewareId);
+                    coursewareGenerationService
+                            .notifyCoursewareGeneratingStatus(GenerationStatus.success(coursewareId, pptHtml, wordHtml));
+
+                    // 存表
+                    coursewareRecordService.saveHtmlColumns(coursewareId, pptHtml, wordHtml);
+
                     return Map.of(KEY_AGENTS_INFO, state.value(KEY_AGENTS_INFO, "成功"));
                 }
         );
@@ -191,7 +190,6 @@ public class GraphConfig {
                 .addNode(NODE_PPT_HITL_NODE, pptHitlNode)
                 .addEdge(StateGraph.START, NODE_OUTLINE_GENERATION)
                 .addEdge(NODE_OUTLINE_GENERATION, NODE_PPT_HITL_NODE)
-
                 .addConditionalEdges(NODE_PPT_HITL_NODE,
                         // 处理 HITL
                         AsyncEdgeAction.edge_async(

@@ -7,7 +7,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/edu_ai
     username: root
-    password: Gyx200722
+    password: 114514
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 server:
@@ -21,3 +21,16 @@ server:
 mybatis:
   configuration:
     map-underscore-to-camel-case: true
+
+# 自定义配置
+app:
+  # 存储路径
+  # 请将这里的值换成你电脑上的某个目录，或者项目文件夹的目录（不要加进git）
+  # 正式部署时，使用docker挂载。
+  storage:
+    # 课件生成模块导出的文件
+    exports: 'D:\Desktop\file\exports'
+    # 用户上传的文件
+    uploads: 'D:\Desktop\file\uploads'
+
+
