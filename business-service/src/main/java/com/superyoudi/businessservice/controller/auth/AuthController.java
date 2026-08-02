@@ -2,8 +2,9 @@ package com.superyoudi.businessservice.controller.auth;
 
 import com.superyoudi.businessservice.pojo.dto.LoginRequest;
 import com.superyoudi.businessservice.pojo.dto.LoginResponse;
-import com.superyoudi.businessservice.pojo.entity.Result;
+
 import com.superyoudi.businessservice.service.AuthService;
+import com.superyoudi.common.entity.Result;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

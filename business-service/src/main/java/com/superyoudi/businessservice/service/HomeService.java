@@ -13,7 +13,7 @@ public interface HomeService {
      * @param userId 用户ID
      * @return 最近一次学习记录
      */
-     LastStudyRecordVO getLatestStudyRecord(Integer userId);
+     LastStudyRecordVO getLatestStudyRecord(Long userId);
 
     /**
      * 获取学习概览
@@ -21,7 +21,7 @@ public interface HomeService {
      * @param userId 用户ID
      * @return 学习概览
      */
-    StudyOverview getStudyOverview(Integer userId);
+    StudyOverview getStudyOverview(Long userId);
 
     /**
      * 获取薄弱知识点列表
@@ -29,5 +29,5 @@ public interface HomeService {
      * @param userId 用户ID
      * @return 薄弱知识点列表
      */
-    List<WeakKnowledgeVO> getTop5WeakKnowledge(Integer userId);
+    List<WeakKnowledgeVO> getTop5WeakKnowledge(Long userId);
 }

@@ -19,5 +19,5 @@ public interface KnowledgeMasteryMapper {
             "FROM student_knowledge_masteries " +
             "WHERE student_id = #{userId} AND question_total_count > 0 " +
             "ORDER BY error_rate DESC LIMIT 5")
-    List<StudentKnowledgeMastery> selectTop5WeakKnowledge(Integer userId);
+    List<StudentKnowledgeMastery> selectTop5WeakKnowledge(Long userId);
 }

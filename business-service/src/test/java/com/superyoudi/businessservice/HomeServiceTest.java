@@ -63,10 +63,10 @@ public class HomeServiceTest {
         mockData.setAvgKnowledgeCoverRate(51.30);
         mockData.setAvgTaskCompletionRate(58.70);
 
-        when(studentCourseProgressesMapper.getAvgProgresses(any(Integer.class))).thenReturn(mockData);
+        when(studentCourseProgressesMapper.getAvgProgresses(any(Long.class))).thenReturn(mockData);
 
         //执行真实HomeService里面业务方法
-        StudyOverview result = homeServiceImpl.getStudyOverview(4);
+        StudyOverview result = homeServiceImpl.getStudyOverview(4l);
 
         Assertions.assertNotNull(result);
         Assertions.assertEquals(3, result.getStudyCourseTotal());
@@ -91,9 +91,9 @@ public class HomeServiceTest {
         mockData.setAvgKnowledgeCoverRate(null);
         mockData.setAvgTaskCompletionRate(null);
 
-        when(studentCourseProgressesMapper.getAvgProgresses(any(Integer.class))).thenReturn(mockData);
+        when(studentCourseProgressesMapper.getAvgProgresses(any(Long.class))).thenReturn(mockData);
 
-        StudyOverview result = homeServiceImpl.getStudyOverview(10);
+        StudyOverview result = homeServiceImpl.getStudyOverview(10l);
 
         Assertions.assertNotNull(result);
         Assertions.assertEquals(0, result.getStudyCourseTotal());
@@ -111,7 +111,7 @@ public class HomeServiceTest {
     // 场景1：用户没有任何学习记录，返回null
     @Test
     void getLatestStudyRecord_NoStudyRecord_ReturnNull() {
-        Integer userId = 10001;
+        Long userId = 10001l;
         when(learningPathsMapper.selectLatestPathByStudentId(userId)).thenReturn(null);
 
         LastStudyRecordVO vo = homeService.getLatestStudyRecord(userId);
@@ -124,7 +124,7 @@ public class HomeServiceTest {
     // 场景2：存在学习路径，有进行中的知识点节点，正常组装VO
     @Test
     void getLatestStudyRecord_HasProceedingNode_Success() {
-        Integer userId = 10001;
+        Long userId = 10001l;
         Long mockPathId = 101L;
         Long mockCourseId = 5001L;
         String mockKpId = "kp_008";
@@ -173,7 +173,7 @@ public class HomeServiceTest {
         List<StudentKnowledgeMastery> mockRawList = List.of(mastery);
 
         // mock mapper查询
-        when(knowledgeMasteryMapper.selectTop5WeakKnowledge(anyInt()))
+        when(knowledgeMasteryMapper.selectTop5WeakKnowledge(anyLong()))
                 .thenReturn(mockRawList);
 
         // 构造批量查询知识点返回DTO
@@ -186,7 +186,7 @@ public class HomeServiceTest {
                 .thenReturn(mockDtoList);
 
         // 2. 执行方法
-        List<WeakKnowledgeVO> result = homeService.getTop5WeakKnowledge(1);
+        List<WeakKnowledgeVO> result = homeService.getTop5WeakKnowledge(1l);
 
         // 3. 断言校验
         org.junit.jupiter.api.Assertions.assertNotNull(result);
@@ -205,10 +205,10 @@ public class HomeServiceTest {
     @Test
     void getTop5WeakKnowledge_EmptyData() {
         // mock返回空列表
-        when(knowledgeMasteryMapper.selectTop5WeakKnowledge(anyInt()))
+        when(knowledgeMasteryMapper.selectTop5WeakKnowledge(anyLong()))
                 .thenReturn(List.of());
 
-        List<WeakKnowledgeVO> result = homeService.getTop5WeakKnowledge(1);
+        List<WeakKnowledgeVO> result = homeService.getTop5WeakKnowledge(1l);
 
         org.junit.jupiter.api.Assertions.assertNotNull(result);
         org.junit.jupiter.api.Assertions.assertTrue(result.isEmpty());

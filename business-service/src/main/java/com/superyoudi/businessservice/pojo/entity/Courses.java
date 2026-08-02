@@ -31,6 +31,9 @@ public class Courses {
     /** 任课教师id，外键关联users.id */
     private Long teacherId;
 
+    /** 任课教师名称  课程表无此字段*/
+    private String teacherName;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
