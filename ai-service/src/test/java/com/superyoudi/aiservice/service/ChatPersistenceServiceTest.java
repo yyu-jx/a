@@ -1,7 +1,11 @@
 package com.superyoudi.aiservice.service;
 
+import com.superyoudi.aiservice.mapper.ChatCourseRelMapper;
+import com.superyoudi.aiservice.mapper.ChatCoursewareRecRelMapper;
 import com.superyoudi.aiservice.mapper.ChatMessageMapper;
 import com.superyoudi.aiservice.mapper.ChatSessionMapper;
+import com.superyoudi.aiservice.pojo.entity.ChatCourseRel;
+import com.superyoudi.aiservice.pojo.entity.ChatCoursewareRecRel;
 import com.superyoudi.aiservice.pojo.entity.ChatMessage;
 import com.superyoudi.aiservice.pojo.entity.ChatSession;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,15 +27,21 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ChatPersistenceService 单元测试")
 class ChatPersistenceServiceTest {
-
     @Mock
     private ChatSessionMapper chatSessionMapper;
 
     @Mock
     private ChatMessageMapper chatMessageMapper;
 
+    @Mock
+    private ChatCourseRelMapper chatCourseRelMapper;
+
+    @Mock
+    private ChatCoursewareRecRelMapper chatCoursewareRecRelMapper;
+
     @InjectMocks
     private ChatPersistenceService chatPersistenceService;
+
 
     private ChatSession chatSession;
     private ChatMessage chatMessage;
@@ -243,5 +253,256 @@ class ChatPersistenceServiceTest {
 
         verify(chatSessionMapper).insert(any(ChatSession.class));
         verify(chatMessageMapper).insert(any(ChatMessage.class));
+    }
+
+    @Test
+    @DisplayName("根据用户ID查询会话 - 成功")
+    void shouldReturnChatSession_WhenUserHasSession() {
+        // Given
+        when(chatSessionMapper.selectSingleByUserId(100L)).thenReturn(chatSession);
+
+        // When
+        ChatSession result = chatPersistenceService.getChatSessionByUserId(100L);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(1L);
+        assertThat(result.getUserId()).isEqualTo(100L);
+        verify(chatSessionMapper, times(1)).selectSingleByUserId(100L);
+    }
+
+    @Test
+    @DisplayName("根据用户ID查询会话 - 无会话返回null")
+    void shouldReturnNull_WhenUserHasNoSession() {
+        // Given
+        when(chatSessionMapper.selectSingleByUserId(999L)).thenReturn(null);
+
+        // When
+        ChatSession result = chatPersistenceService.getChatSessionByUserId(999L);
+
+        // Then
+        assertThat(result).isNull();
+        verify(chatSessionMapper, times(1)).selectSingleByUserId(999L);
+    }
+
+    @Test
+    @DisplayName("根据用户ID查询会话 - 不同用户查询各自的会话")
+    void shouldReturnDifferentSessions_ForDifferentUsers() {
+        // Given
+        ChatSession session1 = new ChatSession();
+        session1.setId(1L);
+        session1.setUserId(100L);
+
+        ChatSession session2 = new ChatSession();
+        session2.setId(2L);
+        session2.setUserId(200L);
+
+        when(chatSessionMapper.selectSingleByUserId(100L)).thenReturn(session1);
+        when(chatSessionMapper.selectSingleByUserId(200L)).thenReturn(session2);
+
+        // When
+        ChatSession result1 = chatPersistenceService.getChatSessionByUserId(100L);
+        ChatSession result2 = chatPersistenceService.getChatSessionByUserId(200L);
+
+        // Then
+        assertThat(result1.getUserId()).isEqualTo(100L);
+        assertThat(result2.getUserId()).isEqualTo(200L);
+        assertThat(result1.getId()).isNotEqualTo(result2.getId());
+    }
+
+    @Test
+    @DisplayName("根据课件生成记录ID查询会话 - 成功")
+    void shouldReturnChatSession_WhenCoursewareRecordExists() {
+        // Given
+        when(chatSessionMapper.selectByCoursewareRecordId(200L)).thenReturn(chatSession);
+
+        // When
+        ChatSession result = chatPersistenceService.getChatSessionByCoursewareRecId(200L);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(1L);
+        verify(chatSessionMapper, times(1)).selectByCoursewareRecordId(200L);
+    }
+
+    @Test
+    @DisplayName("根据课件生成记录ID查询会话 - 无关联会话返回null")
+    void shouldReturnNull_WhenNoSessionLinkedToCoursewareRecord() {
+        // Given
+        when(chatSessionMapper.selectByCoursewareRecordId(999L)).thenReturn(null);
+
+        // When
+        ChatSession result = chatPersistenceService.getChatSessionByCoursewareRecId(999L);
+
+        // Then
+        assertThat(result).isNull();
+        verify(chatSessionMapper, times(1)).selectByCoursewareRecordId(999L);
+    }
+
+    @Test
+    @DisplayName("根据课程ID查询会话 - 成功")
+    void shouldReturnChatSession_WhenCourseExists() {
+        // Given
+        when(chatSessionMapper.selectByCourseId(300L)).thenReturn(chatSession);
+
+        // When
+        ChatSession result = chatPersistenceService.getChatSessionByCourseId(300L);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(1L);
+        verify(chatSessionMapper, times(1)).selectByCourseId(300L);
+    }
+
+    @Test
+    @DisplayName("根据课程ID查询会话 - 无关联会话返回null")
+    void shouldReturnNull_WhenCourseHasNoSession() {
+        // Given
+        when(chatSessionMapper.selectByCourseId(999L)).thenReturn(null);
+
+        // When
+        ChatSession result = chatPersistenceService.getChatSessionByCourseId(999L);
+
+        // Then
+        assertThat(result).isNull();
+        verify(chatSessionMapper, times(1)).selectByCourseId(999L);
+    }
+
+    @Test
+    @DisplayName("创建会话与课程关联关系 - 成功")
+    void shouldCreateChatCourseRel_AndReturnAffectedRows() {
+        // Given
+        when(chatCourseRelMapper.insert(any(ChatCourseRel.class))).thenReturn(1L);
+
+        // When
+        Long result = chatPersistenceService.createChatCourseRel(1L, 300L, 100L);
+
+        // Then
+        assertThat(result).isEqualTo(1L);
+        verify(chatCourseRelMapper, times(1)).insert(any(ChatCourseRel.class));
+    }
+
+    @Test
+    @DisplayName("创建会话与课程关联关系 - 验证参数正确传递")
+    void shouldPassCorrectProperties_WhenCreatingChatCourseRel() {
+        // Given
+        when(chatCourseRelMapper.insert(any(ChatCourseRel.class))).thenReturn(1L);
+
+        // When
+        chatPersistenceService.createChatCourseRel(1L, 300L, 100L);
+
+        // Then
+        verify(chatCourseRelMapper).insert(argThat(rel ->
+                rel.getChatId().equals(1L) &&
+                        rel.getCourseId().equals(300L) &&
+                        rel.getUserId().equals(100L) &&
+                        rel.getId() == null
+        ));
+    }
+
+    @Test
+    @DisplayName("创建会话与课程关联关系 - 插入失败返回0")
+    void shouldReturnZero_WhenChatCourseRelInsertFails() {
+        // Given
+        when(chatCourseRelMapper.insert(any(ChatCourseRel.class))).thenReturn(0L);
+
+        // When
+        Long result = chatPersistenceService.createChatCourseRel(1L, 300L, 100L);
+
+        // Then
+        assertThat(result).isEqualTo(0L);
+        verify(chatCourseRelMapper, times(1)).insert(any(ChatCourseRel.class));
+    }
+
+    @Test
+    @DisplayName("创建会话与课件生成记录关联关系 - 成功")
+    void shouldCreateChatCoursewareRecRel_AndReturnAffectedRows() {
+        // Given
+        when(chatCoursewareRecRelMapper.insert(any(ChatCoursewareRecRel.class))).thenReturn(1L);
+
+        // When
+        Long result = chatPersistenceService.createChatCoursewareRecRel(1L, 200L, 100L);
+
+        // Then
+        assertThat(result).isEqualTo(1L);
+        verify(chatCoursewareRecRelMapper, times(1)).insert(any(ChatCoursewareRecRel.class));
+    }
+
+    @Test
+    @DisplayName("创建会话与课件生成记录关联关系 - 验证参数正确传递")
+    void shouldPassCorrectProperties_WhenCreatingChatCoursewareRecRel() {
+        // Given
+        when(chatCoursewareRecRelMapper.insert(any(ChatCoursewareRecRel.class))).thenReturn(1L);
+
+        // When
+        chatPersistenceService.createChatCoursewareRecRel(1L, 200L, 100L);
+
+        // Then
+        verify(chatCoursewareRecRelMapper).insert(argThat(rel ->
+                rel.getChatId().equals(1L) &&
+                        rel.getCoursewareRecordId().equals(200L) &&
+                        rel.getUserId().equals(100L) &&
+                        rel.getId() == null
+        ));
+    }
+
+    @Test
+    @DisplayName("创建会话与课件生成记录关联关系 - 插入失败返回0")
+    void shouldReturnZero_WhenChatCoursewareRecRelInsertFails() {
+        // Given
+        when(chatCoursewareRecRelMapper.insert(any(ChatCoursewareRecRel.class))).thenReturn(0L);
+
+        // When
+        Long result = chatPersistenceService.createChatCoursewareRecRel(1L, 200L, 100L);
+
+        // Then
+        assertThat(result).isEqualTo(0L);
+        verify(chatCoursewareRecRelMapper, times(1)).insert(any(ChatCoursewareRecRel.class));
+    }
+
+    @Test
+    @DisplayName("集成场景 - 查询会话并创建课程和课件关联")
+    void shouldCompleteFullWorkflow_QueryAndCreateRelations() {
+        // Given
+        when(chatSessionMapper.selectSingleByUserId(100L)).thenReturn(chatSession);
+        when(chatCourseRelMapper.insert(any(ChatCourseRel.class))).thenReturn(1L);
+        when(chatCoursewareRecRelMapper.insert(any(ChatCoursewareRecRel.class))).thenReturn(1L);
+
+        // When - 查询用户会话
+        ChatSession session = chatPersistenceService.getChatSessionByUserId(100L);
+
+        // When - 创建课程关联
+        Long courseRelResult = chatPersistenceService.createChatCourseRel(
+                session.getId(), 300L, session.getUserId()
+        );
+
+        // When - 创建课件记录关联
+        Long coursewareRelResult = chatPersistenceService.createChatCoursewareRecRel(
+                session.getId(), 200L, session.getUserId()
+        );
+
+        // Then
+        assertThat(session).isNotNull();
+        assertThat(courseRelResult).isEqualTo(1L);
+        assertThat(coursewareRelResult).isEqualTo(1L);
+
+        verify(chatSessionMapper).selectSingleByUserId(100L);
+        verify(chatCourseRelMapper).insert(any(ChatCourseRel.class));
+        verify(chatCoursewareRecRelMapper).insert(any(ChatCoursewareRecRel.class));
+    }
+
+    @Test
+    @DisplayName("集成场景 - 查询不存在的会话后不创建关联")
+    void shouldNotCreateRelations_WhenSessionNotFound() {
+        // Given
+        when(chatSessionMapper.selectSingleByUserId(999L)).thenReturn(null);
+
+        // When
+        ChatSession session = chatPersistenceService.getChatSessionByUserId(999L);
+
+        // Then
+        assertThat(session).isNull();
+        verify(chatCourseRelMapper, never()).insert(any());
+        verify(chatCoursewareRecRelMapper, never()).insert(any());
     }
 }
