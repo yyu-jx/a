@@ -554,3 +554,17 @@ CREATE TABLE `teacher_question_analysises`
     UNIQUE KEY uk_question (`question_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='题目学情分析统计';
+
+-- 36. 会话 课件生成记录 关联表 chat_courseware_rec_rel
+DROP TABLE IF EXISTS `chat_courseware_rec_rel`;
+CREATE TABLE `chat_courseware_rec_rel`
+(
+    `id`                   BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `chat_id`              BIGINT NOT NULL COMMENT '会话ID',
+    `courseware_record_id` BIGINT NOT NULL COMMENT '课件生成记录ID',
+    `user_id`              BIGINT NOT NULL COMMENT '教师ID',
+    UNIQUE KEY uk_chat (`chat_id`),
+    UNIQUE KEY uk_courseware_record (`courseware_record_id`) COMMENT '一个课件记录只关联一个会话',
+    KEY idx_user (`user_id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='会话-课件生成记录关联表';

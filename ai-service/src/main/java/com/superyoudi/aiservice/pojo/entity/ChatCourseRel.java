@@ -1,11 +1,15 @@
 package com.superyoudi.aiservice.pojo.entity;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @author Sijayyx
  */
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class ChatCourseRel {
     /**
      * 主键id
