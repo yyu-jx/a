@@ -27,7 +27,7 @@ public class HomeServiceImpl implements HomeService {
     private final LearningPathsMapper learningPathsMapper;
     private final LearningPathNodesMapper learningPathNodesMapper;
     private final KnowledgeHomeService knowledgeHomeService;
-    private final CoursesMapper coursesMapper;
+    private final CourseMapper courseMapper;
     private final KnowledgeMasteryMapper knowledgeMasteryMapper;
 
     /**
@@ -70,7 +70,7 @@ public class HomeServiceImpl implements HomeService {
             }
         }
         // ========== 步骤5：查询课程名称 ==========
-        String courseName=coursesMapper.getNameById(courseId);
+        String courseName= courseMapper.getNameById(courseId);
 
         // ========== 步骤6：组装VO返回 ==========
         LastStudyRecordVO vo = new LastStudyRecordVO();

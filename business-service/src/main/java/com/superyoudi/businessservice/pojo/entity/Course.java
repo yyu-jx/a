@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
  * 对应数据库 课程表 courses
  */
 @Data
-public class Courses {
+public class Course {
 
     private Long id;
 

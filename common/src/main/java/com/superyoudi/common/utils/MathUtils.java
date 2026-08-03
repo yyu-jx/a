@@ -1,4 +1,4 @@
-package com.superyoudi.coursewareservice.utils;
+package com.superyoudi.common.utils;
 
 
 /**

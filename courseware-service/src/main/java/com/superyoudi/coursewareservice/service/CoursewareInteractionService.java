@@ -6,7 +6,7 @@ import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.action.InterruptionMetadata;
 import com.alibaba.cloud.ai.graph.streaming.OutputType;
 import com.alibaba.cloud.ai.graph.streaming.StreamingOutput;
-import com.superyoudi.aiservice.dto.ChatMessage;
+import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.stereotype.Service;
@@ -34,15 +34,15 @@ public class CoursewareInteractionService {
     /**
      * 将用户输入传入工作流图中，并返回结果
      *
-     * @param chatMessage 聊天信息
+     * @param userChatMessage 聊天信息
      * @return 用户流式输出
      * @author Sijayyx
      */
-    public Flux<String> executeWorkflowGraph(ChatMessage chatMessage) {
-        Integer userId = chatMessage.getUserId();
-        String input = chatMessage.getMessage();
+    public Flux<String> executeWorkflowGraph(UserChatMessage userChatMessage) {
+        Integer userId = userChatMessage.getUserId();
+        String input = userChatMessage.getMessage();
 
-        Long coursewareId = (Long) chatMessage.getAdditionalData();
+        Long coursewareId = (Long) userChatMessage.getAdditionalData();
 
         // 构建线程ID
         String threadId = constructThreadId(userId);
@@ -63,14 +63,14 @@ public class CoursewareInteractionService {
                 .map(output -> handleStreamingOutput(output, threadId));
     }
 
-    public Flux<String> resumeWorkflowGraph(ChatMessage chatMessage) {
-        Integer userId = chatMessage.getUserId();
+    public Flux<String> resumeWorkflowGraph(UserChatMessage userChatMessage) {
+        Integer userId = userChatMessage.getUserId();
         String resumeStatus = "APPROVE"; // APPROVE | EDIT | REJECT
         String resumeUserFeedback = "修改状态下的修改意见。"; // TODO 解析这个
 //        try {
 //            resumeStatus = mapper.writeValueAsString(input);
 //        } catch (JsonProcessingException e) {
-//            log.error("ChatMessage JSON转换错误: {}", e.getMessage());
+//            log.error("UserChatMessage JSON转换错误: {}", e.getMessage());
 //        }
 
         // 构建线程ID

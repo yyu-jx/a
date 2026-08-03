@@ -30,9 +30,9 @@ CREATE TABLE `classes`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='班级表';
 
--- 3. 课程表 courses
-DROP TABLE IF EXISTS `courses`;
-CREATE TABLE `courses`
+-- 3. 课程表 course
+DROP TABLE IF EXISTS `course`;
+CREATE TABLE `course`
 (
     `id`          BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
     `name`        VARCHAR(128)                NOT NULL COMMENT '课程名称',
@@ -266,13 +266,13 @@ CREATE TABLE `chat_session`
 DROP TABLE IF EXISTS `chat_messages`;
 CREATE TABLE `chat_messages`
 (
-    `id`        BIGINT AUTO_INCREMENT PRIMARY KEY,
-    `chat_id`   BIGINT                                NOT NULL,
-    `msg_seq`   INT                                   NOT NULL COMMENT '会话内序号',
-    `msg_type`  ENUM ('text','media','file','system') NOT NULL,
-    `sender_id` BIGINT                                NOT NULL,
-    `message`   TEXT COMMENT '消息JSON/URL',
-    `sent_at`   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `id`       BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `chat_id`  BIGINT                       NOT NULL,
+    `msg_seq`  INT                          NOT NULL COMMENT '会话内序号',
+    `msg_type` ENUM ('text','media','file') NOT NULL,
+    `role`     ENUM ('user','ai','system')  NOT NULL,
+    `message`  TEXT COMMENT '消息JSON/URL',
+    `sent_at`  DATETIME DEFAULT CURRENT_TIMESTAMP,
     KEY idx_chat (`chat_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='对话消息';
@@ -554,3 +554,17 @@ CREATE TABLE `teacher_question_analysises`
     UNIQUE KEY uk_question (`question_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='题目学情分析统计';
+
+-- 36. 会话 课件生成记录 关联表 chat_courseware_rec_rel
+DROP TABLE IF EXISTS `chat_courseware_rec_rel`;
+CREATE TABLE `chat_courseware_rec_rel`
+(
+    `id`                   BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `chat_id`              BIGINT NOT NULL COMMENT '会话ID',
+    `courseware_record_id` BIGINT NOT NULL COMMENT '课件生成记录ID',
+    `user_id`              BIGINT NOT NULL COMMENT '教师ID',
+    UNIQUE KEY uk_chat (`chat_id`),
+    UNIQUE KEY uk_courseware_record (`courseware_record_id`) COMMENT '一个课件记录只关联一个会话',
+    KEY idx_user (`user_id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='会话-课件生成记录关联表';

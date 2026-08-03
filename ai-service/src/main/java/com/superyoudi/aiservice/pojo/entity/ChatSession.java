@@ -1,6 +1,7 @@
-package com.superyoudi.businessservice.pojo.entity;
+package com.superyoudi.aiservice.pojo.entity;
 
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 /**
@@ -9,10 +10,16 @@ import java.time.LocalDateTime;
  */
 @Data
 public class ChatSession {
-    /** 主键id */
+    /**
+     * 主键id
+     */
     private Long id;
-    /** 对应用户id */
+    /**
+     * 对应用户id
+     */
     private Long userId;
-    /** 创建时间 */
+    /**
+     * 创建时间
+     */
     private LocalDateTime createdAt;
 }
