@@ -32,8 +32,8 @@ public interface StudentCourseProgressMapper {
      * 获取学生课程进度
      *
      * @param userId      用户ID
-     * @param relateCourseIds 关联课程ID列表
+     * @param CourseIds 关联课程ID列表
      * @return 学生课程进度列表
      */
-    List<StudentCourseProgress> selectProgressByStudentAndCourseIds(Long userId, List<Long> relateCourseIds);
+    List<StudentCourseProgress> selectProgressByStudentAndCourseIds(Long userId, List<Long> CourseIds);
 }

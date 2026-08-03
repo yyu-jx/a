@@ -36,7 +36,7 @@ public class CourseServiceTest {
         mockCourse.setTeacherName("张老师");
 
         // 模拟mapper返回数据
-        Mockito.when(courseMapper.selectCourseDetailById(Mockito.anyLong()))
+        Mockito.when(courseMapper.selectCourseById(Mockito.anyLong()))
                 .thenReturn(mockCourse);
 
         // 2.执行方法
@@ -55,7 +55,7 @@ public class CourseServiceTest {
     @Test
     void getCourseInfo_NotFound_ThrowException() {
         // mock返回null
-        Mockito.when(courseMapper.selectCourseDetailById(999l))
+        Mockito.when(courseMapper.selectCourseById(999l))
                 .thenReturn(null);
 
         // 断言抛出指定异常
