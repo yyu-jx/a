@@ -30,4 +30,6 @@ public interface HomeService {
      * @return 薄弱知识点列表
      */
     List<WeakKnowledgeVO> getTop5WeakKnowledge(Long userId);
+
+    String getAiSuggestions(Long userId);
 }

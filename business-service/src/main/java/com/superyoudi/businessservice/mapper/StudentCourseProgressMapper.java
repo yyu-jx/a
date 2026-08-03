@@ -1,8 +1,11 @@
 package com.superyoudi.businessservice.mapper;
 
 import com.superyoudi.businessservice.pojo.entity.StudyOverview;
+import com.superyoudi.common.dto.StudentCourseProgress;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
 
 @Mapper
 public interface StudentCourseProgressMapper {
@@ -24,4 +27,13 @@ public interface StudentCourseProgressMapper {
             "FROM student_course_progresses\n" +
             "WHERE student_id = #{studentId};")
     StudyOverview getAvgProgresses(Long studentId);
+
+    /**
+     * 获取学生课程进度
+     *
+     * @param userId      用户ID
+     * @param relateCourseIds 关联课程ID列表
+     * @return 学生课程进度列表
+     */
+    List<StudentCourseProgress> selectProgressByStudentAndCourseIds(Long userId, List<Long> relateCourseIds);
 }
