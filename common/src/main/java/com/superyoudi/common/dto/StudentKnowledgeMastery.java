@@ -1,6 +1,7 @@
-package com.superyoudi.businessservice.pojo.entity;
+package com.superyoudi.common.dto;
 
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 /**
@@ -28,6 +29,11 @@ public class StudentKnowledgeMastery {
      * 知识点Neo4j唯一id
      */
     private String knowledgeId;
+
+    /**
+     * 知识点名称 数据库不存在，查询映射使用
+     */
+    private String knowledgeName;
 
     /**
      * 掌握率

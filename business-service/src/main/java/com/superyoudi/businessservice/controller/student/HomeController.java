@@ -45,10 +45,11 @@ public class HomeController {
     }
 
     /**
-     * 获取学生弱项TOP5知识点
-     * 接口地址：GET /knowledge/weakests
-     * @param userId 学生ID
-     * @return 薄弱知识点列表
+     * 获取最薄弱知识点
+     *
+     * @param userId
+     * @return 最薄弱知识点
+     * @author gaoyuxin
      */
     @GetMapping("/weakests")
     public Result<List<WeakKnowledgeVO>> getWeakestKnowledge(Long userId) {
@@ -56,4 +57,9 @@ public class HomeController {
         return Result.success(result);
     }
 
+    @GetMapping("/ai/suggestions/student")
+    public Result<String> getAiSuggestions(Long userId) {
+        String aiSuggestions = homeService.getAiSuggestions(userId);
+        return Result.success(aiSuggestions);
+    }
 }

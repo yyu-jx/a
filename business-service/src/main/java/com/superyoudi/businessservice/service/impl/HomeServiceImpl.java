@@ -1,22 +1,31 @@
 package com.superyoudi.businessservice.service.impl;
 
+import com.superyoudi.aiservice.service.HomeAiService;
 import com.superyoudi.businessservice.mapper.*;
 
 import com.superyoudi.businessservice.pojo.entity.LearningPaths;
-import com.superyoudi.businessservice.pojo.entity.StudentKnowledgeMastery;
 import com.superyoudi.businessservice.pojo.entity.StudyOverview;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
 import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;
 import com.superyoudi.businessservice.service.HomeService;
+import com.superyoudi.common.dto.StudentCourseProgress;
+import com.superyoudi.common.dto.StudentKnowledgeMastery;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.service.KnowledgeHomeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import static com.superyoudi.common.constant.RedisConstant.AI_SUGGEST_CACHE_HOUR;
+import static com.superyoudi.common.constant.RedisConstant.AI_SUGGEST_CACHE_KEY;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +38,9 @@ public class HomeServiceImpl implements HomeService {
     private final KnowledgeHomeService knowledgeHomeService;
     private final CourseMapper courseMapper;
     private final KnowledgeMasteryMapper knowledgeMasteryMapper;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final HomeAiService homeAIService;
+
 
     /**
      * 获取最近一次学习记录
@@ -147,6 +159,73 @@ public class HomeServiceImpl implements HomeService {
             vo.setKnowledgeName(knowledgeNameMap.getOrDefault(d.getKnowledgeId(), "未知知识点"));
             return vo;
         }).collect(Collectors.toList());
+    }
+
+
+    /**
+     * 获取AI学习建议
+     *
+     * @param userId 用户ID
+     * @return AI学习建议
+     */
+    @Override
+    public String getAiSuggestions(Long userId) {
+        // 1. 先查Redis缓存
+        String cacheKey = AI_SUGGEST_CACHE_KEY + userId;
+        String cacheText = stringRedisTemplate.opsForValue().get(cacheKey);
+        if (cacheText != null) {
+            return cacheText;
+        }
+
+        // 1、查询学生TOP3薄弱知识点
+        List<StudentKnowledgeMastery> weakKnowledgeList = knowledgeMasteryMapper.selectTop3WeakKnowledge(userId);
+        // 兜底：无薄弱知识点
+        if (weakKnowledgeList == null || weakKnowledgeList.isEmpty()) {
+            return "暂无学习薄弱数据，继续保持学习！";
+        }
+
+        // 2、提取薄弱知识点对应的courseId，去重
+        List<Long> relateCourseIds = weakKnowledgeList.stream()
+                .map(StudentKnowledgeMastery::getCourseId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 3、查询【薄弱知识点所属课程】的进度
+        List<StudentCourseProgress> progressList = List.of();
+        if (!relateCourseIds.isEmpty()) {
+            progressList = studentCourseProgressesMapper.selectProgressByStudentAndCourseIds(userId, relateCourseIds);
+        }
+
+        // 4、提取知识点ID，调用知识库批量查询知识点名称
+        List<String> knowledgeIds = weakKnowledgeList.stream()
+                .map(StudentKnowledgeMastery::getKnowledgeId)
+                .collect(Collectors.toList());
+        List<KnowledgePointDTO> dtoList = knowledgeHomeService.batchGetKnowledge(knowledgeIds);
+
+        // List 转 Map：key=知识点ID，value=知识点标题
+        Map<String, String> knowledgeNameMap = dtoList.stream()
+                .collect(Collectors.toMap(
+                        KnowledgePointDTO::getKnowledgeId,
+                        KnowledgePointDTO::getKnowledgeTitle,
+                        // 重复id兼容（防止重复节点冲突）
+                        (oldVal, newVal) -> newVal
+                ));
+
+        weakKnowledgeList = weakKnowledgeList.stream()
+                .peek(mastery -> {
+                    String name = knowledgeNameMap.getOrDefault(mastery.getKnowledgeId(), "未知知识点");
+                    mastery.setKnowledgeName(name);
+                })
+                .collect(Collectors.toList());
+
+        // 5、调用AI模块，生成学习建议
+        String suggestion= homeAIService.generateStudentSuggest(progressList, weakKnowledgeList);
+
+        // 8. 写入Redis缓存
+        stringRedisTemplate.opsForValue().set(cacheKey, suggestion, AI_SUGGEST_CACHE_HOUR, TimeUnit.HOURS);
+
+        return suggestion;
     }
 
 

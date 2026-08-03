@@ -1,12 +1,14 @@
 package com.superyoudi.businessservice;
 
+import com.superyoudi.aiservice.service.HomeAiService;
 import com.superyoudi.businessservice.mapper.*;
 import com.superyoudi.businessservice.pojo.entity.LearningPaths;
-import com.superyoudi.businessservice.pojo.entity.StudentKnowledgeMastery;
 import com.superyoudi.businessservice.pojo.entity.StudyOverview;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
 import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;
 import com.superyoudi.businessservice.service.impl.HomeServiceImpl;
+import com.superyoudi.common.dto.StudentCourseProgress;
+import com.superyoudi.common.dto.StudentKnowledgeMastery;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.service.KnowledgeHomeService;
 import org.junit.jupiter.api.Assertions;
@@ -15,6 +17,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -46,6 +50,13 @@ public class HomeServiceTest {
 
     @Mock
     private KnowledgeMasteryMapper knowledgeMasteryMapper;
+
+    @Mock
+    private StringRedisTemplate stringRedisTemplate;
+    @Mock
+    private ValueOperations<String, String> valueOps;
+    @Mock
+    private HomeAiService homeAiService;
 
 
 //获取整体学习进度均值接口
@@ -215,4 +226,80 @@ public class HomeServiceTest {
     }
 
 
+ //获取AI学习建议接口
+
+    /**
+     * 场景1：缓存存在，直接返回缓存，不执行后续数据库、AI逻辑
+     */
+    @Test
+    void getAiSuggestions_CacheHit() {
+        // mock redis
+        when(stringRedisTemplate.opsForValue()).thenReturn(valueOps);
+        when(valueOps.get(anyString())).thenReturn("缓存里的AI学习建议");
+
+        String result = homeService.getAiSuggestions(1L);
+
+        // 断言
+        assert "缓存里的AI学习建议".equals(result);
+        // 校验：后续mapper、AI方法完全没有被调用
+        verify(knowledgeMasteryMapper, never()).selectTop3WeakKnowledge(anyLong());
+        verify(homeAiService, never()).generateStudentSuggest(anyList(), anyList());
+    }
+
+    /**
+     * 场景2：缓存未命中，查询薄弱知识点为空，直接返回默认文案
+     */
+    @Test
+    void getAiSuggestions_NoWeakData() {
+        when(stringRedisTemplate.opsForValue()).thenReturn(valueOps);
+        when(valueOps.get(anyString())).thenReturn(null);
+        // 数据库查询薄弱知识点返回空集合
+        when(knowledgeMasteryMapper.selectTop3WeakKnowledge(1L)).thenReturn(List.of());
+
+        String result = homeService.getAiSuggestions(1L);
+
+        assert "暂无学习薄弱数据，继续保持学习！".equals(result);
+        // AI方法不会执行
+        verify(homeAiService, never()).generateStudentSuggest(anyList(), anyList());
+    }
+
+    /**
+     * 场景3：正常完整链路，存在薄弱知识点，调用AI、写入缓存
+     * AI Service被mock，不会真实请求大模型
+     */
+    @Test
+    void getAiSuggestions_FullFlow() {
+        // redis无缓存
+        when(stringRedisTemplate.opsForValue()).thenReturn(valueOps);
+        when(valueOps.get(anyString())).thenReturn(null);
+
+        // 模拟薄弱知识点数据
+        StudentKnowledgeMastery mastery = new StudentKnowledgeMastery();
+        mastery.setCourseId(100L);
+        mastery.setKnowledgeId("k001");
+        List<StudentKnowledgeMastery> weakList = List.of(mastery);
+        when(knowledgeMasteryMapper.selectTop3WeakKnowledge(1L)).thenReturn(weakList);
+
+        // 模拟课程进度数据
+        List<StudentCourseProgress> progressList = List.of(new StudentCourseProgress());
+        when(studentCourseProgressesMapper.selectProgressByStudentAndCourseIds(anyLong(), anyList()))
+                .thenReturn(progressList);
+
+        // 模拟知识库返回知识点名称
+        KnowledgePointDTO dto = new KnowledgePointDTO();
+        dto.setKnowledgeId("k001");
+        dto.setKnowledgeTitle("牛顿第一定律");
+        when(knowledgeHomeService.batchGetKnowledge(anyList())).thenReturn(List.of(dto));
+
+        // Mock AI返回结果
+        when(homeAiService.generateStudentSuggest(anyList(), anyList()))
+                .thenReturn("针对性学习建议：重点复习牛顿第一定律");
+
+        // 执行
+        String result = homeService.getAiSuggestions(1L);
+
+        assert result.contains("针对性学习建议");
+        // 校验缓存写入
+        verify(valueOps, times(1)).set(anyString(), anyString(), anyLong(), any());
+    }
 }
