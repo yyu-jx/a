@@ -96,9 +96,11 @@ CREATE TABLE `learning_paths`
     `id`              BIGINT AUTO_INCREMENT PRIMARY KEY,
     `student_id`      BIGINT NOT NULL COMMENT '学生ID',
     `course_id`       BIGINT NOT NULL COMMENT '课程ID',
+    `current_node_id` BIGINT                                                    DEFAULT NULL COMMENT '当前正在进行的learning_path_node_id，NULL表示未开始',
+    `current_stage`   ENUM ('introducing', 'explaining', 'testing', 'finished') DEFAULT NULL COMMENT '当前教学阶段：introducing-引入, explaining-讲解, testing-测验, finished-结束',
     `additional_info` TEXT COMMENT 'AI附加描述',
-    `created_at`      DATETIME DEFAULT CURRENT_TIMESTAMP,
-    `updated_at`      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `created_at`      DATETIME                                                  DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`      DATETIME                                                  DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uk_stu_course (`student_id`, `course_id`),
     KEY idx_student (`student_id`),
     KEY idx_course (`course_id`)

@@ -1,6 +1,9 @@
-package com.superyoudi.businessservice.pojo.entity;
+package com.superyoudi.aiservice.pojo.entity;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 /**
@@ -8,7 +11,9 @@ import java.time.LocalDateTime;
  * 对应数据库 learning_paths 学习路径表
  */
 @Data
-public class LearningPaths {
+@AllArgsConstructor
+@NoArgsConstructor
+public class LearningPath {
 
     /**
      * 主键id
@@ -24,6 +29,16 @@ public class LearningPaths {
      * 课程id
      */
     private Long courseId;
+
+    /**
+     * 当前正在进行的路径节点id，null表示未开始
+     */
+    private Long currentNodeId;
+
+    /**
+     * 当前正在进行的教学阶段，用于动态注入提示词。introducing 引入 | explaining 讲解 | testing 测验 | finished 结束(保留字段)
+     */
+    private String currentStage;
 
     /**
      * AI生成的附加描述，可选

@@ -1,4 +1,4 @@
-package com.superyoudi.coursewareservice.ai.tools;
+package com.superyoudi.coursewareservice.ai.tool;
 
 
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;

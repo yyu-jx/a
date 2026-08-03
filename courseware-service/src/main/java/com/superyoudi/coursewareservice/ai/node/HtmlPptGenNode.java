@@ -5,7 +5,7 @@ import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
-import com.superyoudi.coursewareservice.ai.tools.HtmlPptTools;
+import com.superyoudi.coursewareservice.ai.tool.HtmlPptTools;
 import com.superyoudi.coursewareservice.config.GraphConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
@@ -117,7 +117,7 @@ public class HtmlPptGenNode implements NodeAction {
                 """;
         this.reactAgent = ReactAgent.builder()
                 .name("html-ppt-generator")
-                .instruction(instruction)
+                .systemPrompt(instruction)
                 .methodTools(htmlPptTools)
                 .model(chatModel)
                 .chatOptions(

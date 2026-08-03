@@ -4,7 +4,7 @@ import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.AsyncNodeAction;
 import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
 import com.superyoudi.coursewareservice.ai.node.HtmlPptGenNode;
-import com.superyoudi.coursewareservice.ai.tools.HtmlPptTools;
+import com.superyoudi.coursewareservice.ai.tool.HtmlPptTools;
 import com.superyoudi.coursewareservice.config.GraphConfig;
 import com.superyoudi.coursewareservice.dto.GenerationStatus;
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;

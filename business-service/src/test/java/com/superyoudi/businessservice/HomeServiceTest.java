@@ -2,7 +2,7 @@ package com.superyoudi.businessservice;
 
 import com.superyoudi.aiservice.service.HomeAiService;
 import com.superyoudi.businessservice.mapper.*;
-import com.superyoudi.businessservice.pojo.entity.LearningPaths;
+import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.businessservice.pojo.entity.StudyOverview;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
 import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;
@@ -10,7 +10,7 @@ import com.superyoudi.businessservice.service.impl.HomeServiceImpl;
 import com.superyoudi.common.dto.StudentCourseProgress;
 import com.superyoudi.common.dto.StudentKnowledgeMastery;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
-import com.superyoudi.kdbservice.service.KnowledgeHomeService;
+import com.superyoudi.kdbservice.service.KnowledgePointService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,7 +44,7 @@ public class HomeServiceTest {
     @Mock
     private LearningPathNodesMapper learningPathNodesMapper;
     @Mock
-    private KnowledgeHomeService knowledgeHomeService;
+    private KnowledgePointService knowledgePointService;
     @Mock
     private CourseMapper courseMapper;
 
@@ -141,7 +141,7 @@ public class HomeServiceTest {
         String mockKpId = "kp_008";
         LocalDateTime updateTime = LocalDateTime.now();
 
-        LearningPaths mockPath = new LearningPaths();
+        LearningPath mockPath = new LearningPath();
         mockPath.setId(mockPathId);
         mockPath.setCourseId(mockCourseId);
         mockPath.setUpdatedAt(updateTime);
@@ -152,7 +152,7 @@ public class HomeServiceTest {
         when(learningPathsMapper.selectLatestPathByStudentId(userId)).thenReturn(mockPath);
         when(learningPathNodesMapper.selectProceedingKnowledgeId(mockPathId)).thenReturn(mockKpId);
         when(learningPathNodesMapper.countUntestedNode(mockPathId)).thenReturn(2);
-        when(knowledgeHomeService.batchGetKnowledge(List.of(mockKpId))).thenReturn(List.of(dto));
+        when(knowledgePointService.batchGetKnowledge(List.of(mockKpId))).thenReturn(List.of(dto));
         when(courseMapper.getNameById(mockCourseId)).thenReturn("操作系统 — 内存管理");
 
         LastStudyRecordVO vo = homeService.getLatestStudyRecord(userId);
@@ -193,7 +193,7 @@ public class HomeServiceTest {
         dto.setKnowledgeTitle("虚拟内存");
         List<KnowledgePointDTO> mockDtoList = List.of(dto);
 
-        when(knowledgeHomeService.batchGetKnowledge(anyList()))
+        when(knowledgePointService.batchGetKnowledge(anyList()))
                 .thenReturn(mockDtoList);
 
         // 2. 执行方法
@@ -289,7 +289,7 @@ public class HomeServiceTest {
         KnowledgePointDTO dto = new KnowledgePointDTO();
         dto.setKnowledgeId("k001");
         dto.setKnowledgeTitle("牛顿第一定律");
-        when(knowledgeHomeService.batchGetKnowledge(anyList())).thenReturn(List.of(dto));
+        when(knowledgePointService.batchGetKnowledge(anyList())).thenReturn(List.of(dto));
 
         // Mock AI返回结果
         when(homeAiService.generateStudentSuggest(anyList(), anyList()))

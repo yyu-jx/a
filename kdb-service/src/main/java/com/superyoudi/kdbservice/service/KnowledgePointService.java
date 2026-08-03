@@ -2,20 +2,30 @@ package com.superyoudi.kdbservice.service;
 
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.graph.KnowledgePointNode;
-
 import com.superyoudi.kdbservice.repository.KnowledgePointRepository;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
 //首页获取知识点信息
 @Service
-public class KnowledgeHomeService {
+public class KnowledgePointService {
 
     @Autowired
     private KnowledgePointRepository repository;
+
+    public KnowledgePointDTO getKnowledgePoint(String id) {
+        KnowledgePointNode knowledgePointNode = repository.findById(id).orElse(null);
+        if (knowledgePointNode == null)
+            return null;
+
+        KnowledgePointDTO dto = new KnowledgePointDTO();
+        dto.setKnowledgeId(knowledgePointNode.getName());
+        dto.setKnowledgeTitle(knowledgePointNode.getDescription());
+        return dto;
+    }
 
     /**
      * 批量获取知识点信息
