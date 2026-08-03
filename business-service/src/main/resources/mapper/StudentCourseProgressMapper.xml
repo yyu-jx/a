@@ -4,12 +4,12 @@
 <mapper namespace="com.superyoudi.businessservice.mapper.StudentCourseProgressMapper">
 
     <select id="selectProgressByStudentAndCourseIds"
-            resultType="com.superyoudi.businessservice.pojo.entity.StudentCourseProgress">
+            resultType="com.superyoudi.common.dto.StudentCourseProgress">
         SELECT *
         FROM student_course_progresses
         WHERE student_id = #{userId}
         AND course_id IN
-        <foreach collection="relateCourseIds" open="(" separator="," close=")" item="cid">
+        <foreach collection="CourseIds" open="(" separator="," close=")" item="cid">
             #{cid}
         </foreach>
 
