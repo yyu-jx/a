@@ -38,6 +38,8 @@ public class AiTutorModelInterceptor extends ModelInterceptor {
     @Override
     public ModelResponse interceptModel(ModelRequest request, ModelCallHandler handler) {
 
+        // TODO 获取消息列表
+
         Long studentId = (Long) request.getContext().getOrDefault("student_id", null);
         Long courseId = (Long) request.getContext().getOrDefault("course_id", null);
 
@@ -58,17 +60,18 @@ public class AiTutorModelInterceptor extends ModelInterceptor {
     }
 
     private String buildSystemPrompt(Long studentId, Long courseId) {
+
         String basePrompt = """
                 你是智教助手平台的AI导师，正在根据学习路径为一名学生讲解知识点。
                 
                 ## 基本信息
                 - ID：{student_id}
                 - 姓名：{student_name}
-                - 课程：{course_name}
-                - 课程ID：{course_id}
                 
                 ## 当前学习路径
                 - ID：{learning_path_id}
+                - 课程名称：{course_name}
+                - 课程ID：{course_id}
                 
                 ## 当前知识点
                 - ID: {node_id}
@@ -81,7 +84,6 @@ public class AiTutorModelInterceptor extends ModelInterceptor {
                 4. 你的输出必须为Markdown格式
                 
                 """;
-
 
         StudentCourseInfoDTO studentInfo = aiTutorService.getStudentInfo(studentId);
 
@@ -122,7 +124,10 @@ public class AiTutorModelInterceptor extends ModelInterceptor {
 
         PromptTemplate pt = new PromptTemplate(basePrompt);
 
-        return pt.render(variables);
+        String prompt = pt.render(variables);
+        log.info("AI导师提示词：\n{}", prompt);
+
+        return prompt;
     }
 
     public String buildStagePrompt(LearningPathDTO learningPathDTO) {
@@ -158,7 +163,7 @@ public class AiTutorModelInterceptor extends ModelInterceptor {
                     ## 完成后
                     将当前阶段设置为 finished
                     """;
-
+            // TODO 生成测验
             default -> {
                 log.error("知识路径节点状态错误。");
                 yield "知识路径节点状态错误。";

@@ -1,5 +1,8 @@
 package com.superyoudi.businessservice.service.impl;
 
+import com.alibaba.cloud.ai.graph.RunnableConfig;
+import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
+import com.superyoudi.aiservice.ai.agent.AiTutorAgent;
 import com.superyoudi.aiservice.pojo.dto.LearningPathDTO;
 import com.superyoudi.aiservice.pojo.dto.StudentCourseInfoDTO;
 import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
@@ -7,6 +10,7 @@ import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.aiservice.pojo.entity.LearningPathNode;
 import com.superyoudi.aiservice.service.AiTutorService;
 import com.superyoudi.aiservice.service.LearningPathService;
+import com.superyoudi.aiservice.utils.StreamingMessageUtils;
 import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.businessservice.mapper.UserMapper;
 import com.superyoudi.businessservice.pojo.entity.Course;
@@ -15,6 +19,7 @@ import com.superyoudi.common.exception.LearningPathFinishedException;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.service.KnowledgePointService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -27,21 +32,46 @@ import java.util.List;
 @Service
 public class AiTutorServiceImpl implements AiTutorService {
 
+    private final AiTutorAgent aiTutorAgent;
+
     private final CourseMapper courseMapper;
     private final LearningPathService learningPathService;
     private final KnowledgePointService knowledgePointService;
     private final UserMapper userMapper;
 
-    public AiTutorServiceImpl(CourseMapper courseMapper, LearningPathService learningPathService, KnowledgePointService knowledgePointService, UserMapper userMapper) {
+
+    public AiTutorServiceImpl(@Lazy AiTutorAgent aiTutorAgent, // 延迟注入ai tutor agent，否则会造成循环依赖
+                              CourseMapper courseMapper,
+                              LearningPathService learningPathService,
+                              KnowledgePointService knowledgePointService,
+                              UserMapper userMapper) {
         this.courseMapper = courseMapper;
         this.learningPathService = learningPathService;
         this.knowledgePointService = knowledgePointService;
         this.userMapper = userMapper;
+        this.aiTutorAgent = aiTutorAgent;
     }
 
     @Override
     public Flux<String> callAiTutor(UserChatMessage userChatMessage) {
-        return null;
+        Long courseId = (Long) userChatMessage.getAdditionalData();
+
+        // 设置config的metadata以进行context engineering
+        RunnableConfig runnableConfig = RunnableConfig.builder()
+                .threadId("ai_tutor_thread_" + userChatMessage.getUserId() + "_" + courseId)
+                .addMetadata("student_id", userChatMessage.getUserId())
+                .addMetadata("course_id", courseId)
+                .build();
+
+        try {
+            return aiTutorAgent.callAgent(userChatMessage.getMessage(), runnableConfig)
+                    .map(nodeOutput ->
+                            StreamingMessageUtils.handleStreamingOutput(nodeOutput, null,
+                                    message -> log.info("AI Tutor回复: {}", message)));
+        } catch (GraphRunnerException e) {
+            log.error("调用AI Tutor失败", e);
+            throw new RuntimeException("调用AI Tutor失败", e);
+        }
     }
 
     @Override
@@ -66,7 +96,6 @@ public class AiTutorServiceImpl implements AiTutorService {
         learningPath.setCurrentNodeId(nextNodeId);
         learningPath.setCurrentStage(LearningPath.STAGE_INTRODUCING);
         learningPathService.updateLearningPath(learningPath);
-
     }
 
     @Override
@@ -118,5 +147,10 @@ public class AiTutorServiceImpl implements AiTutorService {
         }
 
         return sb.toString();
+    }
+
+    @Override
+    public void updateLearningPathStage(Long pathId, String stage) {
+        learningPathService.updateLearningPathStage(pathId, stage);
     }
 }

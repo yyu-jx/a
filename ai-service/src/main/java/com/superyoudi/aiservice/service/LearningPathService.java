@@ -23,7 +23,7 @@ public class LearningPathService {
     }
 
     public void createLearningPath() {
-        // TODO
+        // TODO 调用AI生成学习路径
     }
 
     /**
@@ -59,6 +59,10 @@ public class LearningPathService {
 
     public void updateLearningPathNodeStatus(Long nodeId, String status) {
         learningPathNodeMapper.updateStatus(nodeId, status);
+    }
+
+    public void updateLearningPathStage(Long pathId, String stage) {
+        learningPathMapper.updateCurrentStage(pathId, stage);
     }
 
     public void updateLearningPath(LearningPath learningPath) {

@@ -22,4 +22,6 @@ public interface AiTutorService {
     StudentCourseInfoDTO getStudentInfo(Long studentId);
 
     String formatLearningPath(Long learningPathId);
+
+    void updateLearningPathStage(Long pathId, String stage);
 }
