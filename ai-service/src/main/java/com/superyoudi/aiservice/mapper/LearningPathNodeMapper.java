@@ -21,6 +21,16 @@ public interface LearningPathNodeMapper {
     List<LearningPathNode> selectByPathId(Long pathId);
 
     /**
+     * 查询学习路径中下一个节点（按id升序）
+     * 如果当前节点已是最后一个，返回当前节点
+     */
+    @Select("SELECT COALESCE(" +
+            "(SELECT id FROM learning_path_nodes WHERE path_id = #{pathId} AND id > #{nodeId} ORDER BY id ASC LIMIT 1), " +
+            "#{nodeId}" +
+            ")")
+    Long selectNextNodeId(@Param("pathId") Long pathId, @Param("nodeId") Long nodeId);
+
+    /**
      * 根据知识点ID查询所有关联节点
      */
     @Select("SELECT * FROM learning_path_nodes WHERE knowledge_id = #{knowledgeId}")

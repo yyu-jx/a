@@ -9,10 +9,10 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class LearningPathDTO {
-    public Long courseId;
-    public String courseName;
-    public Long learningPathId;
-    public Long currentPathNodeId;
-    public String currentNodeName;
-    public String currentStage;
+    private Long courseId;
+    private String courseName;
+    private Long learningPathId;
+    private Long currentPathNodeId;
+    private String currentNodeName;
+    private String currentStage;
 }

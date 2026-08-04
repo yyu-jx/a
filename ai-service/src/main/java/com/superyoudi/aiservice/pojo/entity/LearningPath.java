@@ -15,6 +15,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class LearningPath {
 
+    public static final String STAGE_INTRODUCING = "introducing";
+    public static final String STAGE_EXPLAINING = "explaining";
+    public static final String STAGE_TESTING = "testing";
+    public static final String STAGE_FINISHED = "finished";
+
     /**
      * 主键id
      */

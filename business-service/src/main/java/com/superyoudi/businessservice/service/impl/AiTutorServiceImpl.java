@@ -11,14 +11,19 @@ import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.businessservice.mapper.UserMapper;
 import com.superyoudi.businessservice.pojo.entity.Course;
 import com.superyoudi.businessservice.pojo.entity.User;
+import com.superyoudi.common.exception.LearningPathFinishedException;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.service.KnowledgePointService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+
+import java.util.List;
 
 /**
  * @author Sijayyx
  */
+@Slf4j
 @Service
 public class AiTutorServiceImpl implements AiTutorService {
 
@@ -40,6 +45,31 @@ public class AiTutorServiceImpl implements AiTutorService {
     }
 
     @Override
+    public void toNextLearningPathNode(Long learningPathId) throws LearningPathFinishedException {
+        LearningPath learningPath = learningPathService.getLearningPathById(learningPathId);
+        Long currentNodeId = learningPath.getCurrentNodeId();
+        Long nextNodeId = learningPathService.getNextLearningPathNode(learningPathId, currentNodeId);
+
+        // 将当前节点状态设置为已完成
+        learningPathService.updateLearningPathNodeStatus(currentNodeId, LearningPathNode.NODE_STATUS_COMPLETED);
+
+        // 下一节点的ID最大，表示学习路径已完成
+        if (nextNodeId.equals(currentNodeId)) {
+            log.info("学习路径 {} 已完成!", learningPathId);
+            throw new LearningPathFinishedException("学习路径已完成");
+        }
+
+        // 下一节点变成当前节点，状态设为进行中
+        learningPathService.updateLearningPathNodeStatus(nextNodeId, LearningPathNode.NODE_STATUS_PROCEEDING);
+
+        // 更新节点
+        learningPath.setCurrentNodeId(nextNodeId);
+        learningPath.setCurrentStage(LearningPath.STAGE_INTRODUCING);
+        learningPathService.updateLearningPath(learningPath);
+
+    }
+
+    @Override
     public LearningPathDTO getLearningPathInfo(Long studentId, Long courseId) {
         LearningPath learningPath = learningPathService.getLearningPathByStudentAndCourse(studentId, courseId);
         Long currentNodeId = learningPath.getCurrentNodeId();
@@ -52,9 +82,41 @@ public class AiTutorServiceImpl implements AiTutorService {
 
     }
 
+
     @Override
     public StudentCourseInfoDTO getStudentInfo(Long studentId) {
         User student = userMapper.selectById(studentId);
         return new StudentCourseInfoDTO(student.getId().toString(), student.getRealname());
+    }
+
+    @Override
+    public String formatLearningPath(Long learningPathId) {
+        List<LearningPathNode> learningPathNodes = learningPathService.getLearningPathNodes(learningPathId);
+
+        if (learningPathNodes == null || learningPathNodes.isEmpty()) {
+            return "该学习路径暂无任何节点内容。";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("学习路径 %d：\n", learningPathId));
+
+        for (LearningPathNode node : learningPathNodes) {
+            // 获取知识点信息
+            KnowledgePointDTO kpDto = knowledgePointService.getKnowledgePoint(node.getKnowledgeId());
+            String knowledgeTitle;
+            if (kpDto == null || kpDto.getKnowledgeTitle() == null || kpDto.getKnowledgeTitle().isEmpty()) {
+                knowledgeTitle = "未知知识点";
+            } else {
+                knowledgeTitle = kpDto.getKnowledgeTitle();
+            }
+            // 格式化节点信息
+            sb.append("节点ID：").append(node.getId())
+                    .append("，知识点：").append(knowledgeTitle)
+                    .append("，知识点ID：").append(node.getKnowledgeId())
+                    .append("，状态：").append(node.getStatus())
+                    .append("\n");
+        }
+
+        return sb.toString();
     }
 }

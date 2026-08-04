@@ -15,6 +15,10 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class LearningPathNode {
 
+    public static final String NODE_STATUS_UNTESTED = "untested";
+    public static final String NODE_STATUS_PROCEEDING = "proceeding";
+    public static final String NODE_STATUS_COMPLETED = "completed";
+
     /**
      * 主键id
      */
