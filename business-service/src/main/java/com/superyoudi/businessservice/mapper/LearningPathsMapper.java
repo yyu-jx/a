@@ -1,12 +1,18 @@
 package com.superyoudi.businessservice.mapper;
 
+import com.superyoudi.businessservice.pojo.dto.TodayTaskRawDTO;
 import com.superyoudi.businessservice.pojo.entity.LearningPaths;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.List;
+
 @Mapper
 public interface LearningPathsMapper {
+
+     List<TodayTaskRawDTO> selectTaskRawByStudentId(Long studentId);
+
 
     /**
      * 根据学生id 查询【最近更新】的学习路径

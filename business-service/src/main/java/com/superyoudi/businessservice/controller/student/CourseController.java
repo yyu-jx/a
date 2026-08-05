@@ -3,6 +3,7 @@ package com.superyoudi.businessservice.controller.student;
 
 import com.superyoudi.businessservice.pojo.vo.CoursesVO;
 import com.superyoudi.businessservice.pojo.vo.StudentCourseProgressVO;
+import com.superyoudi.businessservice.pojo.vo.TodayTaskVO;
 import com.superyoudi.businessservice.service.CourseService;
 import com.superyoudi.common.entity.Result;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -51,5 +54,16 @@ public class CourseController {
     public Result<Void> joinCourse(Long courseId,Long studentId) {
         courseService.joinCourse(studentId, courseId);
         return Result.success();
+    }
+
+    /**
+     * 获取今日任务
+     * @param userId 用户id
+     * @return 今日任务列表
+     */
+    @GetMapping("/study/today")
+    public Result<List<TodayTaskVO>> getTodayTask(Long userId) {
+        List<TodayTaskVO> voList = courseService.getTodayTaskList(userId);
+        return Result.success(voList);
     }
 }
