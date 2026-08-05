@@ -1,9 +1,10 @@
 package com.superyoudi.businessservice.service.impl;
 
-import com.superyoudi.aiservice.service.HomeAiService;
-import com.superyoudi.businessservice.mapper.*;
-
 import com.superyoudi.aiservice.pojo.entity.LearningPath;
+import com.superyoudi.aiservice.service.HomeAiService;
+import com.superyoudi.businessservice.mapper.CourseMapper;
+import com.superyoudi.businessservice.mapper.KnowledgeMasteryMapper;
+import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
 import com.superyoudi.businessservice.pojo.entity.StudyOverview;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
 import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;
@@ -15,7 +16,6 @@ import com.superyoudi.kdbservice.service.KnowledgePointService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-
 
 import java.util.Collections;
 import java.util.List;
@@ -33,8 +33,8 @@ public class HomeServiceImpl implements HomeService {
 
 
     private final StudentCourseProgressMapper studentCourseProgressesMapper;
-    private final LearningPathsMapper learningPathsMapper;
-    private final LearningPathNodesMapper learningPathNodesMapper;
+    private final com.superyoudi.aiservice.mapper.LearningPathMapper learningPathMapper;
+    private final com.superyoudi.aiservice.mapper.LearningPathNodeMapper learningPathNodeMapper;
     private final KnowledgePointService knowledgePointService;
     private final CourseMapper courseMapper;
     private final KnowledgeMasteryMapper knowledgeMasteryMapper;
@@ -51,7 +51,7 @@ public class HomeServiceImpl implements HomeService {
     @Override
     public LastStudyRecordVO getLatestStudyRecord(Long userId) {
         // ========== 步骤1：查询学生【最新的学习路径】按updated_at倒序取第一条 ==========
-        LearningPath latestPath = learningPathsMapper.selectLatestPathByStudentId(userId);
+        LearningPath latestPath = learningPathMapper.selectLatestPathByStudentId(userId);
         if (latestPath == null) {
             // 无学习记录，可以返回null或者抛业务异常，前端展示「暂无学习记录」
             return null;
@@ -61,14 +61,14 @@ public class HomeServiceImpl implements HomeService {
 
         // ========== 步骤2：查询当前知识点ID ==========
         // 优先查询 status = proceeding 进行中的节点
-        String currentKnowledgeId = learningPathNodesMapper.selectProceedingKnowledgeId(pathId);
+        String currentKnowledgeId = learningPathNodeMapper.selectProceedingKnowledgeId(pathId);
         // 如果没有进行中的节点 → 取更新时间最新的节点
         if (currentKnowledgeId == null) {
-            currentKnowledgeId = learningPathNodesMapper.selectLatestUpdateKnowledgeId(pathId);
+            currentKnowledgeId = learningPathNodeMapper.selectLatestUpdateKnowledgeId(pathId);
         }
 
         // ========== 步骤3：剩余未完成节点数量统计 status != completed ==========
-        Integer remainingUntestedCount = learningPathNodesMapper.countUntestedNode(pathId);
+        Integer remainingUntestedCount = learningPathNodeMapper.countUntestedNode(pathId);
 
         // ========== 步骤4：远程调用kdb-service 查询Neo4j知识点名称 ==========
         String knowledgeTitle = null;
@@ -82,7 +82,7 @@ public class HomeServiceImpl implements HomeService {
             }
         }
         // ========== 步骤5：查询课程名称 ==========
-        String courseName= courseMapper.getNameById(courseId);
+        String courseName = courseMapper.getNameById(courseId);
 
         // ========== 步骤6：组装VO返回 ==========
         LastStudyRecordVO vo = new LastStudyRecordVO();
@@ -103,11 +103,11 @@ public class HomeServiceImpl implements HomeService {
      * @return 学习概览
      */
     @Override
-    public StudyOverview getStudyOverview(Long userId){
+    public StudyOverview getStudyOverview(Long userId) {
         //拿到学习概览数据
-        StudyOverview vo=studentCourseProgressesMapper.getAvgProgresses(userId);
+        StudyOverview vo = studentCourseProgressesMapper.getAvgProgresses(userId);
         //如果课程总数为0，则吧其他数据设置为0
-        if(vo.getStudyCourseTotal()==0){
+        if (vo.getStudyCourseTotal() == 0) {
             vo.setStudyCourseTotal(0);
             vo.setAvgTotalProgress(0.0);
             vo.setAvgInteractionCount(0);
@@ -115,7 +115,7 @@ public class HomeServiceImpl implements HomeService {
             vo.setAvgKnowledgeCoverRate(0.0);
             vo.setAvgTaskCompletionRate(0.0);
             return vo;
-        }else {
+        } else {
             return vo;
         }
     }
@@ -220,7 +220,7 @@ public class HomeServiceImpl implements HomeService {
                 .collect(Collectors.toList());
 
         // 5、调用AI模块，生成学习建议
-        String suggestion= homeAIService.generateStudentSuggest(progressList, weakKnowledgeList);
+        String suggestion = homeAIService.generateStudentSuggest(progressList, weakKnowledgeList);
 
         // 8. 写入Redis缓存
         stringRedisTemplate.opsForValue().set(cacheKey, suggestion, AI_SUGGEST_CACHE_HOUR, TimeUnit.HOURS);

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.superyoudi.aiservice.mapper.LearningPathMapper">
+    <select id="selectTaskRawByStudentId" resultType="com.superyoudi.common.dto.TodayTaskRawDTO">
+        SELECT
+            t.course_id,
+            t.path_id,
+            t.knowledge_id,
+            t.status,
+            t.course_name
+        FROM (
+                 SELECT
+                     cs.course_id,
+                     lp.id AS path_id,
+                     lpn.knowledge_id,
+                     lpn.status,
+                     c.name AS course_name,
+                     ROW_NUMBER() OVER (
+                         PARTITION BY lp.id
+                         ORDER BY
+                             CASE lpn.status WHEN 'proceeding' THEN 0 ELSE 1 END ASC,
+                             lpn.updated_at asc
+                         ) AS rn
+                 FROM course_student_rel cs
+                          INNER JOIN learning_paths lp
+                                     ON cs.student_id = lp.student_id AND cs.course_id = lp.course_id
+                          INNER JOIN learning_path_nodes lpn
+                                     ON lp.id = lpn.path_id
+                          INNER JOIN courses c
+                                     ON cs.course_id = c.id
+                 WHERE
+                     cs.student_id = #{studentId}
+                   AND lpn.status != 'completed'
+             ) t
+        WHERE t.rn = 1
+        ORDER BY t.course_id ASC
+
+    </select>
+</mapper>
