@@ -33,7 +33,7 @@ class KdbServiceTests {
 
     @Test
     public void testSearchByQuestion() {
-        String string = knowledgeGraphService.retrieveDocumentKnowledgePoints("什么是页表?");
+        String string = knowledgeGraphService.retrieveKnowledgeGraph("什么是页表?");
         System.out.println(string);
     }
 

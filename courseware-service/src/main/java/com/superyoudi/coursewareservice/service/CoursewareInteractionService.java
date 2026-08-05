@@ -3,7 +3,7 @@ package com.superyoudi.coursewareservice.service;
 import com.alibaba.cloud.ai.graph.CompiledGraph;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
-import com.superyoudi.aiservice.utils.StreamingMessageUtils;
+import com.superyoudi.aiservice.utils.AiMessageUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -56,7 +56,7 @@ public class CoursewareInteractionService {
                         KEY_INPUT, input,
                         KEY_COURSEWARE_ID, coursewareId
                 ), config)
-                .map(output -> StreamingMessageUtils.handleStreamingOutput(
+                .map(output -> AiMessageUtils.handleStreamingOutput(
                         output,
                         interruptionMetadata -> {
                             String nodeName = interruptionMetadata.node();
@@ -98,7 +98,7 @@ public class CoursewareInteractionService {
                 .build();
 
         return compiledGraph.stream(null, resumeConfig)
-                .map(output -> StreamingMessageUtils.handleStreamingOutput(
+                .map(output -> AiMessageUtils.handleStreamingOutput(
                         output,
                         interruptionMetadata -> {
                             String nodeName = interruptionMetadata.node();

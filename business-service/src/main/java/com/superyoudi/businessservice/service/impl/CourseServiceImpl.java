@@ -1,10 +1,15 @@
 package com.superyoudi.businessservice.service.impl;
 
-import com.superyoudi.businessservice.mapper.CourseMapper;
+import com.superyoudi.aiservice.ai.agent.CourseDataGenerateModel;
 import com.superyoudi.aiservice.mapper.LearningPathMapper;
-import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
+import com.superyoudi.aiservice.utils.AiMessageUtils;
+import com.superyoudi.businessservice.mapper.*;
+import com.superyoudi.businessservice.pojo.dto.CourseDataDTO;
+import com.superyoudi.businessservice.pojo.entity.Chapter;
 import com.superyoudi.businessservice.pojo.entity.Course;
-import com.superyoudi.businessservice.pojo.vo.CoursesVO;
+import com.superyoudi.businessservice.pojo.entity.Section;
+import com.superyoudi.businessservice.pojo.entity.SectionKnowledgeRel;
+import com.superyoudi.businessservice.pojo.vo.CourseVO;
 import com.superyoudi.businessservice.pojo.vo.StudentCourseProgressVO;
 import com.superyoudi.businessservice.pojo.vo.TodayTaskVO;
 import com.superyoudi.businessservice.service.CourseService;
@@ -14,8 +19,11 @@ import com.superyoudi.common.exception.CourseNotExistException;
 import com.superyoudi.common.exception.NoStudyTaskException;
 import com.superyoudi.common.exception.StudentRepeatJoinCourseException;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
+import com.superyoudi.kdbservice.graph.KnowledgePointNode;
+import com.superyoudi.kdbservice.repository.KnowledgePointRepository;
 import com.superyoudi.kdbservice.service.KnowledgePointService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -25,6 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CourseServiceImpl implements CourseService {
@@ -33,6 +42,11 @@ public class CourseServiceImpl implements CourseService {
     private final StudentCourseProgressMapper studentCourseProgressesMapper;
     private final KnowledgePointService knowledgeHomeService;
     private final LearningPathMapper learningPathMapper;
+    private final CourseDataGenerateModel courseDataGenerateModel;
+    private final ChapterMapper chapterMapper;
+    private final SectionMapper sectionMapper;
+    private final KnowledgePointRepository knowledgePointRepository;
+    private final SectionKnowledgeRelMapper sectionKnowledgeRelMapper;
 
     /**
      * 获取单门课程详情
@@ -41,14 +55,14 @@ public class CourseServiceImpl implements CourseService {
      * @return 课程信息
      */
     @Override
-    public CoursesVO getCourseInfo(Long courseId) {
+    public CourseVO getCourseInfo(Long courseId) throws CourseNotExistException {
         Course course = courseMapper.selectCourseById(courseId);
         if (course == null) {
             // 抛出业务异常：课程不存在
             throw new CourseNotExistException("课程不存在");
         }
 
-        CoursesVO vo = new CoursesVO();
+        CourseVO vo = new CourseVO();
         BeanUtils.copyProperties(course, vo);
 
         return vo;
@@ -145,4 +159,48 @@ public class CourseServiceImpl implements CourseService {
                 .collect(Collectors.toList());
 
     }
+
+    /**
+     * 开课，调用AI生成课程数据
+     */
+    @Override
+    public void openCourse(Long courseId) throws CourseNotExistException {
+        Course course = courseMapper.selectById(courseId);
+        if (course == null) throw new CourseNotExistException("课程不存在");
+
+        // ！！！description至少要包含出版社信息！！！
+        String courseDataJson = courseDataGenerateModel.call(courseId, course.getName(), course.getDescription());
+        CourseDataDTO courseData = AiMessageUtils.readJsonValue(courseDataJson, CourseDataDTO.class);
+
+        if (courseData != null) {
+            saveCourseData(courseData);
+        } else {
+            log.error("课程数据生成失败，courseDataJson:{}", courseDataJson);
+            throw new RuntimeException("课程数据生成失败");
+        }
+    }
+
+    private void saveCourseData(CourseDataDTO courseData) {
+        for (CourseDataDTO.ChapterData chapterData : courseData.getChapterDataList()) {
+            Chapter chapter = new Chapter(null, courseData.getCourseId(), chapterData.getChapterName(),
+                    null, chapterData.getOrder(), null, null);
+            Long chapterId = chapterMapper.insert(chapter);
+
+            for (CourseDataDTO.SectionData sectionData : chapterData.getSectionDataList()) {
+                Section section = new Section(null, chapterId, sectionData.getSectionName(),
+                        null, sectionData.getOrder(), null, null);
+                Long sectionId = sectionMapper.insert(section);
+
+                for (CourseDataDTO.KnowledgePointData knowledgePointData : sectionData.getKnowledgePointDataList()) {
+                    KnowledgePointNode knowledgePointNode = new KnowledgePointNode(knowledgePointData.getName(), knowledgePointData.getDescription());
+                    knowledgePointRepository.save(knowledgePointNode);
+
+                    SectionKnowledgeRel sectionKnowledgeRel = new SectionKnowledgeRel(null, sectionId, knowledgePointData.getName(), null);
+                    sectionKnowledgeRelMapper.insert(sectionKnowledgeRel);
+                }
+            }
+        }
+        log.info("课程数据生成成功，courseData:{}", courseData);
+    }
+
 }

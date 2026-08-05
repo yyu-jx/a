@@ -38,7 +38,7 @@ public class ChatPersistenceService {
      * 向列表追加消息
      */
     public Long appendChatMessage(ChatMessage chatMessage) {
-        return chatMessageMapper.insert(chatMessage);
+        return chatMessageMapper.insertWithAutoSeq(chatMessage);
     }
 
     /**

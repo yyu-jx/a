@@ -1,8 +1,9 @@
 package com.superyoudi.businessservice.service;
 
-import com.superyoudi.businessservice.pojo.vo.CoursesVO;
+import com.superyoudi.businessservice.pojo.vo.CourseVO;
 import com.superyoudi.businessservice.pojo.vo.StudentCourseProgressVO;
 import com.superyoudi.businessservice.pojo.vo.TodayTaskVO;
+import com.superyoudi.common.exception.CourseNotExistException;
 
 import java.util.List;
 
@@ -14,13 +15,13 @@ public interface CourseService {
      * @param courseId 课程id
      * @return 课程信息
      */
-    CoursesVO getCourseInfo(Long courseId);
+    CourseVO getCourseInfo(Long courseId) throws CourseNotExistException;
 
 
     /**
      * 获取学生课程进度
      *
-     * @param courseId   课程id
+     * @param courseId  课程id
      * @param studentId 学生id
      * @return 学生课程进度
      */
@@ -41,4 +42,6 @@ public interface CourseService {
      * @return 今日任务列表
      */
     List<TodayTaskVO> getTodayTaskList(Long userId);
+
+    void openCourse(Long courseId);
 }

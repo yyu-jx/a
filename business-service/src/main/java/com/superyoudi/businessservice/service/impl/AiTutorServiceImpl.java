@@ -10,13 +10,14 @@ import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.aiservice.pojo.entity.LearningPathNode;
 import com.superyoudi.aiservice.service.AiTutorService;
 import com.superyoudi.aiservice.service.LearningPathService;
-import com.superyoudi.aiservice.utils.StreamingMessageUtils;
+import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.businessservice.mapper.UserMapper;
 import com.superyoudi.businessservice.pojo.entity.Course;
 import com.superyoudi.businessservice.pojo.entity.User;
 import com.superyoudi.common.exception.LearningPathFinishedException;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
+import com.superyoudi.kdbservice.service.KnowledgeGraphService;
 import com.superyoudi.kdbservice.service.KnowledgePointService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -38,18 +39,20 @@ public class AiTutorServiceImpl implements AiTutorService {
     private final LearningPathService learningPathService;
     private final KnowledgePointService knowledgePointService;
     private final UserMapper userMapper;
+    private final KnowledgeGraphService knowledgeGraphService;
 
 
     public AiTutorServiceImpl(@Lazy AiTutorAgent aiTutorAgent, // 延迟注入ai tutor agent，否则会造成循环依赖
                               CourseMapper courseMapper,
                               LearningPathService learningPathService,
                               KnowledgePointService knowledgePointService,
-                              UserMapper userMapper) {
+                              UserMapper userMapper, KnowledgeGraphService knowledgeGraphService) {
         this.courseMapper = courseMapper;
         this.learningPathService = learningPathService;
         this.knowledgePointService = knowledgePointService;
         this.userMapper = userMapper;
         this.aiTutorAgent = aiTutorAgent;
+        this.knowledgeGraphService = knowledgeGraphService;
     }
 
     @Override
@@ -66,7 +69,7 @@ public class AiTutorServiceImpl implements AiTutorService {
         try {
             return aiTutorAgent.callAgent(userChatMessage.getMessage(), runnableConfig)
                     .map(nodeOutput ->
-                            StreamingMessageUtils.handleStreamingOutput(nodeOutput, null,
+                            AiMessageUtils.handleStreamingOutput(nodeOutput, null,
                                     message -> log.info("AI Tutor回复: {}", message)));
         } catch (GraphRunnerException e) {
             log.error("调用AI Tutor失败", e);
@@ -152,5 +155,20 @@ public class AiTutorServiceImpl implements AiTutorService {
     @Override
     public void updateLearningPathStage(Long pathId, String stage) {
         learningPathService.updateLearningPathStage(pathId, stage);
+    }
+
+    @Override
+    public String queryKnowledgePoint(String kpName) {
+        return knowledgeGraphService.retrieveKnowledgePointInfo(kpName);
+    }
+
+    @Override
+    public String retriveKnowledgeGraph(String query) {
+        return knowledgeGraphService.retrieveKnowledgeGraph(query);
+    }
+
+    @Override
+    public String retrieveDocuments(String query) {
+        return knowledgeGraphService.retrieveDocuments(query);
     }
 }
