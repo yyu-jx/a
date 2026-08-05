@@ -1,8 +1,8 @@
 package com.superyoudi.businessservice;
 
 import com.superyoudi.businessservice.mapper.CourseMapper;
-import com.superyoudi.businessservice.mapper.LearningPathsMapper;
-import com.superyoudi.businessservice.pojo.dto.TodayTaskRawDTO;
+import com.superyoudi.aiservice.mapper.LearningPathMapper;
+import com.superyoudi.common.dto.TodayTaskRawDTO;
 import com.superyoudi.businessservice.pojo.entity.Course;
 import com.superyoudi.businessservice.pojo.vo.CoursesVO;
 import com.superyoudi.businessservice.pojo.vo.TodayTaskVO;
@@ -10,13 +10,12 @@ import com.superyoudi.businessservice.service.impl.CourseServiceImpl;
 import com.superyoudi.common.exception.CourseNotExistException;
 import com.superyoudi.common.exception.NoStudyTaskException;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
-import com.superyoudi.kdbservice.service.KnowledgeHomeService;
+import com.superyoudi.kdbservice.service.KnowledgePointService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -32,9 +31,9 @@ public class CourseServiceTest {
     @Mock
     private CourseMapper courseMapper;
     @Mock
-    private LearningPathsMapper learningPathsMapper;
+    private LearningPathMapper learningPathMapper;
     @Mock
-    private KnowledgeHomeService knowledgeHomeService;
+    private KnowledgePointService knowledgePointService;
 
     // 将mock注入到待测试Service
     @InjectMocks
@@ -88,7 +87,7 @@ public class CourseServiceTest {
     @Test
     void getTodayTaskList_whenEmpty_throwException() {
         // given
-        when(learningPathsMapper.selectTaskRawByStudentId(anyLong())).thenReturn(List.of());
+        when(learningPathMapper.selectTaskRawByStudentId(anyLong())).thenReturn(List.of());
 
         // when & then
         Assertions.assertThrows(NoStudyTaskException.class, () -> {
@@ -111,14 +110,14 @@ public class CourseServiceTest {
         rawDto.setCourseName("Java基础");
 
         List<TodayTaskRawDTO> rawList = List.of(rawDto);
-        when(learningPathsMapper.selectTaskRawByStudentId(anyLong())).thenReturn(rawList);
+        when(learningPathMapper.selectTaskRawByStudentId(anyLong())).thenReturn(rawList);
 
         // mock知识库批量查询返回
         KnowledgePointDTO knowledgePointDTO = new KnowledgePointDTO();
         knowledgePointDTO.setKnowledgeId("k_001");
         knowledgePointDTO.setKnowledgeTitle("变量与数据类型");
         List<KnowledgePointDTO> knowledgeResult = List.of(knowledgePointDTO);
-        when(knowledgeHomeService.batchGetKnowledge(anyList())).thenReturn(knowledgeResult);
+        when(knowledgePointService.batchGetKnowledge(anyList())).thenReturn(knowledgeResult);
 
 
         // ===== when 执行业务方法 =====
@@ -151,9 +150,9 @@ public class CourseServiceTest {
         rawDto.setCourseName("MySQL教程");
         List<TodayTaskRawDTO> rawList = List.of(rawDto);
 
-        when(learningPathsMapper.selectTaskRawByStudentId(anyLong())).thenReturn(rawList);
+        when(learningPathMapper.selectTaskRawByStudentId(anyLong())).thenReturn(rawList);
         // 知识库返回空集合，map拿不到key，get返回null
-        when(knowledgeHomeService.batchGetKnowledge(anyList())).thenReturn(List.of());
+        when(knowledgePointService.batchGetKnowledge(anyList())).thenReturn(List.of());
 
         List<TodayTaskVO> voResultList = courseService.getTodayTaskList(888L);
 

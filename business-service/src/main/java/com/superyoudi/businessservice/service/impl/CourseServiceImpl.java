@@ -1,26 +1,25 @@
 package com.superyoudi.businessservice.service.impl;
 
 import com.superyoudi.businessservice.mapper.CourseMapper;
-import com.superyoudi.businessservice.mapper.LearningPathsMapper;
+import com.superyoudi.aiservice.mapper.LearningPathMapper;
 import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
-import com.superyoudi.businessservice.pojo.dto.TodayTaskRawDTO;
 import com.superyoudi.businessservice.pojo.entity.Course;
 import com.superyoudi.businessservice.pojo.vo.CoursesVO;
 import com.superyoudi.businessservice.pojo.vo.StudentCourseProgressVO;
 import com.superyoudi.businessservice.pojo.vo.TodayTaskVO;
 import com.superyoudi.businessservice.service.CourseService;
 import com.superyoudi.common.dto.StudentCourseProgress;
+import com.superyoudi.common.dto.TodayTaskRawDTO;
 import com.superyoudi.common.exception.CourseNotExistException;
 import com.superyoudi.common.exception.NoStudyTaskException;
 import com.superyoudi.common.exception.StudentRepeatJoinCourseException;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
-import com.superyoudi.kdbservice.service.KnowledgeHomeService;
+import com.superyoudi.kdbservice.service.KnowledgePointService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -32,8 +31,8 @@ public class CourseServiceImpl implements CourseService {
 
     private final CourseMapper courseMapper;
     private final StudentCourseProgressMapper studentCourseProgressesMapper;
-    private final KnowledgeHomeService knowledgeHomeService;
-    private final LearningPathsMapper learningPathsMapper;
+    private final KnowledgePointService knowledgeHomeService;
+    private final LearningPathMapper learningPathMapper;
 
     /**
      * 获取单门课程详情
@@ -111,8 +110,8 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public List<TodayTaskVO> getTodayTaskList(Long userId) {
         //拿到该学生每门课节点（proceeding优先，其次untested最新，过滤completed）
-        List<TodayTaskRawDTO> rawList = learningPathsMapper.selectTaskRawByStudentId(userId);
-        if(rawList.isEmpty()){
+        List<TodayTaskRawDTO> rawList = learningPathMapper.selectTaskRawByStudentId(userId);
+        if (rawList.isEmpty()) {
             throw new NoStudyTaskException("所有课程知识点均已完成");
         }
 

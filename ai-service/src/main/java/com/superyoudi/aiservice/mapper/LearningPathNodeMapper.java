@@ -122,4 +122,26 @@ public interface LearningPathNodeMapper {
      */
     @Delete("DELETE FROM learning_path_nodes WHERE knowledge_id = #{knowledgeId}")
     Long deleteByKnowledgeId(Long knowledgeId);
+
+    /**
+     * 获取进行中的知识点id proceeding
+     */
+    @Select("SELECT knowledge_id FROM learning_path_nodes " +
+            "WHERE path_id = #{pathId} AND status = 'proceeding' LIMIT 1")
+    String selectProceedingKnowledgeId(@Param("pathId") Long pathId);
+
+    /**
+     * 获取更新时间最新的知识点id
+     */
+    @Select("SELECT knowledge_id FROM learning_path_nodes " +
+            "WHERE path_id = #{pathId} ORDER BY updated_at DESC LIMIT 1")
+    String selectLatestUpdateKnowledgeId(@Param("pathId") Long pathId);
+
+    /**
+     * 统计未完成节点数量 status != completed
+     */
+    @Select("SELECT COUNT(1) FROM learning_path_nodes " +
+            "WHERE path_id = #{pathId} AND status != 'completed'")
+    Integer countUntestedNode(@Param("pathId") Long pathId);
+
 }

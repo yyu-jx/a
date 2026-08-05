@@ -1,4 +1,4 @@
-package com.superyoudi.businessservice.pojo.dto;
+package com.superyoudi.common.dto;
 
 import lombok.Data;
 

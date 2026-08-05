@@ -1,8 +1,11 @@
 package com.superyoudi.businessservice;
 
+import com.superyoudi.aiservice.mapper.LearningPathNodeMapper;
 import com.superyoudi.aiservice.service.HomeAiService;
-import com.superyoudi.businessservice.mapper.*;
 import com.superyoudi.aiservice.pojo.entity.LearningPath;
+import com.superyoudi.businessservice.mapper.CourseMapper;
+import com.superyoudi.businessservice.mapper.KnowledgeMasteryMapper;
+import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
 import com.superyoudi.businessservice.pojo.entity.StudyOverview;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
 import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;
@@ -40,9 +43,9 @@ public class HomeServiceTest {
 
 
     @Mock
-    private LearningPathsMapper learningPathsMapper;
+    private com.superyoudi.aiservice.mapper.LearningPathMapper learningPathMapper;
     @Mock
-    private LearningPathNodesMapper learningPathNodesMapper;
+    private LearningPathNodeMapper learningPathNodeMapper;
     @Mock
     private KnowledgePointService knowledgePointService;
     @Mock
@@ -123,12 +126,12 @@ public class HomeServiceTest {
     @Test
     void getLatestStudyRecord_NoStudyRecord_ReturnNull() {
         Long userId = 10001l;
-        when(learningPathsMapper.selectLatestPathByStudentId(userId)).thenReturn(null);
+        when(learningPathMapper.selectLatestPathByStudentId(userId)).thenReturn(null);
 
         LastStudyRecordVO vo = homeService.getLatestStudyRecord(userId);
 
         Assertions.assertNull(vo);
-        verify(learningPathsMapper).selectLatestPathByStudentId(userId);
+        verify(learningPathMapper).selectLatestPathByStudentId(userId);
     }
 
 
@@ -149,9 +152,9 @@ public class HomeServiceTest {
         KnowledgePointDTO dto = new KnowledgePointDTO();
         dto.setKnowledgeTitle("虚拟内存的基本概念");
 
-        when(learningPathsMapper.selectLatestPathByStudentId(userId)).thenReturn(mockPath);
-        when(learningPathNodesMapper.selectProceedingKnowledgeId(mockPathId)).thenReturn(mockKpId);
-        when(learningPathNodesMapper.countUntestedNode(mockPathId)).thenReturn(2);
+        when(learningPathMapper.selectLatestPathByStudentId(userId)).thenReturn(mockPath);
+        when(learningPathNodeMapper.selectProceedingKnowledgeId(mockPathId)).thenReturn(mockKpId);
+        when(learningPathNodeMapper.countUntestedNode(mockPathId)).thenReturn(2);
         when(knowledgePointService.batchGetKnowledge(List.of(mockKpId))).thenReturn(List.of(dto));
         when(courseMapper.getNameById(mockCourseId)).thenReturn("操作系统 — 内存管理");
 
@@ -166,7 +169,7 @@ public class HomeServiceTest {
         Assertions.assertEquals(2, vo.getRemainingUntestedCount());
         Assertions.assertEquals(updateTime.toString(), vo.getLastStudyTime());
 
-        verify(learningPathNodesMapper, never()).selectLatestUpdateKnowledgeId(any());
+        verify(learningPathNodeMapper, never()).selectLatestUpdateKnowledgeId(any());
     }
 
 // 获取薄弱知识点接口
