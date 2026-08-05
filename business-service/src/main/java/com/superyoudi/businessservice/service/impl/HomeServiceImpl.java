@@ -3,7 +3,7 @@ package com.superyoudi.businessservice.service.impl;
 import com.superyoudi.aiservice.service.HomeAiService;
 import com.superyoudi.businessservice.mapper.*;
 
-import com.superyoudi.businessservice.pojo.entity.LearningPaths;
+import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.businessservice.pojo.entity.StudyOverview;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
 import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;
@@ -11,7 +11,7 @@ import com.superyoudi.businessservice.service.HomeService;
 import com.superyoudi.common.dto.StudentCourseProgress;
 import com.superyoudi.common.dto.StudentKnowledgeMastery;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
-import com.superyoudi.kdbservice.service.KnowledgeHomeService;
+import com.superyoudi.kdbservice.service.KnowledgePointService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -35,7 +35,7 @@ public class HomeServiceImpl implements HomeService {
     private final StudentCourseProgressMapper studentCourseProgressesMapper;
     private final LearningPathsMapper learningPathsMapper;
     private final LearningPathNodesMapper learningPathNodesMapper;
-    private final KnowledgeHomeService knowledgeHomeService;
+    private final KnowledgePointService knowledgePointService;
     private final CourseMapper courseMapper;
     private final KnowledgeMasteryMapper knowledgeMasteryMapper;
     private final StringRedisTemplate stringRedisTemplate;
@@ -51,7 +51,7 @@ public class HomeServiceImpl implements HomeService {
     @Override
     public LastStudyRecordVO getLatestStudyRecord(Long userId) {
         // ========== 步骤1：查询学生【最新的学习路径】按updated_at倒序取第一条 ==========
-        LearningPaths latestPath = learningPathsMapper.selectLatestPathByStudentId(userId);
+        LearningPath latestPath = learningPathsMapper.selectLatestPathByStudentId(userId);
         if (latestPath == null) {
             // 无学习记录，可以返回null或者抛业务异常，前端展示「暂无学习记录」
             return null;
@@ -74,7 +74,7 @@ public class HomeServiceImpl implements HomeService {
         String knowledgeTitle = null;
         if (currentKnowledgeId != null) {
             try {
-                List<KnowledgePointDTO> dtoList = knowledgeHomeService.batchGetKnowledge(List.of(currentKnowledgeId));
+                List<KnowledgePointDTO> dtoList = knowledgePointService.batchGetKnowledge(List.of(currentKnowledgeId));
                 if (!dtoList.isEmpty()) {
                     knowledgeTitle = dtoList.get(0).getKnowledgeTitle();
                 }
@@ -139,7 +139,7 @@ public class HomeServiceImpl implements HomeService {
                 .collect(Collectors.toList());
 
         // 调用你现有的批量方法
-        List<KnowledgePointDTO> dtoList = knowledgeHomeService.batchGetKnowledge(knowledgeIdList);
+        List<KnowledgePointDTO> dtoList = knowledgePointService.batchGetKnowledge(knowledgeIdList);
 
         // List 转 Map：key=知识点ID，value=知识点标题
         Map<String, String> knowledgeNameMap = dtoList.stream()
@@ -201,7 +201,7 @@ public class HomeServiceImpl implements HomeService {
         List<String> knowledgeIds = weakKnowledgeList.stream()
                 .map(StudentKnowledgeMastery::getKnowledgeId)
                 .collect(Collectors.toList());
-        List<KnowledgePointDTO> dtoList = knowledgeHomeService.batchGetKnowledge(knowledgeIds);
+        List<KnowledgePointDTO> dtoList = knowledgePointService.batchGetKnowledge(knowledgeIds);
 
         // List 转 Map：key=知识点ID，value=知识点标题
         Map<String, String> knowledgeNameMap = dtoList.stream()

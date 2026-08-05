@@ -1,7 +1,7 @@
 package com.superyoudi.businessservice.mapper;
 
+import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.businessservice.pojo.dto.TodayTaskRawDTO;
-import com.superyoudi.businessservice.pojo.entity.LearningPaths;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -21,5 +21,5 @@ public interface LearningPathsMapper {
             "FROM learning_paths " +
             "WHERE student_id = #{studentId} " +
             "ORDER BY updated_at DESC LIMIT 1")
-    LearningPaths selectLatestPathByStudentId(Long studentId);
+    LearningPath selectLatestPathByStudentId(Long studentId);
 }

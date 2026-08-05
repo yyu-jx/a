@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 public class UserChatMessage {
 
     /// 用户ID
-    private Integer userId;
+    private Long userId;
 
     /// 聊天消息（文本）
     private String message;

@@ -1,6 +1,9 @@
-package com.superyoudi.businessservice.pojo.entity;
+package com.superyoudi.aiservice.pojo.entity;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 /**
@@ -8,7 +11,13 @@ import java.time.LocalDateTime;
  * 对应数据库 learning_path_nodes 学习路径‑节点表
  */
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class LearningPathNode {
+
+    public static final String NODE_STATUS_UNTESTED = "untested";
+    public static final String NODE_STATUS_PROCEEDING = "proceeding";
+    public static final String NODE_STATUS_COMPLETED = "completed";
 
     /**
      * 主键id

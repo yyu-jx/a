@@ -9,7 +9,7 @@ import com.alibaba.cloud.ai.graph.checkpoint.savers.MemorySaver;
 import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
 import com.alibaba.cloud.ai.graph.streaming.OutputType;
 import com.alibaba.cloud.ai.graph.streaming.StreamingOutput;
-import com.superyoudi.coursewareservice.ai.tools.RagTools;
+import com.superyoudi.coursewareservice.ai.tool.RagTools;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;

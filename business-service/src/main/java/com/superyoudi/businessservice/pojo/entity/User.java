@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
  * 对应数据库 用户表 users
  */
 @Data
-public class Users {
+public class User {
 
 
     private Long id;

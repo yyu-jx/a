@@ -1,4 +1,4 @@
-package com.superyoudi.coursewareservice.ai.tools;
+package com.superyoudi.coursewareservice.ai.tool;
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
