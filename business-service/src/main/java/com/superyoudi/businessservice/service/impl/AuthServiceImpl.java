@@ -2,7 +2,7 @@ package com.superyoudi.businessservice.service.impl;
 
 import com.superyoudi.businessservice.mapper.UserMapper;
 import com.superyoudi.businessservice.pojo.dto.LoginResponse;
-import com.superyoudi.businessservice.pojo.entity.Users;
+import com.superyoudi.businessservice.pojo.entity.User;
 import com.superyoudi.businessservice.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,7 +21,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginResponse login(String username, String password) {
         // 根据用户名查询用户
-        Users user = userMapper.selectByUsername(username);
+        User user = userMapper.selectByUsername(username);
         if (user == null) {
             return null;
         }

@@ -4,7 +4,7 @@ import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.AsyncNodeAction;
 import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
 import com.superyoudi.coursewareservice.ai.node.HtmlPptGenNode;
-import com.superyoudi.coursewareservice.ai.tools.HtmlPptTools;
+import com.superyoudi.coursewareservice.ai.tool.HtmlPptTools;
 import com.superyoudi.coursewareservice.config.GraphConfig;
 import com.superyoudi.coursewareservice.dto.GenerationStatus;
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;
@@ -118,13 +118,13 @@ class CoursewareInteractionController {
     // 测试接口
     @GetMapping(value = "/tchat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> testChat(@RequestParam String input) {
-        return interactionService.executeWorkflowGraph(new UserChatMessage(1, input, null));
+        return interactionService.executeWorkflowGraph(new UserChatMessage(1L, input, null));
     }
 
     // 测试接口
     @GetMapping(value = "/tresume", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> testResme(@RequestParam String approve) { // TODO UserChatMessage
-        return interactionService.resumeWorkflowGraph(new UserChatMessage(1, "", approve));
+        return interactionService.resumeWorkflowGraph(new UserChatMessage(1L, "", approve));
     }
 
 }

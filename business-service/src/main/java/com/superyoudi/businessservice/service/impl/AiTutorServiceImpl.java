@@ -1,0 +1,156 @@
+package com.superyoudi.businessservice.service.impl;
+
+import com.alibaba.cloud.ai.graph.RunnableConfig;
+import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
+import com.superyoudi.aiservice.ai.agent.AiTutorAgent;
+import com.superyoudi.aiservice.pojo.dto.LearningPathDTO;
+import com.superyoudi.aiservice.pojo.dto.StudentCourseInfoDTO;
+import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
+import com.superyoudi.aiservice.pojo.entity.LearningPath;
+import com.superyoudi.aiservice.pojo.entity.LearningPathNode;
+import com.superyoudi.aiservice.service.AiTutorService;
+import com.superyoudi.aiservice.service.LearningPathService;
+import com.superyoudi.aiservice.utils.StreamingMessageUtils;
+import com.superyoudi.businessservice.mapper.CourseMapper;
+import com.superyoudi.businessservice.mapper.UserMapper;
+import com.superyoudi.businessservice.pojo.entity.Course;
+import com.superyoudi.businessservice.pojo.entity.User;
+import com.superyoudi.common.exception.LearningPathFinishedException;
+import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
+import com.superyoudi.kdbservice.service.KnowledgePointService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+
+import java.util.List;
+
+/**
+ * @author Sijayyx
+ */
+@Slf4j
+@Service
+public class AiTutorServiceImpl implements AiTutorService {
+
+    private final AiTutorAgent aiTutorAgent;
+
+    private final CourseMapper courseMapper;
+    private final LearningPathService learningPathService;
+    private final KnowledgePointService knowledgePointService;
+    private final UserMapper userMapper;
+
+
+    public AiTutorServiceImpl(@Lazy AiTutorAgent aiTutorAgent, // 延迟注入ai tutor agent，否则会造成循环依赖
+                              CourseMapper courseMapper,
+                              LearningPathService learningPathService,
+                              KnowledgePointService knowledgePointService,
+                              UserMapper userMapper) {
+        this.courseMapper = courseMapper;
+        this.learningPathService = learningPathService;
+        this.knowledgePointService = knowledgePointService;
+        this.userMapper = userMapper;
+        this.aiTutorAgent = aiTutorAgent;
+    }
+
+    @Override
+    public Flux<String> callAiTutor(UserChatMessage userChatMessage) {
+        Long courseId = (Long) userChatMessage.getAdditionalData();
+
+        // 设置config的metadata以进行context engineering
+        RunnableConfig runnableConfig = RunnableConfig.builder()
+                .threadId("ai_tutor_thread_" + userChatMessage.getUserId() + "_" + courseId)
+                .addMetadata("student_id", userChatMessage.getUserId())
+                .addMetadata("course_id", courseId)
+                .build();
+
+        try {
+            return aiTutorAgent.callAgent(userChatMessage.getMessage(), runnableConfig)
+                    .map(nodeOutput ->
+                            StreamingMessageUtils.handleStreamingOutput(nodeOutput, null,
+                                    message -> log.info("AI Tutor回复: {}", message)));
+        } catch (GraphRunnerException e) {
+            log.error("调用AI Tutor失败", e);
+            throw new RuntimeException("调用AI Tutor失败", e);
+        }
+    }
+
+    @Override
+    public void toNextLearningPathNode(Long learningPathId) throws LearningPathFinishedException {
+        LearningPath learningPath = learningPathService.getLearningPathById(learningPathId);
+        Long currentNodeId = learningPath.getCurrentNodeId();
+        Long nextNodeId = learningPathService.getNextLearningPathNode(learningPathId, currentNodeId);
+
+        // 将当前节点状态设置为已完成
+        learningPathService.updateLearningPathNodeStatus(currentNodeId, LearningPathNode.NODE_STATUS_COMPLETED);
+
+        // 下一节点的ID最大，表示学习路径已完成
+        if (nextNodeId.equals(currentNodeId)) {
+            log.info("学习路径 {} 已完成!", learningPathId);
+            throw new LearningPathFinishedException("学习路径已完成");
+        }
+
+        // 下一节点变成当前节点，状态设为进行中
+        learningPathService.updateLearningPathNodeStatus(nextNodeId, LearningPathNode.NODE_STATUS_PROCEEDING);
+
+        // 更新节点
+        learningPath.setCurrentNodeId(nextNodeId);
+        learningPath.setCurrentStage(LearningPath.STAGE_INTRODUCING);
+        learningPathService.updateLearningPath(learningPath);
+    }
+
+    @Override
+    public LearningPathDTO getLearningPathInfo(Long studentId, Long courseId) {
+        LearningPath learningPath = learningPathService.getLearningPathByStudentAndCourse(studentId, courseId);
+        Long currentNodeId = learningPath.getCurrentNodeId();
+        LearningPathNode learningPathNode = learningPathService.getLearningPathNodeById(currentNodeId);
+        Course course = courseMapper.selectById(courseId);
+        KnowledgePointDTO kpDto = knowledgePointService.getKnowledgePoint(learningPathNode.getKnowledgeId());
+
+        return new LearningPathDTO(courseId, course.getName(), learningPath.getId(),
+                currentNodeId, kpDto.getKnowledgeTitle(), learningPath.getCurrentStage());
+
+    }
+
+
+    @Override
+    public StudentCourseInfoDTO getStudentInfo(Long studentId) {
+        User student = userMapper.selectById(studentId);
+        return new StudentCourseInfoDTO(student.getId().toString(), student.getRealname());
+    }
+
+    @Override
+    public String formatLearningPath(Long learningPathId) {
+        List<LearningPathNode> learningPathNodes = learningPathService.getLearningPathNodes(learningPathId);
+
+        if (learningPathNodes == null || learningPathNodes.isEmpty()) {
+            return "该学习路径暂无任何节点内容。";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("学习路径 %d：\n", learningPathId));
+
+        for (LearningPathNode node : learningPathNodes) {
+            // 获取知识点信息
+            KnowledgePointDTO kpDto = knowledgePointService.getKnowledgePoint(node.getKnowledgeId());
+            String knowledgeTitle;
+            if (kpDto == null || kpDto.getKnowledgeTitle() == null || kpDto.getKnowledgeTitle().isEmpty()) {
+                knowledgeTitle = "未知知识点";
+            } else {
+                knowledgeTitle = kpDto.getKnowledgeTitle();
+            }
+            // 格式化节点信息
+            sb.append("节点ID：").append(node.getId())
+                    .append("，知识点：").append(knowledgeTitle)
+                    .append("，知识点ID：").append(node.getKnowledgeId())
+                    .append("，状态：").append(node.getStatus())
+                    .append("\n");
+        }
+
+        return sb.toString();
+    }
+
+    @Override
+    public void updateLearningPathStage(Long pathId, String stage) {
+        learningPathService.updateLearningPathStage(pathId, stage);
+    }
+}

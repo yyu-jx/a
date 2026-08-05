@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
+ * 会话 课件生成 关联表
+ *
  * @author Sijayyx
  */
 @Data

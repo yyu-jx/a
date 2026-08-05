@@ -4,7 +4,7 @@ import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
-import com.superyoudi.coursewareservice.ai.tools.HtmlWordTools;
+import com.superyoudi.coursewareservice.ai.tool.HtmlWordTools;
 import com.superyoudi.coursewareservice.config.GraphConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
@@ -102,7 +102,7 @@ public class HtmlWordGenNode implements NodeAction {
                 """;
         this.reactAgent = ReactAgent.builder()
                 .name("html-word-generator")
-                .instruction(instruction)
+                .systemPrompt(instruction)
                 .methodTools(htmlWordTools)
                 .model(chatModel)
                 .interceptors()
