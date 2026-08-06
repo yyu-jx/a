@@ -9,7 +9,7 @@ import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
 import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.aiservice.pojo.entity.LearningPathNode;
 import com.superyoudi.aiservice.service.AiTutorService;
-import com.superyoudi.businessservice.service.LearningPathService;
+import com.superyoudi.aiservice.service.LearningPathService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.businessservice.mapper.UserMapper;
