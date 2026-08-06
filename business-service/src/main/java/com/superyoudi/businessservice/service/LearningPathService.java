@@ -1,4 +1,4 @@
-package com.superyoudi.aiservice.service;
+package com.superyoudi.businessservice.service;
 
 import com.superyoudi.aiservice.mapper.LearningPathMapper;
 import com.superyoudi.aiservice.mapper.LearningPathNodeMapper;

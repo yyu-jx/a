@@ -4,7 +4,7 @@ import com.superyoudi.aiservice.pojo.dto.LearningPathDTO;
 import com.superyoudi.aiservice.pojo.dto.StudentCourseInfoDTO;
 import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.aiservice.pojo.entity.LearningPathNode;
-import com.superyoudi.aiservice.service.LearningPathService;
+import com.superyoudi.businessservice.service.LearningPathService;
 import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.businessservice.mapper.UserMapper;
 import com.superyoudi.businessservice.pojo.entity.Course;

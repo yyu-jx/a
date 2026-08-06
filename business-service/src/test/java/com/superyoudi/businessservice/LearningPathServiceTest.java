@@ -1,9 +1,10 @@
-package com.superyoudi.aiservice.service;
+package com.superyoudi.businessservice;
 
 import com.superyoudi.aiservice.mapper.LearningPathMapper;
 import com.superyoudi.aiservice.mapper.LearningPathNodeMapper;
 import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.aiservice.pojo.entity.LearningPathNode;
+import com.superyoudi.businessservice.service.LearningPathService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

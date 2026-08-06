@@ -18,17 +18,19 @@ import com.superyoudi.businessservice.service.impl.CourseServiceImpl;
 import com.superyoudi.common.dto.TodayTaskRawDTO;
 import com.superyoudi.common.exception.CourseNotExistException;
 import com.superyoudi.common.exception.NoStudyTaskException;
+import com.superyoudi.kdbservice.dto.KnowledgeExtractionResult;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.graph.KnowledgePointNode;
 import com.superyoudi.kdbservice.repository.KnowledgePointRepository;
+import com.superyoudi.kdbservice.service.KnowledgeGraphService;
 import com.superyoudi.kdbservice.service.KnowledgePointService;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -57,6 +59,8 @@ public class CourseServiceTest {
     @Mock
     private KnowledgePointService knowledgePointService;
     @Mock
+    private KnowledgeGraphService knowledgeGraphService;
+    @Mock
     private ChapterMapper chapterMapper;
     @Mock
     private SectionMapper sectionMapper;
@@ -69,6 +73,30 @@ public class CourseServiceTest {
     @InjectMocks
     private CourseServiceImpl courseService; // 假设您的服务类名为CourseService
 
+    @BeforeEach
+    void setUp() {
+        // 设置通用的stubbing
+        when(chapterMapper.insert(any(Chapter.class))).thenReturn(1L);
+        when(sectionMapper.insert(any(Section.class))).thenReturn(1L);
+
+        // 模拟knowledgeGraphService.saveKnowledgePoints返回知识点列表
+        when(knowledgeGraphService.saveKnowledgePoints(any(KnowledgeExtractionResult.class)))
+                .thenAnswer(invocation -> {
+                    KnowledgeExtractionResult result = invocation.getArgument(0);
+                    List<KnowledgePointNode> nodes = new ArrayList<>();
+                    if (result.getKnowledgePoints() != null) {
+                        for (KnowledgeExtractionResult.KnowledgePointItem item : result.getKnowledgePoints()) {
+                            KnowledgePointNode node = new KnowledgePointNode(item.getName(), item.getDescription());
+                            nodes.add(node);
+                        }
+                    }
+                    return nodes;
+                });
+
+        when(sectionKnowledgeRelMapper.insert(any(SectionKnowledgeRel.class)))
+                .thenReturn(1L);
+    }
+
     @Test
     void openCourse_Success() throws CourseNotExistException {
         // 1. 准备测试数据
@@ -79,7 +107,7 @@ public class CourseServiceTest {
 
         when(courseMapper.selectById(COURSE_ID)).thenReturn(mockCourse);
 
-        // 2. 模拟AI生成的JSON数据
+        // 2. 模拟AI生成的JSON数据 - 所有字段使用"xxx"
         String mockCourseDataJson = "{" +
                 "\"courseId\": " + COURSE_ID + "," +
                 "\"courseName\": \"xxx\"," +
@@ -91,16 +119,36 @@ public class CourseServiceTest {
                 "      {" +
                 "        \"sectionName\": \"xxx\"," +
                 "        \"order\": 1," +
-                "        \"knowledgePointDataList\": [" +
-                "          {\"name\": \"xxx\", \"description\": \"xxx\"}," +
-                "          {\"name\": \"xxx\", \"description\": \"xxx\"}" +
+                "        \"extractionResults\": [" +
+                "          {" +
+                "            \"knowledgePoints\": [" +
+                "              {\"name\": \"xxx\", \"description\": \"xxx\"}," +
+                "              {\"name\": \"xxx\", \"description\": \"xxx\"}" +
+                "            ]," +
+                "            \"knowledgeRelations\": [" +
+                "              {\"relation\": \"xxx\", \"sourceKnowledgePoint\": \"xxx\", \"targetKnowledgePoint\": \"xxx\"}" +
+                "            ]" +
+                "          }," +
+                "          {" +
+                "            \"knowledgePoints\": [" +
+                "              {\"name\": \"xxx\", \"description\": \"xxx\"}" +
+                "            ]," +
+                "            \"knowledgeRelations\": []" +
+                "          }" +
                 "        ]" +
                 "      }," +
                 "      {" +
                 "        \"sectionName\": \"xxx\"," +
                 "        \"order\": 2," +
-                "        \"knowledgePointDataList\": [" +
-                "          {\"name\": \"xxx\", \"description\": \"xxx\"}" +
+                "        \"extractionResults\": [" +
+                "          {" +
+                "            \"knowledgePoints\": [" +
+                "              {\"name\": \"xxx\", \"description\": \"xxx\"}" +
+                "            ]," +
+                "            \"knowledgeRelations\": [" +
+                "              {\"relation\": \"xxx\", \"sourceKnowledgePoint\": \"xxx\", \"targetKnowledgePoint\": \"xxx\"}" +
+                "            ]" +
+                "          }" +
                 "        ]" +
                 "      }" +
                 "    ]" +
@@ -112,8 +160,13 @@ public class CourseServiceTest {
                 "      {" +
                 "        \"sectionName\": \"xxx\"," +
                 "        \"order\": 1," +
-                "        \"knowledgePointDataList\": [" +
-                "          {\"name\": \"xxx\", \"description\": \"xxx\"}" +
+                "        \"extractionResults\": [" +
+                "          {" +
+                "            \"knowledgePoints\": [" +
+                "              {\"name\": \"xxx\", \"description\": \"xxx\"}" +
+                "            ]," +
+                "            \"knowledgeRelations\": []" +
+                "          }" +
                 "        ]" +
                 "      }" +
                 "    ]" +
@@ -124,28 +177,13 @@ public class CourseServiceTest {
         when(courseDataGenerateModel.call(COURSE_ID, COURSE_NAME, COURSE_DESCRIPTION))
                 .thenReturn(mockCourseDataJson);
 
-        // 3. Mock AiMessageUtils.readJsonValue - 如果无法mock静态方法，可以改为返回构造的CourseDataDTO对象
+        // 3. 构建CourseDataDTO对象
         CourseDataDTO mockCourseData = buildMockCourseData();
 
-        try (MockedStatic<AiMessageUtils> utilities = Mockito.mockStatic(AiMessageUtils.class)) {
+        // 4. Mock AiMessageUtils.readJsonValue (静态方法)
+        try (MockedStatic<AiMessageUtils> utilities = mockStatic(AiMessageUtils.class)) {
             utilities.when(() -> AiMessageUtils.readJsonValue(mockCourseDataJson, CourseDataDTO.class))
                     .thenReturn(mockCourseData);
-
-            // 4. Mock各个Mapper的insert方法
-            // 第1章
-            when(chapterMapper.insert(any(Chapter.class))).thenReturn(1L);
-            // 第1章第1节
-            when(sectionMapper.insert(any(Section.class))).thenReturn(1L);
-            // 第1章第2节
-            when(sectionMapper.insert(any(Section.class))).thenReturn(2L);
-            // 第2章第1节
-            when(sectionMapper.insert(any(Section.class))).thenReturn(3L);
-
-            when(knowledgePointRepository.save(any(KnowledgePointNode.class)))
-                    .thenAnswer(invocation -> invocation.getArgument(0));
-
-            when(sectionKnowledgeRelMapper.insert(any(SectionKnowledgeRel.class)))
-                    .thenReturn(1L);
 
             // 5. 执行测试
             courseService.openCourse(COURSE_ID);
@@ -156,14 +194,15 @@ public class CourseServiceTest {
 
             // 验证保存了2个章节
             verify(chapterMapper, times(2)).insert(any(Chapter.class));
-            // 验证保存了3个小节（第1章有2节，第2章有1节）
+            // 验证保存了3个小节
             verify(sectionMapper, times(3)).insert(any(Section.class));
-            // 验证保存了4个知识点（第1章第1节有2个，第1章第2节有1个，第2章第1节有1个）
-            verify(knowledgePointRepository, times(4)).save(any(KnowledgePointNode.class));
-            // 验证保存了4个章节-知识点关联
-            verify(sectionKnowledgeRelMapper, times(4)).insert(any(SectionKnowledgeRel.class));
 
-            // 验证日志 - 可以通过日志捕获验证，但这不是必需的
+            // 验证knowledgeGraphService.saveKnowledgePoints被调用了4次
+            // 第1章第1节有2个extractionResults，第1章第2节有1个，第2章第1节有1个
+            verify(knowledgeGraphService, times(4)).saveKnowledgePoints(any(KnowledgeExtractionResult.class));
+
+            // 验证保存了知识点数量：第1节2个+第1节1个+第2节1个+第3节1个 = 5个
+            verify(sectionKnowledgeRelMapper, times(5)).insert(any(SectionKnowledgeRel.class));
         }
     }
 
@@ -183,7 +222,7 @@ public class CourseServiceTest {
         verify(courseDataGenerateModel, never()).call(anyLong(), anyString(), anyString());
         verify(chapterMapper, never()).insert(any(Chapter.class));
         verify(sectionMapper, never()).insert(any(Section.class));
-        verify(knowledgePointRepository, never()).save(any(KnowledgePointNode.class));
+        verify(knowledgeGraphService, never()).saveKnowledgePoints(any(KnowledgeExtractionResult.class));
         verify(sectionKnowledgeRelMapper, never()).insert(any(SectionKnowledgeRel.class));
     }
 
@@ -197,13 +236,13 @@ public class CourseServiceTest {
 
         when(courseMapper.selectById(COURSE_ID)).thenReturn(mockCourse);
 
-        // 2. 模拟AI生成失败（返回null或空数据）
+        // 2. 模拟AI生成失败（返回无效数据）
         String invalidJson = "invalid json";
         when(courseDataGenerateModel.call(COURSE_ID, COURSE_NAME, COURSE_DESCRIPTION))
                 .thenReturn(invalidJson);
 
         // 3. 模拟AiMessageUtils.readJsonValue返回null
-        try (MockedStatic<AiMessageUtils> utilities = Mockito.mockStatic(AiMessageUtils.class)) {
+        try (MockedStatic<AiMessageUtils> utilities = mockStatic(AiMessageUtils.class)) {
             utilities.when(() -> AiMessageUtils.readJsonValue(invalidJson, CourseDataDTO.class))
                     .thenReturn(null);
 
@@ -217,14 +256,14 @@ public class CourseServiceTest {
             verify(courseDataGenerateModel).call(COURSE_ID, COURSE_NAME, COURSE_DESCRIPTION);
             verify(chapterMapper, never()).insert(any(Chapter.class));
             verify(sectionMapper, never()).insert(any(Section.class));
-            verify(knowledgePointRepository, never()).save(any(KnowledgePointNode.class));
+            verify(knowledgeGraphService, never()).saveKnowledgePoints(any(KnowledgeExtractionResult.class));
             verify(sectionKnowledgeRelMapper, never()).insert(any(SectionKnowledgeRel.class));
         }
     }
 
     @Test
-    void openCourse_WithMinimalData() throws CourseNotExistException {
-        // 测试只有最少数据的情况（没有知识点）
+    void openCourse_WithEmptyExtractionResults() throws CourseNotExistException {
+        // 测试extractionResults为空的情况
         Course mockCourse = new Course();
         mockCourse.setId(COURSE_ID);
         mockCourse.setName(COURSE_NAME);
@@ -232,7 +271,7 @@ public class CourseServiceTest {
 
         when(courseMapper.selectById(COURSE_ID)).thenReturn(mockCourse);
 
-        // 最小化JSON数据
+        // 最小化JSON数据 - extractionResults为空
         String minimalJson = "{" +
                 "\"courseId\": " + COURSE_ID + "," +
                 "\"courseName\": \"xxx\"," +
@@ -244,7 +283,7 @@ public class CourseServiceTest {
                 "      {" +
                 "        \"sectionName\": \"xxx\"," +
                 "        \"order\": 1," +
-                "        \"knowledgePointDataList\": []" +
+                "        \"extractionResults\": []" +
                 "      }" +
                 "    ]" +
                 "  }" +
@@ -254,31 +293,11 @@ public class CourseServiceTest {
         when(courseDataGenerateModel.call(COURSE_ID, COURSE_NAME, COURSE_DESCRIPTION))
                 .thenReturn(minimalJson);
 
-        CourseDataDTO minimalCourseData = new CourseDataDTO();
-        minimalCourseData.setCourseId(COURSE_ID);
-        minimalCourseData.setCourseName("xxx");
+        CourseDataDTO minimalCourseData = buildMinimalCourseData();
 
-        List<CourseDataDTO.ChapterData> chapters = new ArrayList<>();
-        CourseDataDTO.ChapterData chapter = new CourseDataDTO.ChapterData();
-        chapter.setChapterName("xxx");
-        chapter.setOrder(1);
-
-        List<CourseDataDTO.SectionData> sections = new ArrayList<>();
-        CourseDataDTO.SectionData section = new CourseDataDTO.SectionData();
-        section.setSectionName("xxx");
-        section.setOrder(1);
-        section.setKnowledgePointDataList(new ArrayList<>());
-        sections.add(section);
-        chapter.setSectionDataList(sections);
-        chapters.add(chapter);
-        minimalCourseData.setChapterDataList(chapters);
-
-        try (MockedStatic<AiMessageUtils> utilities = Mockito.mockStatic(AiMessageUtils.class)) {
+        try (MockedStatic<AiMessageUtils> utilities = mockStatic(AiMessageUtils.class)) {
             utilities.when(() -> AiMessageUtils.readJsonValue(minimalJson, CourseDataDTO.class))
                     .thenReturn(minimalCourseData);
-
-            when(chapterMapper.insert(any(Chapter.class))).thenReturn(1L);
-            when(sectionMapper.insert(any(Section.class))).thenReturn(1L);
 
             // 执行测试
             courseService.openCourse(COURSE_ID);
@@ -286,13 +305,66 @@ public class CourseServiceTest {
             // 验证：保存了1个章节和1个小节，但没有保存知识点
             verify(chapterMapper, times(1)).insert(any(Chapter.class));
             verify(sectionMapper, times(1)).insert(any(Section.class));
-            verify(knowledgePointRepository, never()).save(any(KnowledgePointNode.class));
+            verify(knowledgeGraphService, never()).saveKnowledgePoints(any(KnowledgeExtractionResult.class));
+            verify(sectionKnowledgeRelMapper, never()).insert(any(SectionKnowledgeRel.class));
+        }
+    }
+
+    @Test
+    void openCourse_WithEmptyKnowledgePoints() throws CourseNotExistException {
+        // 测试extractionResults存在但knowledgePoints为空的情况
+        Course mockCourse = new Course();
+        mockCourse.setId(COURSE_ID);
+        mockCourse.setName(COURSE_NAME);
+        mockCourse.setDescription(COURSE_DESCRIPTION);
+
+        when(courseMapper.selectById(COURSE_ID)).thenReturn(mockCourse);
+
+        String json = "{" +
+                "\"courseId\": " + COURSE_ID + "," +
+                "\"courseName\": \"xxx\"," +
+                "\"chapterDataList\": [" +
+                "  {" +
+                "    \"chapterName\": \"xxx\"," +
+                "    \"order\": 1," +
+                "    \"sectionDataList\": [" +
+                "      {" +
+                "        \"sectionName\": \"xxx\"," +
+                "        \"order\": 1," +
+                "        \"extractionResults\": [" +
+                "          {" +
+                "            \"knowledgePoints\": []," +
+                "            \"knowledgeRelations\": []" +
+                "          }" +
+                "        ]" +
+                "      }" +
+                "    ]" +
+                "  }" +
+                "]" +
+                "}";
+
+        when(courseDataGenerateModel.call(COURSE_ID, COURSE_NAME, COURSE_DESCRIPTION))
+                .thenReturn(json);
+
+        CourseDataDTO courseData = buildCourseDataWithEmptyKnowledgePoints();
+
+        try (MockedStatic<AiMessageUtils> utilities = mockStatic(AiMessageUtils.class)) {
+            utilities.when(() -> AiMessageUtils.readJsonValue(json, CourseDataDTO.class))
+                    .thenReturn(courseData);
+
+            // 执行测试
+            courseService.openCourse(COURSE_ID);
+
+            // 验证：保存了1个章节和1个小节，但没有保存知识点
+            verify(chapterMapper, times(1)).insert(any(Chapter.class));
+            verify(sectionMapper, times(1)).insert(any(Section.class));
+            verify(knowledgeGraphService, times(1)).saveKnowledgePoints(any(KnowledgeExtractionResult.class));
             verify(sectionKnowledgeRelMapper, never()).insert(any(SectionKnowledgeRel.class));
         }
     }
 
     /**
-     * 构建模拟的CourseDataDTO对象
+     * 构建模拟的CourseDataDTO对象 - 所有字段使用"xxx"
      */
     private CourseDataDTO buildMockCourseData() {
         CourseDataDTO courseData = new CourseDataDTO();
@@ -308,25 +380,55 @@ public class CourseServiceTest {
 
         List<CourseDataDTO.SectionData> sectionList1 = new ArrayList<>();
 
-        // 第1章第1节
+        // 第1章第1节 - 包含2个extractionResults
         CourseDataDTO.SectionData section1 = new CourseDataDTO.SectionData();
         section1.setSectionName("xxx");
         section1.setOrder(1);
-        List<CourseDataDTO.KnowledgePointData> knowledgePoints1 = Arrays.asList(
-                new CourseDataDTO.KnowledgePointData("xxx", "xxx"),
-                new CourseDataDTO.KnowledgePointData("xxx", "xxx")
+
+        List<KnowledgeExtractionResult> extractionResults1 = new ArrayList<>();
+
+        // extractionResult 1 - 包含2个知识点和1个关系
+        KnowledgeExtractionResult result1 = new KnowledgeExtractionResult();
+        List<KnowledgeExtractionResult.KnowledgePointItem> knowledgePoints1 = Arrays.asList(
+                new KnowledgeExtractionResult.KnowledgePointItem("xxx", "xxx"),
+                new KnowledgeExtractionResult.KnowledgePointItem("xxx", "xxx")
         );
-        section1.setKnowledgePointDataList(knowledgePoints1);
+        List<KnowledgeExtractionResult.KnowledgeRelationItem> relations1 = Arrays.asList(
+                new KnowledgeExtractionResult.KnowledgeRelationItem("xxx", "xxx", "xxx")
+        );
+        result1.setKnowledgePoints(knowledgePoints1);
+        result1.setKnowledgeRelations(relations1);
+        extractionResults1.add(result1);
+
+        // extractionResult 2 - 包含1个知识点
+        KnowledgeExtractionResult result2 = new KnowledgeExtractionResult();
+        List<KnowledgeExtractionResult.KnowledgePointItem> knowledgePoints2 = Arrays.asList(
+                new KnowledgeExtractionResult.KnowledgePointItem("xxx", "xxx")
+        );
+        result2.setKnowledgePoints(knowledgePoints2);
+        result2.setKnowledgeRelations(new ArrayList<>());
+        extractionResults1.add(result2);
+
+        section1.setExtractionResults(extractionResults1);
         sectionList1.add(section1);
 
-        // 第1章第2节
+        // 第1章第2节 - 包含1个extractionResult
         CourseDataDTO.SectionData section2 = new CourseDataDTO.SectionData();
         section2.setSectionName("xxx");
         section2.setOrder(2);
-        List<CourseDataDTO.KnowledgePointData> knowledgePoints2 = Arrays.asList(
-                new CourseDataDTO.KnowledgePointData("xxx", "xxx")
+
+        List<KnowledgeExtractionResult> extractionResults2 = new ArrayList<>();
+        KnowledgeExtractionResult result3 = new KnowledgeExtractionResult();
+        List<KnowledgeExtractionResult.KnowledgePointItem> knowledgePoints3 = Arrays.asList(
+                new KnowledgeExtractionResult.KnowledgePointItem("xxx", "xxx")
         );
-        section2.setKnowledgePointDataList(knowledgePoints2);
+        List<KnowledgeExtractionResult.KnowledgeRelationItem> relations3 = Arrays.asList(
+                new KnowledgeExtractionResult.KnowledgeRelationItem("xxx", "xxx", "xxx")
+        );
+        result3.setKnowledgePoints(knowledgePoints3);
+        result3.setKnowledgeRelations(relations3);
+        extractionResults2.add(result3);
+        section2.setExtractionResults(extractionResults2);
         sectionList1.add(section2);
 
         chapter1.setSectionDataList(sectionList1);
@@ -339,20 +441,88 @@ public class CourseServiceTest {
 
         List<CourseDataDTO.SectionData> sectionList2 = new ArrayList<>();
 
-        // 第2章第1节
+        // 第2章第1节 - 包含1个extractionResult
         CourseDataDTO.SectionData section3 = new CourseDataDTO.SectionData();
         section3.setSectionName("xxx");
         section3.setOrder(1);
-        List<CourseDataDTO.KnowledgePointData> knowledgePoints3 = Arrays.asList(
-                new CourseDataDTO.KnowledgePointData("xxx", "xxx")
+
+        List<KnowledgeExtractionResult> extractionResults3 = new ArrayList<>();
+        KnowledgeExtractionResult result4 = new KnowledgeExtractionResult();
+        List<KnowledgeExtractionResult.KnowledgePointItem> knowledgePoints4 = Arrays.asList(
+                new KnowledgeExtractionResult.KnowledgePointItem("xxx", "xxx")
         );
-        section3.setKnowledgePointDataList(knowledgePoints3);
+        result4.setKnowledgePoints(knowledgePoints4);
+        result4.setKnowledgeRelations(new ArrayList<>());
+        extractionResults3.add(result4);
+        section3.setExtractionResults(extractionResults3);
         sectionList2.add(section3);
 
         chapter2.setSectionDataList(sectionList2);
         chapterList.add(chapter2);
 
         courseData.setChapterDataList(chapterList);
+        return courseData;
+    }
+
+    /**
+     * 构建最小化的CourseDataDTO对象 - extractionResults为空
+     */
+    private CourseDataDTO buildMinimalCourseData() {
+        CourseDataDTO courseData = new CourseDataDTO();
+        courseData.setCourseId(COURSE_ID);
+        courseData.setCourseName("xxx");
+
+        List<CourseDataDTO.ChapterData> chapterList = new ArrayList<>();
+
+        CourseDataDTO.ChapterData chapter = new CourseDataDTO.ChapterData();
+        chapter.setChapterName("xxx");
+        chapter.setOrder(1);
+
+        List<CourseDataDTO.SectionData> sectionList = new ArrayList<>();
+        CourseDataDTO.SectionData section = new CourseDataDTO.SectionData();
+        section.setSectionName("xxx");
+        section.setOrder(1);
+        section.setExtractionResults(new ArrayList<>());
+        sectionList.add(section);
+
+        chapter.setSectionDataList(sectionList);
+        chapterList.add(chapter);
+        courseData.setChapterDataList(chapterList);
+
+        return courseData;
+    }
+
+    /**
+     * 构建包含空knowledgePoints的CourseDataDTO对象
+     */
+    private CourseDataDTO buildCourseDataWithEmptyKnowledgePoints() {
+        CourseDataDTO courseData = new CourseDataDTO();
+        courseData.setCourseId(COURSE_ID);
+        courseData.setCourseName("xxx");
+
+        List<CourseDataDTO.ChapterData> chapterList = new ArrayList<>();
+
+        CourseDataDTO.ChapterData chapter = new CourseDataDTO.ChapterData();
+        chapter.setChapterName("xxx");
+        chapter.setOrder(1);
+
+        List<CourseDataDTO.SectionData> sectionList = new ArrayList<>();
+        CourseDataDTO.SectionData section = new CourseDataDTO.SectionData();
+        section.setSectionName("xxx");
+        section.setOrder(1);
+
+        List<KnowledgeExtractionResult> extractionResults = new ArrayList<>();
+        KnowledgeExtractionResult result = new KnowledgeExtractionResult();
+        result.setKnowledgePoints(new ArrayList<>());
+        result.setKnowledgeRelations(new ArrayList<>());
+        extractionResults.add(result);
+        section.setExtractionResults(extractionResults);
+        sectionList.add(section);
+
+        chapter.setSectionDataList(sectionList);
+        chapterList.add(chapter);
+        courseData.setChapterDataList(chapterList);
+
         return courseData;
     }
 
@@ -435,7 +605,7 @@ public class CourseServiceTest {
         knowledgePointDTO.setKnowledgeId("k_001");
         knowledgePointDTO.setKnowledgeTitle("变量与数据类型");
         List<KnowledgePointDTO> knowledgeResult = List.of(knowledgePointDTO);
-        when(knowledgePointService.batchGetKnowledge(anyList())).thenReturn(knowledgeResult);
+        when(knowledgePointService.batchGetKnowledgePoints(anyList())).thenReturn(knowledgeResult);
 
 
         // ===== when 执行业务方法 =====
@@ -470,7 +640,7 @@ public class CourseServiceTest {
 
         when(learningPathMapper.selectTaskRawByStudentId(anyLong())).thenReturn(rawList);
         // 知识库返回空集合，map拿不到key，get返回null
-        when(knowledgePointService.batchGetKnowledge(anyList())).thenReturn(List.of());
+        when(knowledgePointService.batchGetKnowledgePoints(anyList())).thenReturn(List.of());
 
         List<TodayTaskVO> voResultList = courseService.getTodayTaskList(888L);
 

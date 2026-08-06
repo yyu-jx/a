@@ -18,9 +18,11 @@ import com.superyoudi.common.dto.TodayTaskRawDTO;
 import com.superyoudi.common.exception.CourseNotExistException;
 import com.superyoudi.common.exception.NoStudyTaskException;
 import com.superyoudi.common.exception.StudentRepeatJoinCourseException;
+import com.superyoudi.kdbservice.dto.KnowledgeExtractionResult;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.graph.KnowledgePointNode;
 import com.superyoudi.kdbservice.repository.KnowledgePointRepository;
+import com.superyoudi.kdbservice.service.KnowledgeGraphService;
 import com.superyoudi.kdbservice.service.KnowledgePointService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +49,7 @@ public class CourseServiceImpl implements CourseService {
     private final SectionMapper sectionMapper;
     private final KnowledgePointRepository knowledgePointRepository;
     private final SectionKnowledgeRelMapper sectionKnowledgeRelMapper;
+    private final KnowledgeGraphService knowledgeGraphService;
 
     /**
      * 获取单门课程详情
@@ -135,7 +138,7 @@ public class CourseServiceImpl implements CourseService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        List<KnowledgePointDTO> knowledgelist = knowledgeHomeService.batchGetKnowledge(knowledgeIdList);
+        List<KnowledgePointDTO> knowledgelist = knowledgeHomeService.batchGetKnowledgePoints(knowledgeIdList);
 
         // List 转 Map：key=知识点ID，value=知识点标题
         Map<String, String> knowledgeNameMap = knowledgelist.stream()
@@ -191,12 +194,13 @@ public class CourseServiceImpl implements CourseService {
                         null, sectionData.getOrder(), null, null);
                 Long sectionId = sectionMapper.insert(section);
 
-                for (CourseDataDTO.KnowledgePointData knowledgePointData : sectionData.getKnowledgePointDataList()) {
-                    KnowledgePointNode knowledgePointNode = new KnowledgePointNode(knowledgePointData.getName(), knowledgePointData.getDescription());
-                    knowledgePointRepository.save(knowledgePointNode);
+                for (KnowledgeExtractionResult extractionResult : sectionData.getExtractionResults()) {
+                    List<KnowledgePointNode> knowledgePointNodes = knowledgeGraphService.saveKnowledgePoints(extractionResult);
 
-                    SectionKnowledgeRel sectionKnowledgeRel = new SectionKnowledgeRel(null, sectionId, knowledgePointData.getName(), null);
-                    sectionKnowledgeRelMapper.insert(sectionKnowledgeRel);
+                    for (KnowledgePointNode knowledgePointNode : knowledgePointNodes) {
+                        SectionKnowledgeRel sectionKnowledgeRel = new SectionKnowledgeRel(null, sectionId, knowledgePointNode.getName(), null);
+                        sectionKnowledgeRelMapper.insert(sectionKnowledgeRel);
+                    }
                 }
             }
         }

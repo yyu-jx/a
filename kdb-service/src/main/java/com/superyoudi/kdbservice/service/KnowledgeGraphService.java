@@ -169,9 +169,44 @@ public class KnowledgeGraphService {
      */
     public void saveKnowledgePoints(KnowledgeExtractionResult result, Document sourceDocument) {
 
-        // 未提取出任何知识点和关系
-        if (result.getKnowledgePoints().isEmpty() || result.getKnowledgeRelations().isEmpty() || sourceDocument.getText() == null)
+        if (sourceDocument == null)
             return;
+
+        List<KnowledgePointNode> knowledgePointNodes = saveKnowledgePoints(result);
+
+        // 初始化 KnowledgeTextFragmentNode
+        KnowledgeTextFragmentNode knowledgeTextFragmentNode = new KnowledgeTextFragmentNode(sourceDocument.getText());
+        knowledgeTextFragmentNode.setKnowledgePointNodes(knowledgePointNodes.stream().toList());
+
+        // 批量保存所有更新过的源节点并创建关系
+        KnowledgeTextFragmentNode savedTextFragment = knowledgeTextFragmentRepository.save(knowledgeTextFragmentNode);
+
+        // 为父文档添加对应的文本块的元数据
+        sourceDocument.getMetadata().put("fragment_id", savedTextFragment.getId());
+
+        // 再次拆分成更细粒度的 Documents
+        TextSplitter sentenceSplitter = TokenTextSplitter.builder().withChunkSize(512).build();
+        List<Document> splittedDocs = sentenceSplitter.split(sourceDocument).stream().filter(
+                doc -> {
+                    // 过滤拆分出的空文本
+                    return doc.getText() != null || doc.getText().isBlank();
+                }).toList();
+
+        log.info("文档拆分数量: {}", splittedDocs.size());
+
+        // 向量化并存储, 可以通过documents继承的fragment_id反查KnowledgeTextFragmentNode
+        try {
+            vectorStore.add(splittedDocs);
+        } catch (Exception e) {
+            log.error("向量数据存储失败", e);
+        }
+    }
+
+    public List<KnowledgePointNode> saveKnowledgePoints(KnowledgeExtractionResult result) {
+
+        // 未提取出任何知识点和关系
+        if (result.getKnowledgePoints().isEmpty() || result.getKnowledgeRelations().isEmpty())
+            return null;
 
         // name, description
         // name, knowledgePoint
@@ -242,30 +277,10 @@ public class KnowledgeGraphService {
 
         // 建立关系完成的知识点节点集合
         Collection<KnowledgePointNode> knowledgePointNodes = pointMap.values();
-
-        // 初始化 KnowledgeTextFragmentNode
-        KnowledgeTextFragmentNode knowledgeTextFragmentNode = new KnowledgeTextFragmentNode(sourceDocument.getText());
-        knowledgeTextFragmentNode.setKnowledgePointNodes(knowledgePointNodes.stream().toList());
-
         // 批量保存所有更新过的源节点并创建关系
         knowledgePointRepository.saveAll(knowledgePointNodes);
-        KnowledgeTextFragmentNode savedTextFragment = knowledgeTextFragmentRepository.save(knowledgeTextFragmentNode);
 
-        // 为父文档添加对应的文本块的元数据
-        sourceDocument.getMetadata().put("fragment_id", savedTextFragment.getId());
-
-        // 再次拆分成更细粒度的 Documents
-        TextSplitter sentenceSplitter = TokenTextSplitter.builder().withChunkSize(512).build();
-        List<Document> splittedDocs = sentenceSplitter.split(sourceDocument).stream().filter(
-                doc -> {
-                    // 过滤拆分出的空文本
-                    return doc.getText() != null || doc.getText().isBlank();
-                }).toList();
-
-        log.info("文档拆分数量: {}", splittedDocs.size());
-
-        // 向量化并存储, 可以通过documents继承的fragment_id反查KnowledgeTextFragmentNode
-        vectorStore.add(splittedDocs);
+        return knowledgePointNodes.stream().toList();
     }
 
     /// 根据查询文本的语义获取相关知识点关系和资料
@@ -301,7 +316,8 @@ public class KnowledgeGraphService {
         documents.forEach(doc -> {
             String fragmentId = (String) doc.getMetadata().get("fragment_id");
             knowledgeTextFragmentRepository.findById(fragmentId)
-                    .ifPresent(fragment -> knowledgePointNodes.addAll(fragment.getKnowledgePointNodes()));
+                    .ifPresent(fragment ->
+                            knowledgePointNodes.addAll(fragment.getKnowledgePointNodes()));
         });
 
         /*

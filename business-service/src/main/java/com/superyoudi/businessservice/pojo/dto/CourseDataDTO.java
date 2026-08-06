@@ -1,5 +1,6 @@
 package com.superyoudi.businessservice.pojo.dto;
 
+import com.superyoudi.kdbservice.dto.KnowledgeExtractionResult;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -34,18 +35,8 @@ public class CourseDataDTO {
     public static class SectionData {
         private String sectionName;
         private Integer order;
-        private List<KnowledgePointData> knowledgePointDataList;
+        private List<KnowledgeExtractionResult> extractionResults;
     }
 
-    /**
-     * 节 含有的知识点
-     */
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class KnowledgePointData {
-        private String name;
-        private String description;
-    }
 
 }
