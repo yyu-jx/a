@@ -1,9 +1,11 @@
-package com.superyoudi.aiservice.service;
+package com.superyoudi.businessservice;
 
 import com.superyoudi.aiservice.mapper.LearningPathMapper;
 import com.superyoudi.aiservice.mapper.LearningPathNodeMapper;
 import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.aiservice.pojo.entity.LearningPathNode;
+import com.superyoudi.businessservice.service.impl.LearningPathServiceImpl;
+import com.superyoudi.aiservice.service.LearningPathService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,7 +23,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class LearningPathServiceTest {
+class LearningPathServiceImplTest {
 
     @Mock
     private LearningPathMapper learningPathMapper;
@@ -438,7 +440,7 @@ class LearningPathServiceTest {
         LearningPathNodeMapper nodeMapper = mock(LearningPathNodeMapper.class);
 
         // When
-        LearningPathService service = new LearningPathService(mapper, nodeMapper);
+        LearningPathService service = new LearningPathServiceImpl(mapper, nodeMapper);
 
         // Then
         assertThat(service).isNotNull();

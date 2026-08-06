@@ -19,12 +19,16 @@ public class KnowledgeExtractionResult {
     private List<KnowledgeRelationItem> knowledgeRelations;
 
     @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class KnowledgePointItem {
         private String name;
         private String description;
     }
 
     @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class KnowledgeRelationItem {
         private String relation;
         private String sourceKnowledgePoint;

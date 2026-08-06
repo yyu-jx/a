@@ -1,6 +1,8 @@
 package com.superyoudi.businessservice.pojo.entity;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 /**
@@ -8,6 +10,7 @@ import java.time.LocalDateTime;
  * 对应数据库 sections 节表
  */
 @Data
+@AllArgsConstructor
 public class Section {
 
     /**

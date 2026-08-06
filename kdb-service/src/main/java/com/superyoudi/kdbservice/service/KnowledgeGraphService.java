@@ -1,10 +1,7 @@
 package com.superyoudi.kdbservice.service;
 
 import com.alibaba.cloud.ai.transformer.splitter.SentenceSplitter;
-import com.fasterxml.jackson.core.json.JsonReadFeature;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.kdbservice.dto.KnowledgeExtractionResult;
 import com.superyoudi.kdbservice.graph.KnowledgePointNode;
 import com.superyoudi.kdbservice.graph.KnowledgePointRelation;
@@ -23,21 +20,14 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
+import static com.superyoudi.aiservice.utils.AiMessageUtils.extractJson;
+
 /**
  * @author Sijayyx
  */
 @Slf4j
 @Service
 public class KnowledgeGraphService {
-    /**
-     * 宽松的 JSON 解析器，容忍小模型输出的格式问题
-     */
-    private static final ObjectMapper LENIENT_MAPPER = JsonMapper.builder()
-            .enable(JsonReadFeature.ALLOW_UNQUOTED_FIELD_NAMES)  // 允许无引号字段名
-            .enable(JsonReadFeature.ALLOW_SINGLE_QUOTES)         // 允许单引号
-            .enable(JsonReadFeature.ALLOW_TRAILING_COMMA)        // 允许尾随逗号
-            .build()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
 
     private final ChatClient chatClient;
@@ -148,11 +138,11 @@ public class KnowledgeGraphService {
             log.info("抽取结果:\n{}", contentJson);
 
             try {
-                KnowledgeExtractionResult result = LENIENT_MAPPER.readValue(contentJson, KnowledgeExtractionResult.class);
-                saveKnowledgePoints(result, doc);
+                KnowledgeExtractionResult result = AiMessageUtils.readJsonValue(contentJson, KnowledgeExtractionResult.class);
+                if (result != null)
+                    saveKnowledgePoints(result, doc);
             } catch (Exception e) {
                 log.error("解析失败", e);
-                throw new RuntimeException(e);
             }
         }
     }
@@ -179,9 +169,44 @@ public class KnowledgeGraphService {
      */
     public void saveKnowledgePoints(KnowledgeExtractionResult result, Document sourceDocument) {
 
-        // 未提取出任何知识点和关系
-        if (result.getKnowledgePoints().isEmpty() || result.getKnowledgeRelations().isEmpty() || sourceDocument.getText() == null)
+        if (sourceDocument == null)
             return;
+
+        List<KnowledgePointNode> knowledgePointNodes = saveKnowledgePoints(result);
+
+        // 初始化 KnowledgeTextFragmentNode
+        KnowledgeTextFragmentNode knowledgeTextFragmentNode = new KnowledgeTextFragmentNode(sourceDocument.getText());
+        knowledgeTextFragmentNode.setKnowledgePointNodes(knowledgePointNodes.stream().toList());
+
+        // 批量保存所有更新过的源节点并创建关系
+        KnowledgeTextFragmentNode savedTextFragment = knowledgeTextFragmentRepository.save(knowledgeTextFragmentNode);
+
+        // 为父文档添加对应的文本块的元数据
+        sourceDocument.getMetadata().put("fragment_id", savedTextFragment.getId());
+
+        // 再次拆分成更细粒度的 Documents
+        TextSplitter sentenceSplitter = TokenTextSplitter.builder().withChunkSize(512).build();
+        List<Document> splittedDocs = sentenceSplitter.split(sourceDocument).stream().filter(
+                doc -> {
+                    // 过滤拆分出的空文本
+                    return doc.getText() != null || doc.getText().isBlank();
+                }).toList();
+
+        log.info("文档拆分数量: {}", splittedDocs.size());
+
+        // 向量化并存储, 可以通过documents继承的fragment_id反查KnowledgeTextFragmentNode
+        try {
+            vectorStore.add(splittedDocs);
+        } catch (Exception e) {
+            log.error("向量数据存储失败", e);
+        }
+    }
+
+    public List<KnowledgePointNode> saveKnowledgePoints(KnowledgeExtractionResult result) {
+
+        // 未提取出任何知识点和关系
+        if (result.getKnowledgePoints().isEmpty() || result.getKnowledgeRelations().isEmpty())
+            return null;
 
         // name, description
         // name, knowledgePoint
@@ -252,39 +277,31 @@ public class KnowledgeGraphService {
 
         // 建立关系完成的知识点节点集合
         Collection<KnowledgePointNode> knowledgePointNodes = pointMap.values();
-
-        // 初始化 KnowledgeTextFragmentNode
-        KnowledgeTextFragmentNode knowledgeTextFragmentNode = new KnowledgeTextFragmentNode(sourceDocument.getText());
-        knowledgeTextFragmentNode.setKnowledgePointNodes(knowledgePointNodes.stream().toList());
-
         // 批量保存所有更新过的源节点并创建关系
         knowledgePointRepository.saveAll(knowledgePointNodes);
-        KnowledgeTextFragmentNode savedTextFragment = knowledgeTextFragmentRepository.save(knowledgeTextFragmentNode);
 
-        // 为父文档添加对应的文本块的元数据
-        sourceDocument.getMetadata().put("fragment_id", savedTextFragment.getId());
-
-        // 再次拆分成更细粒度的 Documents
-        TextSplitter sentenceSplitter = TokenTextSplitter.builder().withChunkSize(512).build();
-        List<Document> splittedDocs = sentenceSplitter.split(sourceDocument).stream().filter(
-                doc -> {
-                    // 过滤拆分出的空文本
-                    return doc.getText() != null || doc.getText().isBlank();
-                }).toList();
-
-        log.info("文档拆分数量: {}", splittedDocs.size());
-
-        // 向量化并存储, 可以通过documents继承的fragment_id反查KnowledgeTextFragmentNode
-        vectorStore.add(splittedDocs);
+        return knowledgePointNodes.stream().toList();
     }
 
-    /**
-     * 根据查询文本的语义获取相关知识点关系和资料
-     *
-     * @param queryText 查询文本
-     * @return 提示词
-     */
-    public String retrieveDocumentKnowledgePoints(String queryText) {
+    /// 根据查询文本的语义获取相关知识点关系和资料
+    ///
+    /// 输出：
+    /// ```markdown
+    /// ---
+    /// 知识点及关系:
+    /// 1. XXX -[关系]-> YYY
+    /// 2. XXX -[关系]-> YYY
+    /// 3. XXX -[关系]-> YYY
+    ///
+    /// 相关资料:
+    /// 1. xxxxxxxxx
+    /// 2. xxxxxxxxx
+    /// ---
+    /// ```
+    ///
+    /// @param queryText 查询文本
+    /// @return 提示词
+    public String retrieveKnowledgeGraph(String queryText) {
 
         // 查询知识点
         SearchRequest searchRequest = new SearchRequest.Builder()
@@ -299,22 +316,11 @@ public class KnowledgeGraphService {
         documents.forEach(doc -> {
             String fragmentId = (String) doc.getMetadata().get("fragment_id");
             knowledgeTextFragmentRepository.findById(fragmentId)
-                    .ifPresent(fragment -> knowledgePointNodes.addAll(fragment.getKnowledgePointNodes()));
+                    .ifPresent(fragment ->
+                            knowledgePointNodes.addAll(fragment.getKnowledgePointNodes()));
         });
 
         /*
-        提示词格式:
-
-        ---
-        知识点及关系:
-        1. XXX -[关系]-> YYY
-        2. XXX -[关系]-> YYY
-        3. XXX -[关系]-> YYY
-
-        相关资料:
-        1. xxxxxxxxx
-        2. xxxxxxxxx
-        ---
          */
 
         int num = 1;
@@ -342,25 +348,23 @@ public class KnowledgeGraphService {
         return prompt.toString();
     }
 
-    /**
-     * 查询知识点注释并列出与其相关的知识点
-     *
-     * @param knowledgeName 知识点名称
-     * @return 提示词
-     */
+    /// 查询知识点注释并列出与其相关的知识点
+    ///
+    /// 输出:
+    /// ```markdown
+    /// ---
+    /// 知识点描述:
+    /// xxxxx
+    ///
+    /// 知识点关系:
+    /// 1. xxx -[关系]-> yyy
+    /// 2. xxx -[关系]-> yyy
+    /// ---
+    /// ```
+    ///
+    /// @param knowledgeName 知识点名称
+    /// @return 提示词
     public String retrieveKnowledgePointInfo(String knowledgeName) {
-        /*
-        提示提格式:
-
-        ---
-        知识点描述:
-        xxxxx
-
-        知识点关系:
-        1. xxx -[关系]-> yyy
-        2. xxx -[关系]-> yyy
-        ---
-         */
 
         KnowledgePointNode kp = knowledgePointRepository.findById(knowledgeName).orElse(null);
         if (kp == null)
@@ -386,62 +390,32 @@ public class KnowledgeGraphService {
     }
 
     /**
-     * 从 LLM 响应中提取并清洗 JSON 字符串
-     * 处理可能的 markdown code block 包裹及小模型输出的常见 JSON 格式问题
+     * 根据查询文本的语义检索文档
+     *
+     * @param query
+     * @return
      */
-    private String extractJson(String response) {
-        if (response == null || response.isEmpty())
-            return null;
+    public String retrieveDocuments(String query) {
+        // 查询知识点
+        SearchRequest searchRequest = new SearchRequest.Builder()
+                .query(query)
+                .similarityThreshold(0.7)
+                .topK(3)
+                .build();
 
-        String trimmed = response.trim();
+        List<Document> documents = vectorStore.similaritySearch(searchRequest);
 
-        // 去除 Markdown code block 包裹
-        if (trimmed.contains("```")) {
-            int start = trimmed.indexOf("```");
-            int contentStart = trimmed.indexOf("\n", start);
-            int end = trimmed.lastIndexOf("```");
-            if (contentStart > 0 && end > contentStart) {
-                trimmed = trimmed.substring(contentStart + 1, end).trim();
-            }
+        StringBuilder sb = new StringBuilder();
+        sb.append("---\n");
+
+        int i = 1;
+        for (Document doc : documents) {
+            sb.append(i).append(". ").append(doc.getText()).append("\n");
         }
 
-        // 确保是 JSON 对象
-        int jsonStart = trimmed.indexOf("{");
-        int jsonEnd = trimmed.lastIndexOf("}");
-        if (jsonStart >= 0 && jsonEnd > jsonStart) {
-            String json = trimmed.substring(jsonStart, jsonEnd + 1);
-            return cleanJson(json);
-        }
+        sb.append("---\n");
 
-        return null;
-    }
-
-    /**
-     * 清洗 LLM 返回的 JSON，修复小模型常见的格式问题
-     */
-    private String cleanJson(String json) {
-        // 修复未加引号的 key，如 {name: "foo"} → {"name": "foo"}
-        json = json.replaceAll("([{,\\[])\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*:", "$1\"$2\":");
-
-        // 去掉数组/对象末尾的多余逗号，如 ["a",] → ["a"]
-        json = json.replaceAll(",\\s*([}\\]])", "$1");
-
-        // 修复单引号值为双引号，如 'foo' → "foo"
-        json = json.replaceAll("'([^']*?)'", "\"$1\"");
-
-        // 修复缺少逗号的情况，如 {"a":"b" "c":"d"} → {"a":"b", "c":"d"}
-        json = json.replaceAll("\"\\s+\"", "\",\"");
-
-        // 修复对象之间缺少逗号，如 }{ → },{
-        json = json.replaceAll("}\\s*\\{", "},{");
-
-        // 修复数组元素之间缺少逗号，如 ][ → ],[
-        json = json.replaceAll("]\\s*\\[", "],[");
-
-        // 去除多余的空白字符（保留必要的空格）
-        json = json.replaceAll("\\s+", " ").trim();
-
-        return json;
+        return sb.toString();
     }
 
 

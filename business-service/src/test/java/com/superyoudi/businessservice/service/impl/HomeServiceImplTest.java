@@ -154,7 +154,7 @@ public class HomeServiceImplTest {
         when(learningPathMapper.selectLatestPathByStudentId(userId)).thenReturn(mockPath);
         when(learningPathNodeMapper.selectProceedingKnowledgeId(mockPathId)).thenReturn(mockKpId);
         when(learningPathNodeMapper.countUntestedNode(mockPathId)).thenReturn(2);
-        when(knowledgePointService.batchGetKnowledge(List.of(mockKpId))).thenReturn(List.of(dto));
+        when(knowledgePointService.batchGetKnowledgePoints(List.of(mockKpId))).thenReturn(List.of(dto));
         when(courseMapper.getNameById(mockCourseId)).thenReturn("操作系统 — 内存管理");
 
         LastStudyRecordVO vo = homeService.getLatestStudyRecord(userId);
@@ -195,7 +195,7 @@ public class HomeServiceImplTest {
         dto.setKnowledgeTitle("虚拟内存");
         List<KnowledgePointDTO> mockDtoList = List.of(dto);
 
-        when(knowledgePointService.batchGetKnowledge(anyList()))
+        when(knowledgePointService.batchGetKnowledgePoints(anyList()))
                 .thenReturn(mockDtoList);
 
         // 2. 执行方法
@@ -291,7 +291,7 @@ public class HomeServiceImplTest {
         KnowledgePointDTO dto = new KnowledgePointDTO();
         dto.setKnowledgeId("k001");
         dto.setKnowledgeTitle("牛顿第一定律");
-        when(knowledgePointService.batchGetKnowledge(anyList())).thenReturn(List.of(dto));
+        when(knowledgePointService.batchGetKnowledgePoints(anyList())).thenReturn(List.of(dto));
 
         // Mock AI返回结果
         when(homeAiService.generateStudentSuggest(anyList(), anyList()))

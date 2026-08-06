@@ -23,7 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 "spring.ai.dashscope.api-key=${DASHSCOPE_API_KEY}",
                 "spring.neo4j.uri=bolt://localhost:7687",
                 "spring.neo4j.authentication.username=neo4j",
-                "spring.neo4j.authentication.password=12345678"
+                "spring.neo4j.authentication.password=12345678",
+                "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration"
         })
 @ComponentScan(basePackages = {"com.superyoudi", "com.superyoudi.aiservice"})
 class KdbServiceTests {
@@ -33,7 +34,7 @@ class KdbServiceTests {
 
     @Test
     public void testSearchByQuestion() {
-        String string = knowledgeGraphService.retrieveDocumentKnowledgePoints("什么是页表?");
+        String string = knowledgeGraphService.retrieveKnowledgeGraph("什么是页表?");
         System.out.println(string);
     }
 

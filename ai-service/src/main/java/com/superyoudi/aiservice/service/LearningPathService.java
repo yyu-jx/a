@@ -1,71 +1,31 @@
 package com.superyoudi.aiservice.service;
 
-import com.superyoudi.aiservice.mapper.LearningPathMapper;
-import com.superyoudi.aiservice.mapper.LearningPathNodeMapper;
 import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.aiservice.pojo.entity.LearningPathNode;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 /**
  * @author Sijayyx
  */
-@Service
-public class LearningPathService {
+public interface LearningPathService {
+    void createLearningPath();
 
-    private final LearningPathMapper learningPathMapper;
-    private final LearningPathNodeMapper learningPathNodeMapper;
+    List<LearningPathNode> getLearningPathNodes(Long studentId, Long courseId);
 
-    public LearningPathService(LearningPathMapper learningPathMapper, LearningPathNodeMapper learningPathNodeMapper) {
-        this.learningPathMapper = learningPathMapper;
-        this.learningPathNodeMapper = learningPathNodeMapper;
-    }
+    List<LearningPathNode> getLearningPathNodes(Long pathId);
 
-    public void createLearningPath() {
-        // TODO 调用AI生成学习路径
-    }
+    Long getNextLearningPathNode(Long pathId, Long currentNodeId);
 
-    /**
-     * 根据学生和课程获取学习路径节点
-     */
-    public List<LearningPathNode> getLearningPathNodes(Long studentId, Long courseId) {
-        LearningPath learningPath = learningPathMapper.selectByStudentAndCourse(studentId, courseId);
-        return learningPathNodeMapper.selectByPathId(learningPath.getId());
-    }
+    LearningPath getLearningPathById(Long learningPathId);
 
-    /**
-     * 根据学生和课程获取学习路径节点
-     */
-    public List<LearningPathNode> getLearningPathNodes(Long pathId) {
-        return learningPathNodeMapper.selectByPathId(pathId);
-    }
+    LearningPath getLearningPathByStudentAndCourse(Long studentId, Long courseId);
 
-    public Long getNextLearningPathNode(Long pathId, Long currentNodeId) {
-        return learningPathNodeMapper.selectNextNodeId(pathId, currentNodeId);
-    }
+    LearningPathNode getLearningPathNodeById(Long nodeId);
 
-    public LearningPath getLearningPathById(Long learningPathId) {
-        return learningPathMapper.selectById(learningPathId);
-    }
+    void updateLearningPathNodeStatus(Long nodeId, String status);
 
-    public LearningPath getLearningPathByStudentAndCourse(Long studentId, Long courseId) {
-        return learningPathMapper.selectByStudentAndCourse(studentId, courseId);
-    }
+    void updateLearningPathStage(Long pathId, String stage);
 
-    public LearningPathNode getLearningPathNodeById(Long nodeId) {
-        return learningPathNodeMapper.selectById(nodeId);
-    }
-
-    public void updateLearningPathNodeStatus(Long nodeId, String status) {
-        learningPathNodeMapper.updateStatus(nodeId, status);
-    }
-
-    public void updateLearningPathStage(Long pathId, String stage) {
-        learningPathMapper.updateCurrentStage(pathId, stage);
-    }
-
-    public void updateLearningPath(LearningPath learningPath) {
-        learningPathMapper.update(learningPath);
-    }
+    void updateLearningPath(LearningPath learningPath);
 }

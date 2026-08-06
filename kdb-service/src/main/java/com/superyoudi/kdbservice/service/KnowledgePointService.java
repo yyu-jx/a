@@ -13,8 +13,11 @@ import java.util.stream.Collectors;
 @Service
 public class KnowledgePointService {
 
-    @Autowired
-    private KnowledgePointRepository repository;
+    private final KnowledgePointRepository repository;
+
+    public KnowledgePointService(KnowledgePointRepository repository) {
+        this.repository = repository;
+    }
 
     public KnowledgePointDTO getKnowledgePoint(String id) {
         KnowledgePointNode knowledgePointNode = repository.findById(id).orElse(null);
@@ -33,7 +36,7 @@ public class KnowledgePointService {
      * @param knowledgeIdList 知识点ID列表
      * @return 知识点信息列表
      */
-    public List<KnowledgePointDTO> batchGetKnowledge(List<String> knowledgeIdList) {
+    public List<KnowledgePointDTO> batchGetKnowledgePoints(List<String> knowledgeIdList) {
         // Repository只允许kdb内部调用！
         List<KnowledgePointNode> nodeList = repository.findAllById(knowledgeIdList);
         // KnowledgePointNode → DTO，隐藏Neo4j内部实体
