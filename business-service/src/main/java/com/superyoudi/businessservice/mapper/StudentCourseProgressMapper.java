@@ -36,4 +36,13 @@ public interface StudentCourseProgressMapper {
      * @return 学生课程进度列表
      */
     List<StudentCourseProgress> selectProgressByStudentAndCourseIds(Long userId, List<Long> CourseIds);
+
+    /**
+     * 获取学生任务均分
+     *
+     * @param studentId    用户ID
+     * @return 学生任务均分
+     */
+    @Select("select AVG(avg_task_score) from student_course_progresses where student_id = #{studentId}")
+    Double getAvgTaskScore(Long studentId);
 }

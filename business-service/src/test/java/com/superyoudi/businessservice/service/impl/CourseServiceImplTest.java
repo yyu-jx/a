@@ -1,4 +1,4 @@
-package com.superyoudi.businessservice;
+package com.superyoudi.businessservice.service.impl;
 
 import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.aiservice.mapper.LearningPathMapper;
@@ -6,7 +6,6 @@ import com.superyoudi.common.dto.TodayTaskRawDTO;
 import com.superyoudi.businessservice.pojo.entity.Course;
 import com.superyoudi.businessservice.pojo.vo.CoursesVO;
 import com.superyoudi.businessservice.pojo.vo.TodayTaskVO;
-import com.superyoudi.businessservice.service.impl.CourseServiceImpl;
 import com.superyoudi.common.exception.CourseNotExistException;
 import com.superyoudi.common.exception.NoStudyTaskException;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
@@ -25,7 +24,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class CourseServiceTest {
+public class CourseServiceImplTest {
 
     // Mock Mapper 依赖
     @Mock

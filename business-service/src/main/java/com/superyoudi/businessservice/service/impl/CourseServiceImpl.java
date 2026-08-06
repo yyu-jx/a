@@ -12,7 +12,7 @@ import com.superyoudi.common.dto.StudentCourseProgress;
 import com.superyoudi.common.dto.TodayTaskRawDTO;
 import com.superyoudi.common.exception.CourseNotExistException;
 import com.superyoudi.common.exception.NoStudyTaskException;
-import com.superyoudi.common.exception.StudentRepeatJoinCourseException;
+import com.superyoudi.common.exception.RepeatException;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.service.KnowledgePointService;
 import lombok.RequiredArgsConstructor;
@@ -89,7 +89,7 @@ public class CourseServiceImpl implements CourseService {
         // 1. 判断学生是否已经加入该课程
         Integer count = courseMapper.countStudentJoinCourse(studentId, courseId);
         if (count > 0) {
-            throw new StudentRepeatJoinCourseException("您已加入该课程，请勿重复加入");
+            throw new RepeatException("您已加入该课程，请勿重复加入");
         }
 
         // 2. 校验课程是否真实存在
