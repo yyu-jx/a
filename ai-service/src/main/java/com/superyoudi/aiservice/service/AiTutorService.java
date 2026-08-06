@@ -24,4 +24,10 @@ public interface AiTutorService {
     String formatLearningPath(Long learningPathId);
 
     void updateLearningPathStage(Long pathId, String stage);
+
+    String queryKnowledgePoint(String kpName);
+
+    String retriveKnowledgeGraph(String query);
+
+    String retrieveDocuments(String query);
 }

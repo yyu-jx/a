@@ -74,7 +74,7 @@ public class HomeServiceImpl implements HomeService {
         String knowledgeTitle = null;
         if (currentKnowledgeId != null) {
             try {
-                List<KnowledgePointDTO> dtoList = knowledgePointService.batchGetKnowledge(List.of(currentKnowledgeId));
+                List<KnowledgePointDTO> dtoList = knowledgePointService.batchGetKnowledgePoints(List.of(currentKnowledgeId));
                 if (!dtoList.isEmpty()) {
                     knowledgeTitle = dtoList.get(0).getKnowledgeTitle();
                 }
@@ -139,7 +139,7 @@ public class HomeServiceImpl implements HomeService {
                 .collect(Collectors.toList());
 
         // 调用你现有的批量方法
-        List<KnowledgePointDTO> dtoList = knowledgePointService.batchGetKnowledge(knowledgeIdList);
+        List<KnowledgePointDTO> dtoList = knowledgePointService.batchGetKnowledgePoints(knowledgeIdList);
 
         // List 转 Map：key=知识点ID，value=知识点标题
         Map<String, String> knowledgeNameMap = dtoList.stream()
@@ -201,7 +201,7 @@ public class HomeServiceImpl implements HomeService {
         List<String> knowledgeIds = weakKnowledgeList.stream()
                 .map(StudentKnowledgeMastery::getKnowledgeId)
                 .collect(Collectors.toList());
-        List<KnowledgePointDTO> dtoList = knowledgePointService.batchGetKnowledge(knowledgeIds);
+        List<KnowledgePointDTO> dtoList = knowledgePointService.batchGetKnowledgePoints(knowledgeIds);
 
         // List 转 Map：key=知识点ID，value=知识点标题
         Map<String, String> knowledgeNameMap = dtoList.stream()

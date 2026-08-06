@@ -1,7 +1,7 @@
 package com.superyoudi.businessservice.controller.student;
 
 
-import com.superyoudi.businessservice.pojo.vo.CoursesVO;
+import com.superyoudi.businessservice.pojo.vo.CourseVO;
 import com.superyoudi.businessservice.pojo.vo.StudentCourseProgressVO;
 import com.superyoudi.businessservice.pojo.vo.TodayTaskVO;
 import com.superyoudi.businessservice.service.CourseService;
@@ -26,8 +26,8 @@ public class CourseController {
      * @return 课程信息
      */
     @GetMapping("/course/{courseId}")
-    public Result<CoursesVO> getCourse(@PathVariable Long courseId) {
-        CoursesVO courseInfo = courseService.getCourseInfo(courseId);
+    public Result<CourseVO> getCourse(@PathVariable Long courseId) {
+        CourseVO courseInfo = courseService.getCourseInfo(courseId);
         return Result.success(courseInfo);
     }
 

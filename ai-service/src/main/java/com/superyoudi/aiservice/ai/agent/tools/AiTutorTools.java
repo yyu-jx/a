@@ -12,6 +12,7 @@ public class AiTutorTools {
 
     private final AiTutorService aiTutorService;
 
+
     public AiTutorTools(AiTutorService aiTutorService) {
         this.aiTutorService = aiTutorService;
     }
