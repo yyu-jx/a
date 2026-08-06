@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.superyoudi.businessservice.mapper.TaskMapper">
+
+
+    <select id="selectUserErrorQuestion" resultType="com.superyoudi.businessservice.pojo.vo.ErrorQuestionVO">
+
+        SELECT
+        q.id AS question_id,
+        q.type AS question_type,
+        q.content AS question_content,
+        sa.error_type,
+        t.id AS source_task_id,
+        t.title AS source_task_name,
+        sa.score AS student_score,
+        tqr.score AS full_score,
+        sa.created_at AS wrong_time
+        FROM student_answers sa
+        INNER JOIN student_submissions ss ON sa.submission_id = ss.id
+        INNER JOIN task_question_rel tqr ON sa.question_id = tqr.question_id
+        INNER JOIN tasks t ON tqr.task_id = t.id
+        INNER JOIN questions q ON sa.question_id = q.id
+        WHERE
+        ss.student_id = #{studentId}
+        AND sa.error_type IS NOT NULL
+        <if test="courseId != null">
+            AND q.course_id = #{courseId}
+        </if>
+        ORDER BY sa.created_at DESC
+
+    </select>
+</mapper>

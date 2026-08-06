@@ -1,4 +1,4 @@
-package com.superyoudi.businessservice;
+package com.superyoudi.businessservice.service.impl;
 
 import com.superyoudi.aiservice.mapper.LearningPathNodeMapper;
 import com.superyoudi.aiservice.service.HomeAiService;
@@ -9,7 +9,6 @@ import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
 import com.superyoudi.businessservice.pojo.entity.StudyOverview;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
 import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;
-import com.superyoudi.businessservice.service.impl.HomeServiceImpl;
 import com.superyoudi.common.dto.StudentCourseProgress;
 import com.superyoudi.common.dto.StudentKnowledgeMastery;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
@@ -30,7 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class HomeServiceTest {
+public class HomeServiceImplTest {
 
     @Mock
     private StudentCourseProgressMapper studentCourseProgressesMapper;
