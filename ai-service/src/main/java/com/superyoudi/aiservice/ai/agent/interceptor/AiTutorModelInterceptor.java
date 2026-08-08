@@ -73,7 +73,7 @@ public class AiTutorModelInterceptor extends ModelInterceptor {
                 - 课程名称：{course_name}
                 - 课程ID：{course_id}
                 
-                ## 当前知识点
+                ## 当前路径点
                 - ID: {node_id}
                 - 名称：{node_name}
                 

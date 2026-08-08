@@ -22,10 +22,30 @@ public interface SectionKnowledgeRelMapper {
     List<SectionKnowledgeRel> selectBySectionId(Long sectionId);
 
     /**
-     * 根据Neo4j知识点ID查询所有关联的小节
+     * 根据课程ID查询所有关联的知识点
      */
-    @Select("SELECT * FROM section_knowledge_rel WHERE neo4j_kp_id = #{neo4jKpId}")
-    List<SectionKnowledgeRel> selectByNeo4jKpId(String neo4jKpId);
+    @Select("SELECT * FROM section_knowledge_rel WHERE course_id = #{courseId} LIMIT #{limit}")
+    List<SectionKnowledgeRel> selectByCourseId(@Param("courseId") Long courseId,
+                                                          @Param("limit") Integer limit);
+
+    /**
+     * 根据课程ID查询关联的知识点
+     * <p>
+     * 查询startId后的元素
+     *
+     * @param courseId 课程ID
+     * @param startId  起始ID
+     * @param limit    查询条数
+     * @return 知识点列表
+     */
+    @Select("""
+            SELECT * FROM section_knowledge_rel
+            WHERE course_id = #{courseId} AND id > #{startId}
+            ORDER BY id
+            LIMIT #{limit}""")
+    List<SectionKnowledgeRel> selectBehindStartByCourseId(@Param("courseId") Long courseId,
+                                                          @Param("startId") Long startId,
+                                                          @Param("limit") Integer limit);
 
     /**
      * 根据小节ID和知识点ID查询唯一关联
@@ -37,13 +57,13 @@ public interface SectionKnowledgeRelMapper {
      * 统计小节关联的知识点数量
      */
     @Select("SELECT COUNT(*) FROM section_knowledge_rel WHERE section_id = #{sectionId}")
-    Long countBySectionId(Long sectionId);
+    Integer countBySectionId(Long sectionId);
 
     /**
      * 插入关联关系
      */
-    @Insert("INSERT INTO section_knowledge_rel (section_id, neo4j_kp_id, created_at) " +
-            "VALUES (#{sectionId}, #{neo4jKpId}, #{createdTime})")
+    @Insert("INSERT INTO section_knowledge_rel (course_id, section_id, neo4j_kp_id, created_at) " +
+            "VALUES (#{courseId}, #{sectionId}, #{neo4jKpId}, #{createdTime})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     Long insert(SectionKnowledgeRel sectionKnowledgeRel);
 

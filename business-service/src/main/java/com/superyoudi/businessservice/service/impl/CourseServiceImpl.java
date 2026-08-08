@@ -20,7 +20,6 @@ import com.superyoudi.common.exception.NoStudyTaskException;
 import com.superyoudi.common.exception.StudentRepeatJoinCourseException;
 import com.superyoudi.kdbservice.dto.KnowledgeExtractionResult;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
-import com.superyoudi.kdbservice.graph.KnowledgePointNode;
 import com.superyoudi.kdbservice.repository.KnowledgePointRepository;
 import com.superyoudi.kdbservice.service.KnowledgeGraphService;
 import com.superyoudi.kdbservice.service.KnowledgePointService;
@@ -28,8 +27,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -167,6 +168,7 @@ public class CourseServiceImpl implements CourseService {
      * 开课，调用AI生成课程数据
      */
     @Override
+    @Transactional
     public void openCourse(Long courseId) throws CourseNotExistException {
         Course course = courseMapper.selectById(courseId);
         if (course == null) throw new CourseNotExistException("课程不存在");
@@ -183,28 +185,42 @@ public class CourseServiceImpl implements CourseService {
         }
     }
 
-    private void saveCourseData(CourseDataDTO courseData) {
+
+    public void saveCourseData(CourseDataDTO courseData) {
+        List<KnowledgeExtractionResult.KnowledgePointItem> knowledgePoints = new ArrayList<>();
+        List<KnowledgeExtractionResult.KnowledgeRelationItem> knowledgeRelations = new ArrayList<>();
+
         for (CourseDataDTO.ChapterData chapterData : courseData.getChapterDataList()) {
             Chapter chapter = new Chapter(null, courseData.getCourseId(), chapterData.getChapterName(),
                     null, chapterData.getOrder(), null, null);
-            Long chapterId = chapterMapper.insert(chapter);
+            chapterMapper.insert(chapter);
+            Long chapterId = chapter.getId();
+            log.info(" chapterId:{}", chapterId);
 
             for (CourseDataDTO.SectionData sectionData : chapterData.getSectionDataList()) {
                 Section section = new Section(null, chapterId, sectionData.getSectionName(),
                         null, sectionData.getOrder(), null, null);
-                Long sectionId = sectionMapper.insert(section);
+                sectionMapper.insert(section);
+                Long sectionId = section.getId();
+
+                log.info("sectionId:{}, chapterId:{}", sectionId, chapterId);
 
                 for (KnowledgeExtractionResult extractionResult : sectionData.getExtractionResults()) {
-                    List<KnowledgePointNode> knowledgePointNodes = knowledgeGraphService.saveKnowledgePoints(extractionResult);
 
-                    for (KnowledgePointNode knowledgePointNode : knowledgePointNodes) {
-                        SectionKnowledgeRel sectionKnowledgeRel = new SectionKnowledgeRel(null, sectionId, knowledgePointNode.getName(), null);
+                    for (KnowledgeExtractionResult.KnowledgePointItem item : extractionResult.getKnowledgePoints()) {
+                        SectionKnowledgeRel sectionKnowledgeRel =
+                                new SectionKnowledgeRel(null, courseData.getCourseId(), sectionId, item.getName(), null);
                         sectionKnowledgeRelMapper.insert(sectionKnowledgeRel);
                     }
+
+                    knowledgePoints.addAll(extractionResult.getKnowledgePoints());
+                    knowledgeRelations.addAll(extractionResult.getKnowledgeRelations());
                 }
             }
         }
         log.info("课程数据生成成功，courseData:{}", courseData);
+
+        knowledgeGraphService.saveKnowledgePoints(new KnowledgeExtractionResult(knowledgePoints, knowledgeRelations));
     }
 
 }

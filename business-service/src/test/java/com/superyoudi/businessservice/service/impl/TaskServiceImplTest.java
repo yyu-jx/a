@@ -3,7 +3,7 @@ package com.superyoudi.businessservice.service.impl;
 import com.superyoudi.businessservice.mapper.StudentSubmissionMapper;
 import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
 import com.superyoudi.common.exception.ParamInvalidException;
-import com.superyoudi.common.exception.RepeatException;
+import com.superyoudi.common.exception.StudentRepeatJoinCourseException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,7 +11,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import java.time.LocalDateTime;
 
 @ExtendWith(MockitoExtension.class)
 class TaskServiceImplTest {
@@ -47,7 +46,7 @@ class TaskServiceImplTest {
         Mockito.when(submissionMapper.selectByTaskAndStudentId(Mockito.anyLong(), Mockito.anyLong()))
                 .thenReturn(exist);
 
-        Assertions.assertThrows(RepeatException.class, () -> {
+        Assertions.assertThrows(StudentRepeatJoinCourseException.class, () -> {
             taskService.submitTask(100L, 200L);
         });
 

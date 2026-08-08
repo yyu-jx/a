@@ -82,6 +82,7 @@ DROP TABLE IF EXISTS `section_knowledge_rel`;
 CREATE TABLE `section_knowledge_rel`
 (
     `id`          BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    `course_id`   BIGINT      NOT NULL COMMENT '课程ID，冗余',
     `section_id`  BIGINT      NOT NULL COMMENT '小节id',
     `neo4j_kp_id` VARCHAR(64) NOT NULL COMMENT 'Neo4j知识点唯一id',
     `created_at`  DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -112,8 +113,9 @@ DROP TABLE IF EXISTS `learning_path_nodes`;
 CREATE TABLE `learning_path_nodes`
 (
     `id`              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `node_name`       VARCHAR(128)                               NOT NULL COMMENT '节点名称',
     `path_id`         BIGINT                                     NOT NULL COMMENT '学习路径id',
-    `knowledge_id`    VARCHAR(64)                                NOT NULL COMMENT 'Neo4j知识点ID',
+    `knowledge_ids`   TEXT                                       NOT NULL COMMENT '知识点ID列表(JSON数组)',
     `status`          ENUM ('untested','proceeding','completed') NOT NULL COMMENT '未进行/进行中/完成',
     `related_task_id` BIGINT   DEFAULT NULL COMMENT '关联作业ID',
     `created_at`      DATETIME DEFAULT CURRENT_TIMESTAMP,

@@ -7,7 +7,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/edu_ai
     username: root
-    password: Gyx200722
+    password: 你自己的密码，不要提交这一行
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 #redis和连接池 配置

@@ -1,4 +1,4 @@
-package com.superyoudi.businessservice;
+package com.superyoudi.businessservice.service.impl;
 
 import com.superyoudi.aiservice.ai.agent.CourseDataGenerateModel;
 import com.superyoudi.aiservice.mapper.LearningPathMapper;
@@ -46,7 +46,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT) // 或者使用这个注解来放宽限制
-public class CourseServiceTest {
+public class CourseServiceImplTest {
 
     private static final Long COURSE_ID = 1L;
     private static final String COURSE_NAME = "测试课程";

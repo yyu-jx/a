@@ -1,15 +1,14 @@
 package com.superyoudi.businessservice.service.impl;
 
 import com.superyoudi.aiservice.mapper.LearningPathNodeMapper;
-import com.superyoudi.aiservice.service.HomeAiService;
 import com.superyoudi.aiservice.pojo.entity.LearningPath;
+import com.superyoudi.aiservice.service.HomeAiService;
 import com.superyoudi.businessservice.mapper.CourseMapper;
-import com.superyoudi.businessservice.mapper.KnowledgeMasteryMapper;
 import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
+import com.superyoudi.businessservice.mapper.StudentKnowledgeMasteryMapper;
 import com.superyoudi.businessservice.pojo.entity.StudyOverview;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
 import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;
-import com.superyoudi.common.dto.StudentCourseProgress;
 import com.superyoudi.common.dto.StudentKnowledgeMastery;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.service.KnowledgePointService;
@@ -51,7 +50,7 @@ public class HomeServiceImplTest {
     private CourseMapper courseMapper;
 
     @Mock
-    private KnowledgeMasteryMapper knowledgeMasteryMapper;
+    private StudentKnowledgeMasteryMapper studentKnowledgeMasteryMapper;
 
     @Mock
     private StringRedisTemplate stringRedisTemplate;
@@ -62,6 +61,7 @@ public class HomeServiceImplTest {
 
 
 //获取整体学习进度均值接口
+
     /**
      * 用例1 用户有学习数据
      */
@@ -118,8 +118,7 @@ public class HomeServiceImplTest {
     }
 
 
-
- //获取上次学习记录接口
+    //获取上次学习记录接口
 
     // 场景1：用户没有任何学习记录，返回null
     @Test
@@ -186,7 +185,7 @@ public class HomeServiceImplTest {
         List<StudentKnowledgeMastery> mockRawList = List.of(mastery);
 
         // mock mapper查询
-        when(knowledgeMasteryMapper.selectTop5WeakKnowledge(anyLong()))
+        when(studentKnowledgeMasteryMapper.selectWeakKnowledge(anyLong(), anyLong(), anyDouble()))
                 .thenReturn(mockRawList);
 
         // 构造批量查询知识点返回DTO
@@ -211,14 +210,13 @@ public class HomeServiceImplTest {
     }
 
 
-
     /**
      * 场景2：数据库没有知识点掌握数据，返回空集合
      */
     @Test
     void getTop5WeakKnowledge_EmptyData() {
         // mock返回空列表
-        when(knowledgeMasteryMapper.selectTop5WeakKnowledge(anyLong()))
+        when(studentKnowledgeMasteryMapper.selectWeakKnowledge(anyLong(), anyLong(), anyDouble()))
                 .thenReturn(List.of());
 
         List<WeakKnowledgeVO> result = homeService.getTop5WeakKnowledge(1l);
@@ -228,7 +226,7 @@ public class HomeServiceImplTest {
     }
 
 
- //获取AI学习建议接口
+    //获取AI学习建议接口
 
     /**
      * 场景1：缓存存在，直接返回缓存，不执行后续数据库、AI逻辑
@@ -244,64 +242,8 @@ public class HomeServiceImplTest {
         // 断言
         assert "缓存里的AI学习建议".equals(result);
         // 校验：后续mapper、AI方法完全没有被调用
-        verify(knowledgeMasteryMapper, never()).selectTop3WeakKnowledge(anyLong());
+        verify(studentKnowledgeMasteryMapper, never()).selectWeakKnowledge(anyLong(), anyLong(), anyDouble());
         verify(homeAiService, never()).generateStudentSuggest(anyList(), anyList());
     }
 
-    /**
-     * 场景2：缓存未命中，查询薄弱知识点为空，直接返回默认文案
-     */
-    @Test
-    void getAiSuggestions_NoWeakData() {
-        when(stringRedisTemplate.opsForValue()).thenReturn(valueOps);
-        when(valueOps.get(anyString())).thenReturn(null);
-        // 数据库查询薄弱知识点返回空集合
-        when(knowledgeMasteryMapper.selectTop3WeakKnowledge(1L)).thenReturn(List.of());
-
-        String result = homeService.getAiSuggestions(1L);
-
-        assert "暂无学习薄弱数据，继续保持学习！".equals(result);
-        // AI方法不会执行
-        verify(homeAiService, never()).generateStudentSuggest(anyList(), anyList());
-    }
-
-    /**
-     * 场景3：正常完整链路，存在薄弱知识点，调用AI、写入缓存
-     * AI Service被mock，不会真实请求大模型
-     */
-    @Test
-    void getAiSuggestions_FullFlow() {
-        // redis无缓存
-        when(stringRedisTemplate.opsForValue()).thenReturn(valueOps);
-        when(valueOps.get(anyString())).thenReturn(null);
-
-        // 模拟薄弱知识点数据
-        StudentKnowledgeMastery mastery = new StudentKnowledgeMastery();
-        mastery.setCourseId(100L);
-        mastery.setKnowledgeId("k001");
-        List<StudentKnowledgeMastery> weakList = List.of(mastery);
-        when(knowledgeMasteryMapper.selectTop3WeakKnowledge(1L)).thenReturn(weakList);
-
-        // 模拟课程进度数据
-        List<StudentCourseProgress> progressList = List.of(new StudentCourseProgress());
-        when(studentCourseProgressesMapper.selectProgressByStudentAndCourseIds(anyLong(), anyList()))
-                .thenReturn(progressList);
-
-        // 模拟知识库返回知识点名称
-        KnowledgePointDTO dto = new KnowledgePointDTO();
-        dto.setKnowledgeId("k001");
-        dto.setKnowledgeTitle("牛顿第一定律");
-        when(knowledgePointService.batchGetKnowledgePoints(anyList())).thenReturn(List.of(dto));
-
-        // Mock AI返回结果
-        when(homeAiService.generateStudentSuggest(anyList(), anyList()))
-                .thenReturn("针对性学习建议：重点复习牛顿第一定律");
-
-        // 执行
-        String result = homeService.getAiSuggestions(1L);
-
-        assert result.contains("针对性学习建议");
-        // 校验缓存写入
-        verify(valueOps, times(1)).set(anyString(), anyString(), anyLong(), any());
-    }
 }

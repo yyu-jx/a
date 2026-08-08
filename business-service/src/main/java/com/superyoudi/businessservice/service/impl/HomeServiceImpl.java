@@ -1,10 +1,12 @@
 package com.superyoudi.businessservice.service.impl;
 
+import com.superyoudi.aiservice.mapper.LearningPathMapper;
+import com.superyoudi.aiservice.mapper.LearningPathNodeMapper;
 import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.aiservice.service.HomeAiService;
 import com.superyoudi.businessservice.mapper.CourseMapper;
-import com.superyoudi.businessservice.mapper.KnowledgeMasteryMapper;
 import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
+import com.superyoudi.businessservice.mapper.StudentKnowledgeMasteryMapper;
 import com.superyoudi.businessservice.pojo.entity.StudyOverview;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
 import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;
@@ -33,11 +35,11 @@ public class HomeServiceImpl implements HomeService {
 
 
     private final StudentCourseProgressMapper studentCourseProgressesMapper;
-    private final com.superyoudi.aiservice.mapper.LearningPathMapper learningPathMapper;
-    private final com.superyoudi.aiservice.mapper.LearningPathNodeMapper learningPathNodeMapper;
+    private final LearningPathMapper learningPathMapper;
+    private final LearningPathNodeMapper learningPathNodeMapper;
     private final KnowledgePointService knowledgePointService;
     private final CourseMapper courseMapper;
-    private final KnowledgeMasteryMapper knowledgeMasteryMapper;
+    private final StudentKnowledgeMasteryMapper studentKnowledgeMasteryMapper;
     private final StringRedisTemplate stringRedisTemplate;
     private final HomeAiService homeAIService;
 
@@ -128,7 +130,7 @@ public class HomeServiceImpl implements HomeService {
      */
     @Override
     public List<WeakKnowledgeVO> getTop5WeakKnowledge(Long userId) {
-        List<StudentKnowledgeMastery> rawList = knowledgeMasteryMapper.selectTop5WeakKnowledge(userId);
+        List<StudentKnowledgeMastery> rawList = studentKnowledgeMasteryMapper.selectTopErrorKnowledge(userId, 5);
         if (rawList.isEmpty()) {
             return Collections.emptyList();
         }
@@ -178,7 +180,7 @@ public class HomeServiceImpl implements HomeService {
         }
 
         // 1、查询学生TOP3薄弱知识点
-        List<StudentKnowledgeMastery> weakKnowledgeList = knowledgeMasteryMapper.selectTop3WeakKnowledge(userId);
+        List<StudentKnowledgeMastery> weakKnowledgeList = studentKnowledgeMasteryMapper.selectTopErrorKnowledge(userId, 3);
         // 兜底：无薄弱知识点
         if (weakKnowledgeList == null || weakKnowledgeList.isEmpty()) {
             return "暂无学习薄弱数据，继续保持学习！";

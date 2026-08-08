@@ -2,6 +2,9 @@ package com.superyoudi.businessservice.service.impl;
 
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.superyoudi.aiservice.ai.agent.AiTutorAgent;
 import com.superyoudi.aiservice.pojo.dto.LearningPathDTO;
 import com.superyoudi.aiservice.pojo.dto.StudentCourseInfoDTO;
@@ -107,11 +110,9 @@ public class AiTutorServiceImpl implements AiTutorService {
         Long currentNodeId = learningPath.getCurrentNodeId();
         LearningPathNode learningPathNode = learningPathService.getLearningPathNodeById(currentNodeId);
         Course course = courseMapper.selectById(courseId);
-        KnowledgePointDTO kpDto = knowledgePointService.getKnowledgePoint(learningPathNode.getKnowledgeId());
 
         return new LearningPathDTO(courseId, course.getName(), learningPath.getId(),
-                currentNodeId, kpDto.getKnowledgeTitle(), learningPath.getCurrentStage());
-
+                currentNodeId, learningPathNode.getNodeName(), learningPathNode.getKnowledgeIds(), learningPath.getCurrentStage());
     }
 
 
@@ -123,6 +124,7 @@ public class AiTutorServiceImpl implements AiTutorService {
 
     @Override
     public String formatLearningPath(Long learningPathId) {
+        ObjectMapper mapper = new ObjectMapper();
         List<LearningPathNode> learningPathNodes = learningPathService.getLearningPathNodes(learningPathId);
 
         if (learningPathNodes == null || learningPathNodes.isEmpty()) {
@@ -133,20 +135,33 @@ public class AiTutorServiceImpl implements AiTutorService {
         sb.append(String.format("学习路径 %d：\n", learningPathId));
 
         for (LearningPathNode node : learningPathNodes) {
-            // 获取知识点信息
-            KnowledgePointDTO kpDto = knowledgePointService.getKnowledgePoint(node.getKnowledgeId());
-            String knowledgeTitle;
-            if (kpDto == null || kpDto.getKnowledgeTitle() == null || kpDto.getKnowledgeTitle().isEmpty()) {
-                knowledgeTitle = "未知知识点";
-            } else {
-                knowledgeTitle = kpDto.getKnowledgeTitle();
+
+            try {
+                List<String> kpIds = mapper.readValue(node.getKnowledgeIds(), new TypeReference<>() {
+                });
+
+                // 获取知识点信息
+                List<KnowledgePointDTO> kpDtoList = knowledgePointService.batchGetKnowledgePoints(kpIds);
+                StringBuilder knowledgeTitle = new StringBuilder();
+
+                for (KnowledgePointDTO kpDto : kpDtoList) {
+                    if (kpDto == null || kpDto.getKnowledgeTitle() == null || kpDto.getKnowledgeTitle().isEmpty())
+                        continue;
+
+                    knowledgeTitle.append(kpDto.getKnowledgeTitle()).append(", ");
+                }
+
+                // 格式化节点信息
+                sb.append("节点ID：").append(node.getId())
+                        .append("，知识点列表：").append(knowledgeTitle)
+                        .append("，状态：").append(node.getStatus())
+                        .append("\n");
+            } catch (JsonProcessingException e) {
+                log.error("解析节点知识点失败", e);
+
             }
-            // 格式化节点信息
-            sb.append("节点ID：").append(node.getId())
-                    .append("，知识点：").append(knowledgeTitle)
-                    .append("，知识点ID：").append(node.getKnowledgeId())
-                    .append("，状态：").append(node.getStatus())
-                    .append("\n");
+
+
         }
 
         return sb.toString();

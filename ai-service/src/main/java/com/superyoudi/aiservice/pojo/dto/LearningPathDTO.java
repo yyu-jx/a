@@ -14,5 +14,6 @@ public class LearningPathDTO {
     private Long learningPathId;
     private Long currentPathNodeId;
     private String currentNodeName;
+    private String currentKnowledgePoints;
     private String currentStage;
 }

@@ -12,8 +12,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class SectionKnowledgeRel {
     private Long id;
+    private Long courseId; // 课程ID，冗余
     private Long sectionId;
     private String neo4jKpId;
     private LocalDateTime createdTime;
-
 }
