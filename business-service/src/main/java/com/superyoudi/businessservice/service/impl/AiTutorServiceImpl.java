@@ -65,8 +65,8 @@ public class AiTutorServiceImpl implements AiTutorService {
         // 设置config的metadata以进行context engineering
         RunnableConfig runnableConfig = RunnableConfig.builder()
                 .threadId("ai_tutor_thread_" + userChatMessage.getUserId() + "_" + courseId)
-                .addMetadata("student_id", userChatMessage.getUserId())
-                .addMetadata("course_id", courseId)
+                .addMetadata(AiTutorAgent.METADATA_STUDENT_ID, userChatMessage.getUserId())
+                .addMetadata(AiTutorAgent.METADATA_COURSE_ID, courseId)
                 .build();
 
         try {

@@ -3,8 +3,8 @@ package com.superyoudi.aiservice.ai.agent;
 import com.alibaba.cloud.ai.graph.NodeOutput;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
-import com.alibaba.cloud.ai.graph.checkpoint.savers.MemorySaver;
 import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
+import com.superyoudi.aiservice.ai.agent.hook.AiTutorMessageModelHook;
 import com.superyoudi.aiservice.ai.agent.interceptor.AiTutorModelInterceptor;
 import com.superyoudi.aiservice.ai.agent.tools.AiTutorTools;
 import org.springframework.ai.chat.model.ChatModel;
@@ -17,14 +17,20 @@ import reactor.core.publisher.Flux;
 @Component
 public class AiTutorAgent {
 
+    public static final String METADATA_STUDENT_ID = "student_id";
+    public static final String METADATA_COURSE_ID = "course_id";
+
     private final ReactAgent agent;
 
-    public AiTutorAgent(AiTutorModelInterceptor aiTutorModelInterceptor, AiTutorTools aiTutorTools, ChatModel chatModel) {
+    public AiTutorAgent(AiTutorModelInterceptor aiTutorModelInterceptor,
+                        AiTutorMessageModelHook aiTutorMessageModelHook,
+                        AiTutorTools aiTutorTools, ChatModel chatModel) {
         this.agent = ReactAgent.builder()
                 .name("ai-tutor")
                 .model(chatModel)
-                .saver(new MemorySaver())
-                .interceptors(aiTutorModelInterceptor) // 提示词在这里设置
+//                .saver(new MemorySaver())
+//                .interceptors(aiTutorModelInterceptor) // 提示词在这里设置
+                .hooks(aiTutorMessageModelHook)
                 .methodTools(aiTutorTools)
                 .build();
     }

@@ -25,9 +25,11 @@ import java.nio.file.Paths;
 class TestController {
 
     private final AiTutorService aiTutorService;
+    private final CourseServiceImpl courseService;
 
     TestController(AiTutorService aiTutorService, CourseServiceImpl courseService) {
         this.aiTutorService = aiTutorService;
+        this.courseService = courseService;
     }
 
     @GetMapping("/test")

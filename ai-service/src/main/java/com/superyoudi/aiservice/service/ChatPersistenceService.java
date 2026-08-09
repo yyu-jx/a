@@ -9,6 +9,7 @@ import com.superyoudi.aiservice.pojo.entity.ChatCoursewareRecRel;
 import com.superyoudi.aiservice.pojo.entity.ChatMessage;
 import com.superyoudi.aiservice.pojo.entity.ChatSession;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,6 +19,7 @@ import java.util.List;
  *
  * @author Sijayyx
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatPersistenceService {
@@ -30,8 +32,22 @@ public class ChatPersistenceService {
     /**
      * 获取会话消息列表
      */
-    public List<ChatMessage> getChatMessages(Long chatSessionId) {
+    public List<ChatMessage> getOrCreateChatMessages(Long chatSessionId) {
         return chatMessageMapper.selectByChatId(chatSessionId);
+    }
+
+    /**
+     * 获取会话消息列表。如果不存在会话元数据，就创建，并返回null。
+     */
+    public List<ChatMessage> getOrCreateChatMessages(Long studentId, Long courseId) {
+        ChatCourseRel chatCourseRel = chatCourseRelMapper.selectByCourseAndStudentId(courseId, studentId);
+        if (chatCourseRel == null) {
+            log.info("未找到课程与聊天关联，创建新的关联关系。");
+            createChatCourseRel(studentId, courseId);
+            return null;
+        }
+
+        return chatMessageMapper.selectByChatId(chatCourseRel.getChatId());
     }
 
     /**
@@ -39,6 +55,20 @@ public class ChatPersistenceService {
      */
     public Long appendChatMessage(ChatMessage chatMessage) {
         return chatMessageMapper.insertWithAutoSeq(chatMessage);
+    }
+
+     /**
+     * 向列表追加消息
+     */
+    public void appendChatMessage(Long studentId, Long courseId, String message, String role) {
+        ChatCourseRel chatCourseRel = chatCourseRelMapper.selectByCourseAndStudentId(courseId, studentId);
+        if (chatCourseRel == null) {
+            log.error("保存消息记录失败: 未找到课程与聊天关联。");
+            return;
+        }
+
+        ChatMessage chatMessage = new ChatMessage(chatCourseRel.getChatId(), message, role);
+        chatMessageMapper.insertWithAutoSeq(chatMessage);
     }
 
     /**
@@ -79,9 +109,20 @@ public class ChatPersistenceService {
     /**
      * 创建会话与课程关联关系
      */
+    public Long createChatCourseRel(Long userId, Long courseId) {
+        ChatSession chatSession = new ChatSession(null, userId, null);
+        chatSessionMapper.insert(chatSession);
+
+        return createChatCourseRel(chatSession.getId(), courseId, userId);
+    }
+
+    /**
+     * 创建会话与课程关联关系
+     */
     public Long createChatCourseRel(Long chatId, Long courseId, Long userId) {
         ChatCourseRel chatCourseRel = new ChatCourseRel(null, chatId, courseId, userId);
-        return chatCourseRelMapper.insert(chatCourseRel);
+        chatCourseRelMapper.insert(chatCourseRel);
+        return chatCourseRel.getId();
     }
 
     /**
@@ -89,6 +130,7 @@ public class ChatPersistenceService {
      */
     public Long createChatCoursewareRecRel(Long chatId, Long coursewareRecId, Long userId) {
         ChatCoursewareRecRel chatCoursewareRecRel = new ChatCoursewareRecRel(null, chatId, coursewareRecId, userId);
-        return chatCoursewareRecRelMapper.insert(chatCoursewareRecRel);
+        chatCoursewareRecRelMapper.insert(chatCoursewareRecRel);
+        return chatCoursewareRecRel.getId();
     }
 }

@@ -1,0 +1,118 @@
+package com.superyoudi.aiservice.ai.agent.hook;
+
+import com.alibaba.cloud.ai.graph.RunnableConfig;
+import com.alibaba.cloud.ai.graph.agent.ReactAgent;
+import com.alibaba.cloud.ai.graph.agent.hook.HookPosition;
+import com.alibaba.cloud.ai.graph.agent.hook.HookPositions;
+import com.alibaba.cloud.ai.graph.agent.hook.messages.AgentCommand;
+import com.alibaba.cloud.ai.graph.agent.hook.messages.MessagesAgentHook;
+import com.superyoudi.aiservice.ai.agent.AiTutorAgent;
+import com.superyoudi.aiservice.pojo.entity.ChatMessage;
+import com.superyoudi.aiservice.service.ChatPersistenceService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.MessageType;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+/**
+ * @author Sijayyx
+ */
+@Slf4j
+@RequiredArgsConstructor
+@Component
+@HookPositions({HookPosition.BEFORE_AGENT, HookPosition.AFTER_AGENT})
+public class AiTutorMessageModelHook extends MessagesAgentHook {
+    private final ChatPersistenceService chatPersistenceService;
+    private ReactAgent agent;
+
+    @Override
+    public AgentCommand beforeAgent(List<Message> previousMessages, RunnableConfig config) {
+
+        // 这里能拿到用户发来的消息，在其之前恢复消息历史
+        Long courseId = (Long) config.metadata(AiTutorAgent.METADATA_COURSE_ID).orElseThrow();
+        Long studentId = (Long) config.metadata(AiTutorAgent.METADATA_STUDENT_ID).orElseThrow();
+
+        // 获取历史消息
+        List<ChatMessage> chatMessages = chatPersistenceService.getOrCreateChatMessages(studentId, courseId);
+
+        // 存用户消息
+        saveChatMessage(studentId, courseId, previousMessages);
+
+        if (chatMessages == null)
+            return super.beforeAgent(previousMessages, config);
+
+        // 拼接历史消息
+        ArrayList<Message> msgHistory = chatMessages.stream()
+                // 推断类型
+                .<Message>map(message -> {
+                    if (message.getRole().equals(ChatMessage.ROLE_USER)) {
+                        return new UserMessage(message.getMessage());
+                    } else if (message.getRole().equals(ChatMessage.ROLE_AI)) {
+                        return new AssistantMessage(message.getMessage());
+                    } else return null;
+                }).filter(Objects::nonNull) // 过滤空消息
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        msgHistory.addAll(previousMessages);
+
+        log.info("AI导师 历史消息列表:\n{}", msgHistory);
+
+        return new AgentCommand(msgHistory);
+    }
+
+    @Override
+    public AgentCommand afterAgent(List<Message> previousMessages, RunnableConfig config) {
+        // 这里能拿到用户消息、工具调用消息、AI回复的消息
+        Long courseId = (Long) config.metadata(AiTutorAgent.METADATA_COURSE_ID).orElseThrow();
+        Long studentId = (Long) config.metadata(AiTutorAgent.METADATA_STUDENT_ID).orElseThrow();
+
+        // 存AI回复的消息
+        saveChatMessage(studentId, courseId, previousMessages);
+
+        return super.afterAgent(previousMessages, config);
+    }
+
+    /**
+     * 保存消息记录。
+     * <p>
+     * 获取最后一个消息，并向消息列表追加它。
+     */
+    private void saveChatMessage(Long studentId, Long courseId, List<Message> messages) {
+        Message lastMsg = messages.get(messages.size() - 1);
+
+        log.info("保存消息记录: 文本: {}, 角色: {}, 学生ID/课程ID: {}/{}", lastMsg.getText(), lastMsg.getMessageType(), studentId, courseId);
+
+        if (lastMsg.getMessageType() == MessageType.ASSISTANT) {
+            chatPersistenceService.appendChatMessage(studentId, courseId, lastMsg.getText(), ChatMessage.ROLE_AI);
+        } else if (lastMsg.getMessageType() == MessageType.USER) {
+            chatPersistenceService.appendChatMessage(studentId, courseId, lastMsg.getText(), ChatMessage.ROLE_USER);
+        }
+    }
+
+    @Override
+    public String getName() {
+        return "ai-tutor-message-model-hook";
+    }
+
+    @Override
+    public ReactAgent getAgent() {
+        return agent;
+    }
+
+    @Override
+    public void setAgent(ReactAgent agent) {
+        this.agent = agent;
+    }
+
+    public int getOrder() {
+        return 0;
+    }
+}

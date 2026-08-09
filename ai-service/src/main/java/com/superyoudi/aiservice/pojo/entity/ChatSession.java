@@ -1,5 +1,6 @@
 package com.superyoudi.aiservice.pojo.entity;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -9,6 +10,7 @@ import java.time.LocalDateTime;
  * 用于教师端AI智教对话会话基础信息
  */
 @Data
+@AllArgsConstructor
 public class ChatSession {
     /**
      * 主键id

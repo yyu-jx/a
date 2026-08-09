@@ -53,4 +53,12 @@ public class ChatMessage {
      * 消息发送时间
      */
     private LocalDateTime sentAt;
+
+    public ChatMessage(Long chatId, String message, String role) {
+        this.chatId = chatId;
+        this.message = message;
+        this.role = role;
+        this.msgType = MSG_TYPE_TEXT;
+    }
+
 }
