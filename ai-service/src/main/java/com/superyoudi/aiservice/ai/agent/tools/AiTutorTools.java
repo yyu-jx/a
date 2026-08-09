@@ -17,12 +17,16 @@ public class AiTutorTools {
         this.aiTutorService = aiTutorService;
     }
 
-    @Tool(description = "设置当前学习路径节点的阶段")
+    //    @Tool(name = "update_learning_path_stage", description = "设置当前学习路径节点的阶段")
     @SuppressWarnings("unused")
     public String updateLearningPathStage(Long pathId, String stage) {
         aiTutorService.updateLearningPathStage(pathId, stage);
         return "成功";
     }
 
+    @Tool(name = "test", description = "测试工具")
+    public String test() {
+        return "success";
+    }
 
 }

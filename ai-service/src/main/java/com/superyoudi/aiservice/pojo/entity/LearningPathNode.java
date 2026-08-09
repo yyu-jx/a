@@ -30,9 +30,14 @@ public class LearningPathNode {
     private Long pathId;
 
     /**
-     * 知识点id，用于查询学生知识点学习情况
+     * 节点名称
      */
-    private String knowledgeId;
+    private String nodeName;
+
+    /**
+     * 知识点ID的JSON数组
+     */
+    private String knowledgeIds;
 
     /**
      * 路径节点完成状态

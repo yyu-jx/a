@@ -1,6 +1,8 @@
 package com.superyoudi.common.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -9,6 +11,8 @@ import java.time.LocalDateTime;
  * student_knowledge_masteries
  */
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class StudentKnowledgeMastery {
     /**
      * 主键id

@@ -165,7 +165,6 @@ class AiTutorServiceImplTest {
 
             learningPathNode = new LearningPathNode();
             learningPathNode.setId(CURRENT_NODE_ID);
-            learningPathNode.setKnowledgeId("200L");  // 修改为 String 类型
 
             course = new Course();
             course.setId(COURSE_ID);
@@ -467,7 +466,6 @@ class AiTutorServiceImplTest {
         private LearningPathNode createLearningPathNode(Long id, String knowledgeId, String status) {
             LearningPathNode node = new LearningPathNode();
             node.setId(id);
-            node.setKnowledgeId(knowledgeId);  // 修改为 String 类型
             node.setStatus(status);
             return node;
         }

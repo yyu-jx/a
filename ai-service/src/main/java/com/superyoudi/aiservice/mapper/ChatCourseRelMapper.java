@@ -20,6 +20,9 @@ public interface ChatCourseRelMapper {
     @Select("SELECT * FROM chat_course_rel WHERE course_id = #{courseId}")
     ChatCourseRel selectByCourseId(Long courseId);
 
+    @Select("SELECT * FROM chat_course_rel WHERE course_id = #{courseId} AND user_id = #{studentId}")
+    ChatCourseRel selectByCourseAndStudentId(@Param("courseId") Long courseId, @Param("studentId") Long studentId);
+
     /**
      * 插入会话课程关联
      */

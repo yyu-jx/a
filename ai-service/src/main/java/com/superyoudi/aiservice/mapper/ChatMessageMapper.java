@@ -49,10 +49,14 @@ public interface ChatMessageMapper {
     /**
      * 插入消息，并自增msg_seq
      */
-    @Insert("INSERT INTO chat_messages (chat_id, msg_seq, msg_type, role, message, sent_at) " +
-            "VALUES (#{chatId}, " +
-            "COALESCE((SELECT MAX(msg_seq) FROM chat_messages WHERE chat_id = #{chatId}), 0) + 1, " +
-            "#{msgType}, #{role}, #{message}, #{sentAt})")
+    @Insert("""
+            INSERT INTO chat_messages (chat_id, msg_seq, msg_type, role, message, sent_at)
+            SELECT #{chatId},
+            COALESCE(MAX(msg_seq), 0) + 1,
+            #{msgType}, #{role}, #{message}, #{sentAt}
+            FROM chat_messages
+            WHERE chat_id = #{chatId}
+            """)
     @Options(useGeneratedKeys = true, keyProperty = "id")
     Long insertWithAutoSeq(ChatMessage chatMessage);
 

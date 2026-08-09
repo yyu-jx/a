@@ -3,7 +3,6 @@ package com.superyoudi.kdbservice.service;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.graph.KnowledgePointNode;
 import com.superyoudi.kdbservice.repository.KnowledgePointRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

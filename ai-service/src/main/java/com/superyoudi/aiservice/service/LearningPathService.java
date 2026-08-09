@@ -9,7 +9,7 @@ import java.util.List;
  * @author Sijayyx
  */
 public interface LearningPathService {
-    void createLearningPath();
+    void createLearningPath(Long studentId, Long courseId);
 
     List<LearningPathNode> getLearningPathNodes(Long studentId, Long courseId);
 

@@ -25,15 +25,17 @@ public class CourseDataGenerateModel {
                 **课程描述**：%s
                 
                 ### 生成要求：
+                0. 请先明确课程的教材目录，再根据目录生成课程大纲。
                 1. 知识点可重复：若同一知识点在不同章节或节中有不同侧重点，则允许重复出现。
                 2. 顺序编号（order）：章、节、知识点均按其在课程中的自然讲授顺序从1开始递增编号。
                 3. 忽略目录中的习题、附录等与主要内容无关的条目。
+                4. **下一节的主要知识点必须和上一节的主要知识点建立关系，形成完整的知识路径**
                 
                 # 知识点抽取规则
-                1. **知识点粒度**：抽取原子性的、独立可理解的知识单元。避免抽取过于宽泛（如“数学”）或过于琐碎（如“这是一个例子”）的短语。
-                2. **知识点命名**：使用**标准术语**，长度控制在2-10个汉字或英文单词。
-                3. **知识点描述**：用简洁且准确的话描述该知识点的核心含义，相当于一个简短的百科解释。
-                4. 知识点必须与一个已有知识点建立关系。
+                1. 知识点粒度：抽取每一节涉及到的1-2个相关知识点。避免抽取过于宽泛（如“数学”）或过于琐碎（如“这是一个例子”）的短语。
+                2. 知识点命名：使用标准术语，长度控制在2-10个汉字或英文单词。
+                3. 知识点描述：用简洁且准确的话描述该知识点的核心含义，相当于一个简短的百科解释。
+                4. 知识点关系: 知识点间可以建立关系。相互建立关系的知识点必须均存在.
                 
                 # 关系类型定义 relation（严格遵循以下规范）
                 请从以下预定义关系类型中选择最匹配的一项。**优先使用前三种（IS_A, HAS_A, PREREQUISITE_OF）**。
@@ -68,12 +70,9 @@ public class CourseDataGenerateModel {
                               "knowledgePoints": [
                                 {"name": "数组", "description": "连续内存存储，随机访问O(1)，插入删除O(n)"},
                                 {"name": "链表", "description": "离散内存存储，插入删除O(1)，随机访问O(n)"},
-                                {"name": "索引访问", "description": "通过下标直接访问元素的能力"}
                               ],
                               "knowledgeRelations": [
                                 {"relation": "DIFFERENTIATES_FROM", "sourceKnowledgePoint": "数组", "targetKnowledgePoint": "链表"},
-                                {"relation": "HAS_A", "sourceKnowledgePoint": "数组", "targetKnowledgePoint": "索引访问"},
-                                {"relation": "SIMILAR_TO", "sourceKnowledgePoint": "链表", "targetKnowledgePoint": "栈"}
                               ]
                             }
                           ]

@@ -1,0 +1,30 @@
+package com.superyoudi.businessservice.controller.student;
+
+import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
+import com.superyoudi.aiservice.service.AiTutorService;
+import com.superyoudi.common.dto.ChatHistoryDTO;
+import com.superyoudi.common.entity.Result;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
+
+/**
+ * @author Sijayyx
+ */
+@RequiredArgsConstructor
+@RestController("/ai/student")
+public class AiTutorController {
+
+    private final AiTutorService aiTutorService;
+
+    @GetMapping("/history/{studentId}")
+    public Result<ChatHistoryDTO> getChatHistory(@PathVariable Long studentId,
+                                                 @RequestParam Long courseId) {
+        return Result.success(aiTutorService.getChatHistory(studentId, courseId));
+    }
+
+    @PostMapping("/chat")
+    public Flux<String> chat(@RequestBody UserChatMessage message) {
+        return aiTutorService.callAiTutor(message);
+    }
+}

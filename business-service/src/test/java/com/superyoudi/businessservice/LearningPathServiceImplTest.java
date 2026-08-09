@@ -1,24 +1,29 @@
 package com.superyoudi.businessservice;
 
+import com.superyoudi.aiservice.ai.agent.LearningPathGenerateModel;
 import com.superyoudi.aiservice.mapper.LearningPathMapper;
 import com.superyoudi.aiservice.mapper.LearningPathNodeMapper;
 import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.aiservice.pojo.entity.LearningPathNode;
+import com.superyoudi.businessservice.mapper.SectionKnowledgeRelMapper;
+import com.superyoudi.businessservice.mapper.StudentKnowledgeMasteryMapper;
+import com.superyoudi.businessservice.pojo.entity.SectionKnowledgeRel;
 import com.superyoudi.businessservice.service.impl.LearningPathServiceImpl;
-import com.superyoudi.aiservice.service.LearningPathService;
+import com.superyoudi.common.dto.StudentKnowledgeMastery;
+import com.superyoudi.common.exception.AllCourseKnowledgeMasteredException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.AdditionalMatchers.gt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
@@ -31,422 +36,413 @@ class LearningPathServiceImplTest {
     @Mock
     private LearningPathNodeMapper learningPathNodeMapper;
 
-    @InjectMocks
-    private LearningPathService learningPathService;
+    @Mock
+    private SectionKnowledgeRelMapper sectionKnowledgeRelMapper;
 
-    private LearningPath mockLearningPath;
-    private LearningPathNode mockLearningPathNode;
-    private List<LearningPathNode> mockNodeList;
-    private LocalDateTime now;
+    @Mock
+    private StudentKnowledgeMasteryMapper studentKnowledgeMasteryMapper;
+
+    @Mock
+    private LearningPathGenerateModel learningPathGenerateModel;
+
+    @InjectMocks
+    private LearningPathServiceImpl learningPathService;
+
+    private Long studentId;
+    private Long courseId;
+    private List<SectionKnowledgeRel> knowledgeRels;
+    private StudentKnowledgeMastery mastery;
 
     @BeforeEach
     void setUp() {
-        now = LocalDateTime.now();
+        studentId = 1L;
+        courseId = 100L;
 
-        mockLearningPath = new LearningPath();
-        mockLearningPath.setId(1L);
-        mockLearningPath.setStudentId(100L);
-        mockLearningPath.setCourseId(200L);
-        mockLearningPath.setCurrentNodeId(10L);
-        mockLearningPath.setCurrentStage(LearningPath.STAGE_EXPLAINING);
-        mockLearningPath.setAdditionalInfo("Test additional info");
-        mockLearningPath.setCreatedAt(now);
-        mockLearningPath.setUpdatedAt(now);
+        // 准备测试数据
+        knowledgeRels = new ArrayList<>();
+        for (int i = 0; i < 40; i++) {
+            SectionKnowledgeRel rel = new SectionKnowledgeRel(
+                    (long) i, courseId, (long) (i * 10), "kp_" + i, LocalDateTime.now()
+            );
+            knowledgeRels.add(rel);
+        }
 
-        mockLearningPathNode = new LearningPathNode();
-        mockLearningPathNode.setId(10L);
-        mockLearningPathNode.setPathId(1L);
-        mockLearningPathNode.setKnowledgeId("knowledge-001");
-        mockLearningPathNode.setStatus(LearningPathNode.NODE_STATUS_PROCEEDING);
-        mockLearningPathNode.setRelatedTaskId(50L);
-        mockLearningPathNode.setCreatedAt(now);
-        mockLearningPathNode.setUpdatedAt(now);
-
-        mockNodeList = Arrays.asList(
-                mockLearningPathNode,
-                createNode(11L, 1L, "knowledge-002", LearningPathNode.NODE_STATUS_UNTESTED, 51L),
-                createNode(12L, 1L, "knowledge-003", LearningPathNode.NODE_STATUS_COMPLETED, 52L)
-        );
-    }
-
-    private LearningPathNode createNode(Long id, Long pathId, String knowledgeId, String status, Long relatedTaskId) {
-        LearningPathNode node = new LearningPathNode();
-        node.setId(id);
-        node.setPathId(pathId);
-        node.setKnowledgeId(knowledgeId);
-        node.setStatus(status);
-        node.setRelatedTaskId(relatedTaskId);
-        node.setCreatedAt(now);
-        node.setUpdatedAt(now);
-        return node;
+        mastery = new StudentKnowledgeMastery();
+        mastery.setId(1L);
+        mastery.setStudentId(studentId);
+        mastery.setCourseId(courseId);
+        mastery.setKnowledgeId("kp_1");
+        mastery.setKnowledgeName("Java基础");
+        mastery.setMasterRate(0.5);
     }
 
     @Test
-    void getLearningPathNodes_ByStudentAndCourse_ShouldReturnNodeList() {
+    void testCreateLearningPath_Success() {
         // Given
-        Long studentId = 100L;
-        Long courseId = 200L;
+        // 只 mock 实际会被查询的知识点（前35个）
+        List<SectionKnowledgeRel> queryResult = knowledgeRels.subList(0, 35);
+        when(sectionKnowledgeRelMapper.selectBehindStartByCourseId(eq(courseId), eq(0L), eq(35)))
+                .thenReturn(queryResult);
+
+        // 只对实际返回的知识点设置 mock
+        for (int i = 0; i < queryResult.size(); i++) {
+            String knowledgeId = "kp_" + i;
+            StudentKnowledgeMastery mastery = new StudentKnowledgeMastery();
+            mastery.setStudentId(studentId);
+            mastery.setCourseId(courseId);
+            mastery.setKnowledgeId(knowledgeId);
+            mastery.setKnowledgeName("知识点" + i);
+
+            // 设置不同的掌握度，确保有足够的未掌握知识点
+            if (i < 3) {
+                mastery.setMasterRate(0.9); // 已掌握，会被过滤
+            } else {
+                mastery.setMasterRate(0.3); // 未掌握，会被加入候选
+            }
+
+            when(studentKnowledgeMasteryMapper.selectByStudentAndKnowledge(eq(studentId), eq(knowledgeId)))
+                    .thenReturn(mastery);
+        }
+
+        // Mock AI生成的学习路径JSON
+        String aiResponse = "{\"studentId\":1,\"courseId\":100,\"additionalInfo\":\"测试学习路径\"," +
+                "\"pathNodeDataList\":[" +
+                "{\"nodeName\":\"节点1\",\"knowledgeIds\":[\"kp_3\",\"kp_4\"]}," +
+                "{\"nodeName\":\"节点2\",\"knowledgeIds\":[\"kp_5\",\"kp_6\"]}," +
+                "{\"nodeName\":\"节点3\",\"knowledgeIds\":[\"kp_7\",\"kp_8\"]}]}";
+
+        when(learningPathGenerateModel.call(eq(studentId), eq(courseId), anyString()))
+                .thenReturn(aiResponse);
+
+        // Mock旧的学习路径
+        LearningPath oldPath = new LearningPath(1L, studentId, courseId, null,
+                LearningPath.STAGE_INTRODUCING, null, null, null);
         when(learningPathMapper.selectByStudentAndCourse(studentId, courseId))
-                .thenReturn(mockLearningPath);
-        when(learningPathNodeMapper.selectByPathId(mockLearningPath.getId()))
-                .thenReturn(mockNodeList);
+                .thenReturn(oldPath);
+
+        // When
+        learningPathService.createLearningPath(studentId, courseId);
+
+        // Then
+        // 验证删除了旧路径
+        verify(learningPathNodeMapper).deleteAllByPathId(1L);
+        verify(learningPathMapper).deleteById(1L);
+
+        // 验证保存了新路径
+        ArgumentCaptor<LearningPath> pathCaptor = ArgumentCaptor.forClass(LearningPath.class);
+        verify(learningPathMapper).insert(pathCaptor.capture());
+        LearningPath newPath = pathCaptor.getValue();
+        assertEquals(studentId, newPath.getStudentId());
+        assertEquals(courseId, newPath.getCourseId());
+        assertEquals(LearningPath.STAGE_INTRODUCING, newPath.getCurrentStage());
+        assertEquals("测试学习路径", newPath.getAdditionalInfo());
+
+        // 验证保存了3个节点
+        verify(learningPathNodeMapper, times(3)).insert(any(LearningPathNode.class));
+    }
+
+    @Test
+    void testCreateLearningPath_AllMastered_ThrowsException() {
+        // Given - 所有知识点都已掌握
+        when(sectionKnowledgeRelMapper.selectBehindStartByCourseId(eq(courseId), eq(0L), eq(35)))
+                .thenReturn(knowledgeRels.subList(0, 35));
+
+        StudentKnowledgeMastery highMastery = new StudentKnowledgeMastery();
+        highMastery.setStudentId(studentId);
+        highMastery.setCourseId(courseId);
+        highMastery.setMasterRate(0.9);
+
+        for (SectionKnowledgeRel rel : knowledgeRels.subList(0, 35)) {
+            when(studentKnowledgeMasteryMapper.selectByStudentAndKnowledge(
+                    eq(studentId), eq(rel.getNeo4jKpId())))
+                    .thenReturn(highMastery);
+        }
+
+        // When & Then
+        assertThrows(AllCourseKnowledgeMasteredException.class, () -> {
+            learningPathService.createLearningPath(studentId, courseId);
+        });
+
+        verify(learningPathGenerateModel, never()).call(anyLong(), anyLong(), anyString());
+    }
+
+    @Test
+    void testCreateLearningPath_AIResponseNull() {
+        // Given
+        when(sectionKnowledgeRelMapper.selectBehindStartByCourseId(eq(courseId), eq(0L), eq(35)))
+                .thenReturn(knowledgeRels.subList(0, 35));
+
+        when(studentKnowledgeMasteryMapper.selectByStudentAndKnowledge(eq(studentId), anyString()))
+                .thenReturn(null); // 无记录，视为未掌握
+
+        when(learningPathGenerateModel.call(eq(studentId), eq(courseId), anyString()))
+                .thenReturn("{}"); // AI返回空JSON
+
+        // When & Then
+        assertThrows(NullPointerException.class, () -> {
+            learningPathService.createLearningPath(studentId, courseId);
+        });
+    }
+
+    @Test
+    void testCreateLearningPath_RetryMechanism() {
+        // Given - 模拟需要重试的情况
+        // 第一次查询只有少量未掌握知识点
+        List<SectionKnowledgeRel> firstBatch = knowledgeRels.subList(0, 35);
+        List<SectionKnowledgeRel> secondBatch = knowledgeRels.subList(35, Math.min(70, knowledgeRels.size()));
+
+        when(sectionKnowledgeRelMapper.selectBehindStartByCourseId(eq(courseId), eq(0L), eq(35)))
+                .thenReturn(firstBatch);
+        when(sectionKnowledgeRelMapper.selectBehindStartByCourseId(eq(courseId), gt(0L), eq(35)))
+                .thenReturn(secondBatch);
+
+        // 第一批大部分已掌握，只有5个未掌握
+        for (int i = 0; i < 35; i++) {
+            StudentKnowledgeMastery mastery = new StudentKnowledgeMastery();
+            mastery.setStudentId(studentId);
+            mastery.setCourseId(courseId);
+            mastery.setKnowledgeId("kp_" + i);
+            mastery.setKnowledgeName("知识点" + i);
+            mastery.setMasterRate(i < 5 ? 0.3 : 0.9); // 只有前5个未掌握
+            when(studentKnowledgeMasteryMapper.selectByStudentAndKnowledge(
+                    eq(studentId), eq("kp_" + i))).thenReturn(mastery);
+        }
+
+        // 第二批有更多未掌握的
+        for (int i = 35; i < Math.min(70, knowledgeRels.size()); i++) {
+            StudentKnowledgeMastery mastery = new StudentKnowledgeMastery();
+            mastery.setStudentId(studentId);
+            mastery.setCourseId(courseId);
+            mastery.setKnowledgeId("kp_" + i);
+            mastery.setKnowledgeName("知识点" + i);
+            mastery.setMasterRate(0.3); // 都未掌握
+            when(studentKnowledgeMasteryMapper.selectByStudentAndKnowledge(
+                    eq(studentId), eq("kp_" + i))).thenReturn(mastery);
+        }
+
+        // Mock AI响应
+        String aiResponse = "{\"studentId\":1,\"courseId\":100,\"additionalInfo\":\"重试路径\"," +
+                "\"pathNodeDataList\":[{\"nodeName\":\"节点1\",\"knowledgeIds\":[\"kp_0\",\"kp_1\"]}]}";
+        when(learningPathGenerateModel.call(eq(studentId), eq(courseId), anyString()))
+                .thenReturn(aiResponse);
+
+        LearningPath oldPath = new LearningPath(2L, studentId, courseId, null,
+                LearningPath.STAGE_INTRODUCING, null, null, null);
+        when(learningPathMapper.selectByStudentAndCourse(studentId, courseId))
+                .thenReturn(oldPath);
+
+        // When
+        learningPathService.createLearningPath(studentId, courseId);
+
+        // Then - 验证至少调用了两次查询（重试）
+        verify(sectionKnowledgeRelMapper, atLeast(2))
+                .selectBehindStartByCourseId(eq(courseId), anyLong(), eq(35));
+    }
+
+    @Test
+    void testGetLearningPathNodes_ByStudentAndCourse() {
+        // Given
+        LearningPath path = new LearningPath(1L, studentId, courseId, null,
+                LearningPath.STAGE_INTRODUCING, null, null, null);
+        when(learningPathMapper.selectByStudentAndCourse(studentId, courseId)).thenReturn(path);
+
+        List<LearningPathNode> expectedNodes = Arrays.asList(
+                new LearningPathNode(1L, 1L, "节点1", "[\"kp_1\"]",
+                        LearningPathNode.NODE_STATUS_UNTESTED, null, null, null)
+        );
+        when(learningPathNodeMapper.selectByPathId(1L)).thenReturn(expectedNodes);
 
         // When
         List<LearningPathNode> result = learningPathService.getLearningPathNodes(studentId, courseId);
 
         // Then
-        assertThat(result).isNotNull();
-        assertThat(result).hasSize(3);
-        assertThat(result).isEqualTo(mockNodeList);
-        verify(learningPathMapper).selectByStudentAndCourse(studentId, courseId);
-        verify(learningPathNodeMapper).selectByPathId(mockLearningPath.getId());
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("节点1", result.get(0).getNodeName());
     }
 
     @Test
-    void getLearningPathNodes_ByStudentAndCourse_WhenLearningPathNotFound_ShouldThrowNullPointerException() {
-        // Given
-        Long studentId = 100L;
-        Long courseId = 200L;
-        when(learningPathMapper.selectByStudentAndCourse(studentId, courseId))
-                .thenReturn(null);
-
-        // When & Then
-        assertThatThrownBy(() -> learningPathService.getLearningPathNodes(studentId, courseId))
-                .isInstanceOf(NullPointerException.class);
-        verify(learningPathMapper).selectByStudentAndCourse(studentId, courseId);
-        verify(learningPathNodeMapper, never()).selectByPathId(anyLong());
-    }
-
-    @Test
-    void getLearningPathNodes_ByPathId_ShouldReturnNodeList() {
+    void testGetLearningPathNodes_ByPathId() {
         // Given
         Long pathId = 1L;
-        when(learningPathNodeMapper.selectByPathId(pathId))
-                .thenReturn(mockNodeList);
+        List<LearningPathNode> expectedNodes = Arrays.asList(
+                new LearningPathNode(1L, pathId, "节点1", "[\"kp_1\"]",
+                        LearningPathNode.NODE_STATUS_UNTESTED, null, null, null),
+                new LearningPathNode(2L, pathId, "节点2", "[\"kp_2\"]",
+                        LearningPathNode.NODE_STATUS_UNTESTED, null, null, null)
+        );
+        when(learningPathNodeMapper.selectByPathId(pathId)).thenReturn(expectedNodes);
 
         // When
         List<LearningPathNode> result = learningPathService.getLearningPathNodes(pathId);
 
         // Then
-        assertThat(result).isNotNull();
-        assertThat(result).hasSize(3);
-        assertThat(result).isEqualTo(mockNodeList);
-        verify(learningPathNodeMapper).selectByPathId(pathId);
+        assertNotNull(result);
+        assertEquals(2, result.size());
     }
 
     @Test
-    void getLearningPathNodes_ByPathId_WhenNoNodesExist_ShouldReturnEmptyList() {
-        // Given
-        Long pathId = 999L;
-        when(learningPathNodeMapper.selectByPathId(pathId))
-                .thenReturn(Arrays.asList());
-
-        // When
-        List<LearningPathNode> result = learningPathService.getLearningPathNodes(pathId);
-
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result).isEmpty();
-        verify(learningPathNodeMapper).selectByPathId(pathId);
-    }
-
-    @Test
-    void getNextLearningPathNode_ShouldReturnNextNodeId() {
+    void testGetNextLearningPathNode() {
         // Given
         Long pathId = 1L;
-        Long currentNodeId = 10L;
-        Long expectedNextNodeId = 11L;
+        Long currentNodeId = 1L;
+        Long expectedNextNodeId = 2L;
         when(learningPathNodeMapper.selectNextNodeId(pathId, currentNodeId))
                 .thenReturn(expectedNextNodeId);
 
         // When
-        Long result = learningPathService.getNextLearningPathNode(pathId, currentNodeId);
+        Long nextNodeId = learningPathService.getNextLearningPathNode(pathId, currentNodeId);
 
         // Then
-        assertThat(result).isEqualTo(expectedNextNodeId);
-        verify(learningPathNodeMapper).selectNextNodeId(pathId, currentNodeId);
+        assertEquals(expectedNextNodeId, nextNodeId);
     }
 
     @Test
-    void getNextLearningPathNode_WhenNoNextNode_ShouldReturnNull() {
+    void testGetLearningPathById() {
         // Given
         Long pathId = 1L;
-        Long currentNodeId = 12L;
-        when(learningPathNodeMapper.selectNextNodeId(pathId, currentNodeId))
-                .thenReturn(null);
+        LearningPath expectedPath = new LearningPath(pathId, studentId, courseId, null,
+                LearningPath.STAGE_INTRODUCING, null, null, null);
+        when(learningPathMapper.selectById(pathId)).thenReturn(expectedPath);
 
         // When
-        Long result = learningPathService.getNextLearningPathNode(pathId, currentNodeId);
+        LearningPath result = learningPathService.getLearningPathById(pathId);
 
         // Then
-        assertThat(result).isNull();
-        verify(learningPathNodeMapper).selectNextNodeId(pathId, currentNodeId);
+        assertNotNull(result);
+        assertEquals(pathId, result.getId());
+        assertEquals(studentId, result.getStudentId());
     }
 
     @Test
-    void getLearningPathById_ShouldReturnLearningPath() {
+    void testGetLearningPathByStudentAndCourse() {
         // Given
-        Long learningPathId = 1L;
-        when(learningPathMapper.selectById(learningPathId))
-                .thenReturn(mockLearningPath);
-
-        // When
-        LearningPath result = learningPathService.getLearningPathById(learningPathId);
-
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(1L);
-        assertThat(result.getStudentId()).isEqualTo(100L);
-        assertThat(result.getCourseId()).isEqualTo(200L);
-        assertThat(result.getCurrentStage()).isEqualTo(LearningPath.STAGE_EXPLAINING);
-        verify(learningPathMapper).selectById(learningPathId);
-    }
-
-    @Test
-    void getLearningPathById_WhenNotFound_ShouldReturnNull() {
-        // Given
-        Long learningPathId = 999L;
-        when(learningPathMapper.selectById(learningPathId))
-                .thenReturn(null);
-
-        // When
-        LearningPath result = learningPathService.getLearningPathById(learningPathId);
-
-        // Then
-        assertThat(result).isNull();
-        verify(learningPathMapper).selectById(learningPathId);
-    }
-
-    @Test
-    void getLearningPathByStudentAndCourse_ShouldReturnLearningPath() {
-        // Given
-        Long studentId = 100L;
-        Long courseId = 200L;
+        LearningPath expectedPath = new LearningPath(1L, studentId, courseId, null,
+                LearningPath.STAGE_EXPLAINING, "附加信息", null, null);
         when(learningPathMapper.selectByStudentAndCourse(studentId, courseId))
-                .thenReturn(mockLearningPath);
+                .thenReturn(expectedPath);
 
         // When
         LearningPath result = learningPathService.getLearningPathByStudentAndCourse(studentId, courseId);
 
         // Then
-        assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(1L);
-        assertThat(result.getStudentId()).isEqualTo(100L);
-        assertThat(result.getCourseId()).isEqualTo(200L);
-        verify(learningPathMapper).selectByStudentAndCourse(studentId, courseId);
+        assertNotNull(result);
+        assertEquals(studentId, result.getStudentId());
+        assertEquals(courseId, result.getCourseId());
+        assertEquals(LearningPath.STAGE_EXPLAINING, result.getCurrentStage());
     }
 
     @Test
-    void getLearningPathByStudentAndCourse_WhenNotFound_ShouldReturnNull() {
+    void testGetLearningPathNodeById() {
         // Given
-        Long studentId = 999L;
-        Long courseId = 999L;
-        when(learningPathMapper.selectByStudentAndCourse(studentId, courseId))
-                .thenReturn(null);
-
-        // When
-        LearningPath result = learningPathService.getLearningPathByStudentAndCourse(studentId, courseId);
-
-        // Then
-        assertThat(result).isNull();
-        verify(learningPathMapper).selectByStudentAndCourse(studentId, courseId);
-    }
-
-    @Test
-    void getLearningPathNodeById_ShouldReturnLearningPathNode() {
-        // Given
-        Long nodeId = 10L;
-        when(learningPathNodeMapper.selectById(nodeId))
-                .thenReturn(mockLearningPathNode);
+        Long nodeId = 1L;
+        LearningPathNode expectedNode = new LearningPathNode(nodeId, 1L, "节点1", "[\"kp_1\"]",
+                LearningPathNode.NODE_STATUS_PROCEEDING, 100L, null, null);
+        when(learningPathNodeMapper.selectById(nodeId)).thenReturn(expectedNode);
 
         // When
         LearningPathNode result = learningPathService.getLearningPathNodeById(nodeId);
 
         // Then
-        assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(10L);
-        assertThat(result.getPathId()).isEqualTo(1L);
-        assertThat(result.getKnowledgeId()).isEqualTo("knowledge-001");
-        assertThat(result.getStatus()).isEqualTo(LearningPathNode.NODE_STATUS_PROCEEDING);
-        verify(learningPathNodeMapper).selectById(nodeId);
+        assertNotNull(result);
+        assertEquals(nodeId, result.getId());
+        assertEquals(LearningPathNode.NODE_STATUS_PROCEEDING, result.getStatus());
     }
 
     @Test
-    void getLearningPathNodeById_WhenNotFound_ShouldReturnNull() {
+    void testUpdateLearningPathNodeStatus() {
         // Given
-        Long nodeId = 999L;
-        when(learningPathNodeMapper.selectById(nodeId))
-                .thenReturn(null);
+        Long nodeId = 1L;
+        String status = LearningPathNode.NODE_STATUS_COMPLETED;
 
         // When
-        LearningPathNode result = learningPathService.getLearningPathNodeById(nodeId);
+        learningPathService.updateLearningPathNodeStatus(nodeId, status);
 
         // Then
-        assertThat(result).isNull();
-        verify(learningPathNodeMapper).selectById(nodeId);
+        verify(learningPathNodeMapper).updateStatus(nodeId, status);
     }
 
     @Test
-    void updateLearningPathNodeStatus_ShouldUpdateStatus() {
-        // Given
-        Long nodeId = 10L;
-        String newStatus = LearningPathNode.NODE_STATUS_COMPLETED;
-
-        // When
-        learningPathService.updateLearningPathNodeStatus(nodeId, newStatus);
-
-        // Then
-        verify(learningPathNodeMapper).updateStatus(nodeId, newStatus);
-    }
-
-    @Test
-    void updateLearningPathNodeStatus_WithNullNodeId_ShouldStillCallMapper() {
-        // Given
-        Long nodeId = null;
-        String newStatus = LearningPathNode.NODE_STATUS_PROCEEDING;
-
-        // When
-        learningPathService.updateLearningPathNodeStatus(nodeId, newStatus);
-
-        // Then
-        verify(learningPathNodeMapper).updateStatus(nodeId, newStatus);
-    }
-
-    @Test
-    void updateLearningPath_ShouldUpdateLearningPath() {
-        // Given
-        LearningPath learningPathToUpdate = new LearningPath();
-        learningPathToUpdate.setId(1L);
-        learningPathToUpdate.setCurrentNodeId(12L);
-        learningPathToUpdate.setCurrentStage(LearningPath.STAGE_TESTING);
-        learningPathToUpdate.setAdditionalInfo("Updated info");
-
-        // When
-        learningPathService.updateLearningPath(learningPathToUpdate);
-
-        // Then
-        verify(learningPathMapper).update(learningPathToUpdate);
-    }
-
-    @Test
-    void updateLearningPath_WithNullParameter_ShouldStillCallMapper() {
-        // Given
-        LearningPath learningPathToUpdate = null;
-
-        // When
-        learningPathService.updateLearningPath(learningPathToUpdate);
-
-        // Then
-        verify(learningPathMapper).update(learningPathToUpdate);
-    }
-
-    @Test
-    void getLearningPathNodes_ByStudentAndCourse_ShouldVerifyMapperCalls() {
-        // Given
-        Long studentId = 100L;
-        Long courseId = 200L;
-        when(learningPathMapper.selectByStudentAndCourse(studentId, courseId))
-                .thenReturn(mockLearningPath);
-        when(learningPathNodeMapper.selectByPathId(mockLearningPath.getId()))
-                .thenReturn(mockNodeList);
-
-        // When
-        learningPathService.getLearningPathNodes(studentId, courseId);
-
-        // Then
-        verify(learningPathMapper, times(1))
-                .selectByStudentAndCourse(studentId, courseId);
-        verify(learningPathNodeMapper, times(1))
-                .selectByPathId(mockLearningPath.getId());
-        verifyNoMoreInteractions(learningPathMapper, learningPathNodeMapper);
-    }
-
-    @Test
-    void getLearningPathNodes_ByPathId_ShouldVerifyMapperCalls() {
+    void testUpdateLearningPathStage() {
         // Given
         Long pathId = 1L;
-        when(learningPathNodeMapper.selectByPathId(pathId))
-                .thenReturn(mockNodeList);
+        String stage = LearningPath.STAGE_TESTING;
 
         // When
-        learningPathService.getLearningPathNodes(pathId);
+        learningPathService.updateLearningPathStage(pathId, stage);
 
         // Then
-        verify(learningPathNodeMapper, times(1))
-                .selectByPathId(pathId);
-        verifyNoMoreInteractions(learningPathNodeMapper);
-        verifyNoInteractions(learningPathMapper);
+        verify(learningPathMapper).updateCurrentStage(pathId, stage);
     }
 
     @Test
-    void getNextLearningPathNode_ShouldVerifyMapperCalls() {
+    void testUpdateLearningPath() {
         // Given
-        Long pathId = 1L;
-        Long currentNodeId = 10L;
-        when(learningPathNodeMapper.selectNextNodeId(pathId, currentNodeId))
-                .thenReturn(11L);
+        LearningPath path = new LearningPath(1L, studentId, courseId, 3L,
+                LearningPath.STAGE_FINISHED, "已完成", LocalDateTime.now(), LocalDateTime.now());
 
         // When
-        learningPathService.getNextLearningPathNode(pathId, currentNodeId);
+        learningPathService.updateLearningPath(path);
 
         // Then
-        verify(learningPathNodeMapper, times(1))
-                .selectNextNodeId(pathId, currentNodeId);
-        verifyNoMoreInteractions(learningPathNodeMapper);
-        verifyNoInteractions(learningPathMapper);
+        verify(learningPathMapper).update(path);
     }
 
     @Test
-    void getLearningPathById_ShouldVerifyMapperCall() {
-        // Given
-        Long learningPathId = 1L;
-        when(learningPathMapper.selectById(learningPathId))
-                .thenReturn(mockLearningPath);
+    void testGenerateCandidateKnowledgeInfo_WithData() {
+        // Given - 使用反射调用私有方法（或者可以通过公开的createLearningPath间接测试）
+        Map<SectionKnowledgeRel, StudentKnowledgeMastery> knowledgeMap = new HashMap<>();
 
-        // When
-        learningPathService.getLearningPathById(learningPathId);
+        SectionKnowledgeRel rel = new SectionKnowledgeRel(1L, courseId, 10L, "kp_1", LocalDateTime.now());
+        StudentKnowledgeMastery mastery = new StudentKnowledgeMastery();
+        mastery.setKnowledgeName("Java基础");
+        mastery.setMasterRate(0.75);
 
-        // Then
-        verify(learningPathMapper, times(1))
-                .selectById(learningPathId);
-        verifyNoMoreInteractions(learningPathMapper);
-        verifyNoInteractions(learningPathNodeMapper);
-    }
+        knowledgeMap.put(rel, mastery);
 
-    @Test
-    void updateLearningPathNodeStatus_WithVariousStatuses_ShouldCallMapper() {
-        // Given
-        Long nodeId = 10L;
-        String[] statuses = {
-                LearningPathNode.NODE_STATUS_UNTESTED,
-                LearningPathNode.NODE_STATUS_PROCEEDING,
-                LearningPathNode.NODE_STATUS_COMPLETED
-        };
+        // When - 使用反射访问私有方法
+        try {
+            java.lang.reflect.Method method = LearningPathServiceImpl.class
+                    .getDeclaredMethod("generateCandidateKnowledgeInfo", Map.class);
+            method.setAccessible(true);
+            String result = (String) method.invoke(learningPathService, knowledgeMap);
 
-        // When & Then
-        for (String status : statuses) {
-            learningPathService.updateLearningPathNodeStatus(nodeId, status);
-            verify(learningPathNodeMapper, times(1))
-                    .updateStatus(nodeId, status);
+            // Then
+            assertNotNull(result);
+            assertTrue(result.contains("Java基础"));
+            assertTrue(result.contains("75.0%"));
+        } catch (Exception e) {
+            fail("反射调用失败: " + e.getMessage());
         }
-        verify(learningPathNodeMapper, times(3))
-                .updateStatus(anyLong(), anyString());
     }
 
     @Test
-    void constructor_ShouldInitializeCorrectly() {
-        // Given
-        LearningPathMapper mapper = mock(LearningPathMapper.class);
-        LearningPathNodeMapper nodeMapper = mock(LearningPathNodeMapper.class);
+    void testCreateLearningPath_WithNullMasteryRecords() {
+        // Given - 学生没有任何学习记录
+        when(sectionKnowledgeRelMapper.selectBehindStartByCourseId(eq(courseId), eq(0L), eq(35)))
+                .thenReturn(knowledgeRels.subList(0, 35));
+
+        // 所有知识点都返回null（无学习记录）
+        when(studentKnowledgeMasteryMapper.selectByStudentAndKnowledge(eq(studentId), anyString()))
+                .thenReturn(null);
+
+        String aiResponse = "{\"studentId\":1,\"courseId\":100,\"additionalInfo\":\"新学生学习路径\"," +
+                "\"pathNodeDataList\":[" +
+                "{\"nodeName\":\"入门节点\",\"knowledgeIds\":[\"kp_0\",\"kp_1\",\"kp_2\"]}," +
+                "{\"nodeName\":\"进阶节点\",\"knowledgeIds\":[\"kp_3\",\"kp_4\"]}]}";
+
+        when(learningPathGenerateModel.call(eq(studentId), eq(courseId), anyString()))
+                .thenReturn(aiResponse);
+
+        LearningPath oldPath = new LearningPath(1L, studentId, courseId, null,
+                LearningPath.STAGE_INTRODUCING, null, null, null);
+        when(learningPathMapper.selectByStudentAndCourse(studentId, courseId))
+                .thenReturn(oldPath);
 
         // When
-        LearningPathService service = new LearningPathServiceImpl(mapper, nodeMapper);
+        learningPathService.createLearningPath(studentId, courseId);
 
-        // Then
-        assertThat(service).isNotNull();
-        // Verify the service can be used
-        when(mapper.selectById(anyLong())).thenReturn(mockLearningPath);
-        LearningPath result = service.getLearningPathById(1L);
-        assertThat(result).isEqualTo(mockLearningPath);
+        // Then - 验证即使没有学习记录也能正常生成路径
+        verify(learningPathNodeMapper, times(2)).insert(any(LearningPathNode.class));
     }
 }

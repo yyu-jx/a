@@ -2,19 +2,26 @@ package com.superyoudi.businessservice.service.impl;
 
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.superyoudi.aiservice.ai.agent.AiTutorAgent;
 import com.superyoudi.aiservice.pojo.dto.LearningPathDTO;
 import com.superyoudi.aiservice.pojo.dto.StudentCourseInfoDTO;
 import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
+import com.superyoudi.aiservice.pojo.entity.ChatMessage;
+import com.superyoudi.aiservice.pojo.entity.ChatSession;
 import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.aiservice.pojo.entity.LearningPathNode;
 import com.superyoudi.aiservice.service.AiTutorService;
+import com.superyoudi.aiservice.service.ChatPersistenceService;
 import com.superyoudi.aiservice.service.LearningPathService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.businessservice.mapper.UserMapper;
 import com.superyoudi.businessservice.pojo.entity.Course;
 import com.superyoudi.businessservice.pojo.entity.User;
+import com.superyoudi.common.dto.ChatHistoryDTO;
 import com.superyoudi.common.exception.LearningPathFinishedException;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.service.KnowledgeGraphService;
@@ -40,19 +47,21 @@ public class AiTutorServiceImpl implements AiTutorService {
     private final KnowledgePointService knowledgePointService;
     private final UserMapper userMapper;
     private final KnowledgeGraphService knowledgeGraphService;
+    private final ChatPersistenceService chatPersistenceService;
 
 
     public AiTutorServiceImpl(@Lazy AiTutorAgent aiTutorAgent, // 延迟注入ai tutor agent，否则会造成循环依赖
                               CourseMapper courseMapper,
                               LearningPathService learningPathService,
                               KnowledgePointService knowledgePointService,
-                              UserMapper userMapper, KnowledgeGraphService knowledgeGraphService) {
+                              UserMapper userMapper, KnowledgeGraphService knowledgeGraphService, ChatPersistenceService chatPersistenceService) {
         this.courseMapper = courseMapper;
         this.learningPathService = learningPathService;
         this.knowledgePointService = knowledgePointService;
         this.userMapper = userMapper;
         this.aiTutorAgent = aiTutorAgent;
         this.knowledgeGraphService = knowledgeGraphService;
+        this.chatPersistenceService = chatPersistenceService;
     }
 
     @Override
@@ -62,8 +71,8 @@ public class AiTutorServiceImpl implements AiTutorService {
         // 设置config的metadata以进行context engineering
         RunnableConfig runnableConfig = RunnableConfig.builder()
                 .threadId("ai_tutor_thread_" + userChatMessage.getUserId() + "_" + courseId)
-                .addMetadata("student_id", userChatMessage.getUserId())
-                .addMetadata("course_id", courseId)
+                .addMetadata(AiTutorAgent.METADATA_STUDENT_ID, userChatMessage.getUserId())
+                .addMetadata(AiTutorAgent.METADATA_COURSE_ID, courseId)
                 .build();
 
         try {
@@ -75,6 +84,19 @@ public class AiTutorServiceImpl implements AiTutorService {
             log.error("调用AI Tutor失败", e);
             throw new RuntimeException("调用AI Tutor失败", e);
         }
+    }
+
+    @Override
+    public ChatHistoryDTO getChatHistory(Long studentId, Long courseId) {
+        ChatSession session = chatPersistenceService.getOrCreateChatSession(studentId, courseId);
+        List<ChatMessage> chatMessages = chatPersistenceService.getOrCreateChatMessages(session.getId());
+
+        List<ChatHistoryDTO.ChatMessageData> messages = chatMessages.stream().map(message ->
+                        new ChatHistoryDTO.ChatMessageData(message.getMsgSeq(), message.getMsgType(),
+                                message.getMessage(), message.getRole(), message.getSentAt()))
+                .toList();
+
+        return new ChatHistoryDTO(session.getId(), studentId, messages);
     }
 
     @Override
@@ -107,11 +129,9 @@ public class AiTutorServiceImpl implements AiTutorService {
         Long currentNodeId = learningPath.getCurrentNodeId();
         LearningPathNode learningPathNode = learningPathService.getLearningPathNodeById(currentNodeId);
         Course course = courseMapper.selectById(courseId);
-        KnowledgePointDTO kpDto = knowledgePointService.getKnowledgePoint(learningPathNode.getKnowledgeId());
 
         return new LearningPathDTO(courseId, course.getName(), learningPath.getId(),
-                currentNodeId, kpDto.getKnowledgeTitle(), learningPath.getCurrentStage());
-
+                currentNodeId, learningPathNode.getNodeName(), learningPathNode.getKnowledgeIds(), learningPath.getCurrentStage());
     }
 
 
@@ -123,6 +143,7 @@ public class AiTutorServiceImpl implements AiTutorService {
 
     @Override
     public String formatLearningPath(Long learningPathId) {
+        ObjectMapper mapper = new ObjectMapper();
         List<LearningPathNode> learningPathNodes = learningPathService.getLearningPathNodes(learningPathId);
 
         if (learningPathNodes == null || learningPathNodes.isEmpty()) {
@@ -133,20 +154,33 @@ public class AiTutorServiceImpl implements AiTutorService {
         sb.append(String.format("学习路径 %d：\n", learningPathId));
 
         for (LearningPathNode node : learningPathNodes) {
-            // 获取知识点信息
-            KnowledgePointDTO kpDto = knowledgePointService.getKnowledgePoint(node.getKnowledgeId());
-            String knowledgeTitle;
-            if (kpDto == null || kpDto.getKnowledgeTitle() == null || kpDto.getKnowledgeTitle().isEmpty()) {
-                knowledgeTitle = "未知知识点";
-            } else {
-                knowledgeTitle = kpDto.getKnowledgeTitle();
+
+            try {
+                List<String> kpIds = mapper.readValue(node.getKnowledgeIds(), new TypeReference<>() {
+                });
+
+                // 获取知识点信息
+                List<KnowledgePointDTO> kpDtoList = knowledgePointService.batchGetKnowledgePoints(kpIds);
+                StringBuilder knowledgeTitle = new StringBuilder();
+
+                for (KnowledgePointDTO kpDto : kpDtoList) {
+                    if (kpDto == null || kpDto.getKnowledgeTitle() == null || kpDto.getKnowledgeTitle().isEmpty())
+                        continue;
+
+                    knowledgeTitle.append(kpDto.getKnowledgeTitle()).append(", ");
+                }
+
+                // 格式化节点信息
+                sb.append("节点ID：").append(node.getId())
+                        .append("，知识点列表：").append(knowledgeTitle)
+                        .append("，状态：").append(node.getStatus())
+                        .append("\n");
+            } catch (JsonProcessingException e) {
+                log.error("解析节点知识点失败", e);
+
             }
-            // 格式化节点信息
-            sb.append("节点ID：").append(node.getId())
-                    .append("，知识点：").append(knowledgeTitle)
-                    .append("，知识点ID：").append(node.getKnowledgeId())
-                    .append("，状态：").append(node.getStatus())
-                    .append("\n");
+
+
         }
 
         return sb.toString();

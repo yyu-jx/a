@@ -6,6 +6,7 @@ import com.alibaba.cloud.ai.graph.agent.interceptor.ModelCallHandler;
 import com.alibaba.cloud.ai.graph.agent.interceptor.ModelInterceptor;
 import com.alibaba.cloud.ai.graph.agent.interceptor.ModelRequest;
 import com.alibaba.cloud.ai.graph.agent.interceptor.ModelResponse;
+import com.superyoudi.aiservice.ai.agent.AiTutorAgent;
 import com.superyoudi.aiservice.pojo.dto.LearningPathDTO;
 import com.superyoudi.aiservice.pojo.dto.StudentCourseInfoDTO;
 import com.superyoudi.aiservice.pojo.entity.LearningPath;
@@ -38,10 +39,8 @@ public class AiTutorModelInterceptor extends ModelInterceptor {
     @Override
     public ModelResponse interceptModel(ModelRequest request, ModelCallHandler handler) {
 
-        // TODO 获取消息列表
-
-        Long studentId = (Long) request.getContext().getOrDefault("student_id", null);
-        Long courseId = (Long) request.getContext().getOrDefault("course_id", null);
+        Long studentId = (Long) request.getContext().getOrDefault(AiTutorAgent.METADATA_STUDENT_ID, null);
+        Long courseId = (Long) request.getContext().getOrDefault(AiTutorAgent.METADATA_COURSE_ID, null);
 
         // 我直接抛异常😍！！！！
         if (studentId == null || courseId == null) {
@@ -73,7 +72,7 @@ public class AiTutorModelInterceptor extends ModelInterceptor {
                 - 课程名称：{course_name}
                 - 课程ID：{course_id}
                 
-                ## 当前知识点
+                ## 当前路径点
                 - ID: {node_id}
                 - 名称：{node_name}
                 

@@ -31,16 +31,16 @@ public interface LearningPathNodeMapper {
     Long selectNextNodeId(@Param("pathId") Long pathId, @Param("nodeId") Long nodeId);
 
     /**
-     * 根据知识点ID查询所有关联节点
+     * 根据知识点ID查询所有关联节点（单个知识点）
      */
-    @Select("SELECT * FROM learning_path_nodes WHERE knowledge_id = #{knowledgeId}")
-    List<LearningPathNode> selectByKnowledgeId(Long knowledgeId);
+    @Select("SELECT * FROM learning_path_nodes WHERE JSON_CONTAINS(knowledge_ids, JSON_QUOTE(#{knowledgeId}))")
+    List<LearningPathNode> selectByKnowledgeId(String knowledgeId);
 
     /**
-     * 根据路径ID和知识点ID查询唯一节点
+     * 根据路径ID和知识点ID查询唯一节点（单个知识点）
      */
-    @Select("SELECT * FROM learning_path_nodes WHERE path_id = #{pathId} AND knowledge_id = #{knowledgeId}")
-    LearningPathNode selectByPathIdAndKnowledgeId(@Param("pathId") Long pathId, @Param("knowledgeId") Long knowledgeId);
+    @Select("SELECT * FROM learning_path_nodes WHERE path_id = #{pathId} AND JSON_CONTAINS(knowledge_ids, JSON_QUOTE(#{knowledgeId}))")
+    LearningPathNode selectByPathIdAndKnowledgeId(@Param("pathId") Long pathId, @Param("knowledgeId") String knowledgeId);
 
     /**
      * 根据状态查询节点
@@ -59,14 +59,14 @@ public interface LearningPathNodeMapper {
      */
     @Select("SELECT lpn.* FROM learning_path_nodes lpn " +
             "INNER JOIN learning_paths lp ON lpn.path_id = lp.id " +
-            "WHERE lp.student_id = #{studentId} AND lpn.knowledge_id = #{knowledgeId}")
-    LearningPathNode selectByStudentAndKnowledge(@Param("studentId") Long studentId, @Param("knowledgeId") Long knowledgeId);
+            "WHERE lp.student_id = #{studentId} AND JSON_CONTAINS(lpn.knowledge_ids, JSON_QUOTE(#{knowledgeId}))")
+    LearningPathNode selectByStudentAndKnowledge(@Param("studentId") Long studentId, @Param("knowledgeId") String knowledgeId);
 
     /**
      * 插入节点
      */
-    @Insert("INSERT INTO learning_path_nodes (path_id, knowledge_id, status, related_task_id, created_at, updated_at) " +
-            "VALUES (#{pathId}, #{knowledgeId}, #{status}, #{relatedTaskId}, #{createdAt}, #{updatedAt})")
+    @Insert("INSERT INTO learning_path_nodes (path_id, node_name, knowledge_ids, status, related_task_id, created_at, updated_at) " +
+            "VALUES (#{pathId}, #{nodeName}, #{knowledgeIds}, #{status}, #{relatedTaskId}, #{createdAt}, #{updatedAt})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     Long insert(LearningPathNode learningPathNode);
 
@@ -98,7 +98,8 @@ public interface LearningPathNodeMapper {
      * 更新节点
      */
     @Update("UPDATE learning_path_nodes SET " +
-            "knowledge_id = #{knowledgeId}, " +
+            "node_name = #{nodeName}, " +
+            "knowledge_ids = #{knowledgeIds}, " +
             "status = #{status}, " +
             "related_task_id = #{relatedTaskId}, " +
             "updated_at = NOW() " +
@@ -115,25 +116,33 @@ public interface LearningPathNodeMapper {
      * 根据学习路径ID删除所有节点
      */
     @Delete("DELETE FROM learning_path_nodes WHERE path_id = #{pathId}")
-    Long deleteByPathId(Long pathId);
+    Long deleteAllByPathId(Long pathId);
 
     /**
-     * 删除某个知识点在所有学习路径中的节点
+     * 删除包含某个知识点的所有节点
      */
-    @Delete("DELETE FROM learning_path_nodes WHERE knowledge_id = #{knowledgeId}")
-    Long deleteByKnowledgeId(Long knowledgeId);
+    @Delete("DELETE FROM learning_path_nodes WHERE JSON_CONTAINS(knowledge_ids, JSON_QUOTE(#{knowledgeId}))")
+    Long deleteByKnowledgeId(String knowledgeId);
 
     /**
-     * 获取进行中的知识点id proceeding
+     * 获取进行中的知识点id（第一个进行中的节点）
      */
-    @Select("SELECT knowledge_id FROM learning_path_nodes " +
+    @Select("SELECT knowledge_ids FROM learning_path_nodes " +
+            "WHERE path_id = #{pathId} AND status = 'proceeding' LIMIT 1")
+    String selectProceedingKnowledgeIds(@Param("pathId") Long pathId);
+
+    /**
+     * 获取进行中的知识点id（第一个进行中的节点）
+     * 返回单个知识点ID（取JSON数组第一个）
+     */
+    @Select("SELECT JSON_EXTRACT(knowledge_ids, '$[0]') FROM learning_path_nodes " +
             "WHERE path_id = #{pathId} AND status = 'proceeding' LIMIT 1")
     String selectProceedingKnowledgeId(@Param("pathId") Long pathId);
 
     /**
      * 获取更新时间最新的知识点id
      */
-    @Select("SELECT knowledge_id FROM learning_path_nodes " +
+    @Select("SELECT JSON_EXTRACT(knowledge_ids, '$[0]') FROM learning_path_nodes " +
             "WHERE path_id = #{pathId} ORDER BY updated_at DESC LIMIT 1")
     String selectLatestUpdateKnowledgeId(@Param("pathId") Long pathId);
 
@@ -143,5 +152,4 @@ public interface LearningPathNodeMapper {
     @Select("SELECT COUNT(1) FROM learning_path_nodes " +
             "WHERE path_id = #{pathId} AND status != 'completed'")
     Integer countUntestedNode(@Param("pathId") Long pathId);
-
 }

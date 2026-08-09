@@ -9,7 +9,7 @@ import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
 import com.superyoudi.businessservice.service.TaskService;
 import com.superyoudi.common.exception.ErrorQuestionNotFoundException;
 import com.superyoudi.common.exception.ParamInvalidException;
-import com.superyoudi.common.exception.RepeatException;
+import com.superyoudi.common.exception.StudentRepeatJoinCourseException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -47,7 +47,7 @@ public class TaskServiceImpl implements TaskService {
             //记录已存在
             // 已经批改完毕，禁止提交
             if("passed".equals(existRecord.getStatus())){
-                throw new RepeatException("已提交，不可重复提交");
+                throw new StudentRepeatJoinCourseException("已提交，不可重复提交");
             }
             //更新状态为已提交，更新提交时间；分数、评语、批改时间保留原值
             studentSubmissionMapper.updateById(existRecord);

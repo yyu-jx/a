@@ -16,7 +16,7 @@ public interface LearningPathMapper {
     LearningPath selectById(Long id);
 
     /**
-     * 根据学生ID和课程ID查询（唯一记录）
+     * 根据学生ID和课程ID查询
      */
     @Select("SELECT * FROM learning_paths WHERE student_id = #{studentId} AND course_id = #{courseId}")
     LearningPath selectByStudentAndCourse(@Param("studentId") Long studentId, @Param("courseId") Long courseId);
@@ -135,29 +135,6 @@ public interface LearningPathMapper {
             "WHERE student_id = #{studentId} " +
             "ORDER BY updated_at DESC LIMIT 1")
     LearningPath selectLatestPathByStudentId(Long studentId);
-
-
-    /**
-     * 获取进行中的知识点id proceeding
-     */
-    @Select("SELECT knowledge_id FROM learning_path_nodes " +
-            "WHERE path_id = #{pathId} AND status = 'proceeding' LIMIT 1")
-    String selectProceedingKnowledgeId(@Param("pathId") Long pathId);
-
-    /**
-     * 获取更新时间最新的知识点id
-     */
-    @Select("SELECT knowledge_id FROM learning_path_nodes " +
-            "WHERE path_id = #{pathId} ORDER BY updated_at DESC LIMIT 1")
-    String selectLatestUpdateKnowledgeId(@Param("pathId") Long pathId);
-
-    /**
-     * 统计未完成节点数量 status != completed
-     */
-    @Select("SELECT COUNT(1) FROM learning_path_nodes " +
-            "WHERE path_id = #{pathId} AND status != 'completed'")
-    Integer countUntestedNode(@Param("pathId") Long pathId);
-
 
 
 }
