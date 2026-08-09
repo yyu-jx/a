@@ -43,7 +43,7 @@ public class ChatPersistenceService {
         ChatCourseRel chatCourseRel = chatCourseRelMapper.selectByCourseAndStudentId(courseId, studentId);
         if (chatCourseRel == null) {
             log.info("未找到课程与聊天关联，创建新的关联关系。");
-            createChatCourseRel(studentId, courseId);
+            createChatSessionAndCourseRel(studentId, courseId);
             return null;
         }
 
@@ -57,7 +57,7 @@ public class ChatPersistenceService {
         return chatMessageMapper.insertWithAutoSeq(chatMessage);
     }
 
-     /**
+    /**
      * 向列表追加消息
      */
     public void appendChatMessage(Long studentId, Long courseId, String message, String role) {
@@ -102,14 +102,22 @@ public class ChatPersistenceService {
     /**
      * 获取课程对应的会话
      */
-    public ChatSession getChatSessionByCourseId(Long courseId) {
-        return chatSessionMapper.selectByCourseId(courseId);
+    public ChatSession getOrCreateChatSession(Long studentId, Long courseId) {
+        ChatCourseRel chatCourseRel = chatCourseRelMapper.selectByCourseAndStudentId(courseId, studentId);
+        if (chatCourseRel == null) {
+            log.error("未找到课程与聊天关联。");
+            createChatSessionAndCourseRel(studentId, courseId);
+        }
+
+        chatCourseRel = chatCourseRelMapper.selectByCourseAndStudentId(courseId, studentId);
+
+        return chatSessionMapper.selectById(chatCourseRel.getChatId());
     }
 
     /**
      * 创建会话与课程关联关系
      */
-    public Long createChatCourseRel(Long userId, Long courseId) {
+    public Long createChatSessionAndCourseRel(Long userId, Long courseId) {
         ChatSession chatSession = new ChatSession(null, userId, null);
         chatSessionMapper.insert(chatSession);
 

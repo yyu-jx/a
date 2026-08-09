@@ -41,4 +41,14 @@ class TestController {
     public Flux<String> testCallAiTutor(@RequestParam(value = "input") String input) {
         return aiTutorService.callAiTutor(new UserChatMessage(1L, input, 1L));
     }
+
+    @GetMapping("/kp")
+    public String testCourseKnowledgePoints() throws IOException {
+        String json = Files.readString(Paths.get("D:\\Desktop\\test.txt"), StandardCharsets.UTF_8);
+
+        CourseDataDTO courseDataDTO = AiMessageUtils.readJsonValue(json, CourseDataDTO.class);
+
+        courseService.saveCourseData(courseDataDTO);
+        return "success";
+    }
 }

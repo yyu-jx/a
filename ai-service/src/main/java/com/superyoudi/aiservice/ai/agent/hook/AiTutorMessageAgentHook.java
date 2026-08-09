@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Component
 @HookPositions({HookPosition.BEFORE_AGENT, HookPosition.AFTER_AGENT})
-public class AiTutorMessageModelHook extends MessagesAgentHook {
+public class AiTutorMessageAgentHook extends MessagesAgentHook {
     private final ChatPersistenceService chatPersistenceService;
     private ReactAgent agent;
 

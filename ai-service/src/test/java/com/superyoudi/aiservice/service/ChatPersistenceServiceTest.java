@@ -339,38 +339,11 @@ class ChatPersistenceServiceTest {
         verify(chatSessionMapper, times(1)).selectByCoursewareRecordId(999L);
     }
 
-    @Test
-    @DisplayName("根据课程ID查询会话 - 成功")
-    void shouldReturnChatSession_WhenCourseExists() {
-        // Given
-        when(chatSessionMapper.selectByCourseId(300L)).thenReturn(chatSession);
 
-        // When
-        ChatSession result = chatPersistenceService.getChatSessionByCourseId(300L);
 
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(1L);
-        verify(chatSessionMapper, times(1)).selectByCourseId(300L);
-    }
-
-    @Test
-    @DisplayName("根据课程ID查询会话 - 无关联会话返回null")
-    void shouldReturnNull_WhenCourseHasNoSession() {
-        // Given
-        when(chatSessionMapper.selectByCourseId(999L)).thenReturn(null);
-
-        // When
-        ChatSession result = chatPersistenceService.getChatSessionByCourseId(999L);
-
-        // Then
-        assertThat(result).isNull();
-        verify(chatSessionMapper, times(1)).selectByCourseId(999L);
-    }
-
-    @Test
+     @Test
     @DisplayName("创建会话与课程关联关系 - 成功")
-    void shouldCreateChatCourseRel_AndReturnAffectedRows() {
+    void shouldCreateChatSessionAndCourseRel_AndReturnAffectedRows() {
         // Given
         when(chatCourseRelMapper.insert(any(ChatCourseRel.class))).thenReturn(1L);
 

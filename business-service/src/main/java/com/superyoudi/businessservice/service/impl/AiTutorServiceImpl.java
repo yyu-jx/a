@@ -9,15 +9,19 @@ import com.superyoudi.aiservice.ai.agent.AiTutorAgent;
 import com.superyoudi.aiservice.pojo.dto.LearningPathDTO;
 import com.superyoudi.aiservice.pojo.dto.StudentCourseInfoDTO;
 import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
+import com.superyoudi.aiservice.pojo.entity.ChatMessage;
+import com.superyoudi.aiservice.pojo.entity.ChatSession;
 import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.aiservice.pojo.entity.LearningPathNode;
 import com.superyoudi.aiservice.service.AiTutorService;
+import com.superyoudi.aiservice.service.ChatPersistenceService;
 import com.superyoudi.aiservice.service.LearningPathService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.businessservice.mapper.UserMapper;
 import com.superyoudi.businessservice.pojo.entity.Course;
 import com.superyoudi.businessservice.pojo.entity.User;
+import com.superyoudi.common.dto.ChatHistoryDTO;
 import com.superyoudi.common.exception.LearningPathFinishedException;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.service.KnowledgeGraphService;
@@ -43,19 +47,21 @@ public class AiTutorServiceImpl implements AiTutorService {
     private final KnowledgePointService knowledgePointService;
     private final UserMapper userMapper;
     private final KnowledgeGraphService knowledgeGraphService;
+    private final ChatPersistenceService chatPersistenceService;
 
 
     public AiTutorServiceImpl(@Lazy AiTutorAgent aiTutorAgent, // 延迟注入ai tutor agent，否则会造成循环依赖
                               CourseMapper courseMapper,
                               LearningPathService learningPathService,
                               KnowledgePointService knowledgePointService,
-                              UserMapper userMapper, KnowledgeGraphService knowledgeGraphService) {
+                              UserMapper userMapper, KnowledgeGraphService knowledgeGraphService, ChatPersistenceService chatPersistenceService) {
         this.courseMapper = courseMapper;
         this.learningPathService = learningPathService;
         this.knowledgePointService = knowledgePointService;
         this.userMapper = userMapper;
         this.aiTutorAgent = aiTutorAgent;
         this.knowledgeGraphService = knowledgeGraphService;
+        this.chatPersistenceService = chatPersistenceService;
     }
 
     @Override
@@ -78,6 +84,19 @@ public class AiTutorServiceImpl implements AiTutorService {
             log.error("调用AI Tutor失败", e);
             throw new RuntimeException("调用AI Tutor失败", e);
         }
+    }
+
+    @Override
+    public ChatHistoryDTO getChatHistory(Long studentId, Long courseId) {
+        ChatSession session = chatPersistenceService.getOrCreateChatSession(studentId, courseId);
+        List<ChatMessage> chatMessages = chatPersistenceService.getOrCreateChatMessages(session.getId());
+
+        List<ChatHistoryDTO.ChatMessageData> messages = chatMessages.stream().map(message ->
+                        new ChatHistoryDTO.ChatMessageData(message.getMsgSeq(), message.getMsgType(),
+                                message.getMessage(), message.getRole(), message.getSentAt()))
+                .toList();
+
+        return new ChatHistoryDTO(session.getId(), studentId, messages);
     }
 
     @Override
