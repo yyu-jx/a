@@ -59,6 +59,7 @@ public class ChatMessage {
         this.message = message;
         this.role = role;
         this.msgType = MSG_TYPE_TEXT;
+        this.sentAt = LocalDateTime.now();
     }
 
 }
