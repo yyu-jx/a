@@ -31,8 +31,8 @@ CREATE TABLE `classes`
   DEFAULT CHARSET = utf8mb4 COMMENT ='班级表';
 
 -- 3. 课程表 course
-DROP TABLE IF EXISTS `course`;
-CREATE TABLE `course`
+DROP TABLE IF EXISTS `courses`;
+CREATE TABLE `courses`
 (
     `id`          BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
     `name`        VARCHAR(128)                NOT NULL COMMENT '课程名称',

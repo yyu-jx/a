@@ -7,7 +7,7 @@ import com.superyoudi.aiservice.service.HomeAiService;
 import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
 import com.superyoudi.businessservice.mapper.StudentKnowledgeMasteryMapper;
-import com.superyoudi.businessservice.pojo.entity.StudyOverview;
+import com.superyoudi.businessservice.pojo.dto.StudentStudyOverview;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
 import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;
 import com.superyoudi.businessservice.service.HomeService;
@@ -105,9 +105,9 @@ public class HomeServiceImpl implements HomeService {
      * @return 学习概览
      */
     @Override
-    public StudyOverview getStudyOverview(Long userId) {
+    public StudentStudyOverview getStudyOverview(Long userId) {
         //拿到学习概览数据
-        StudyOverview vo = studentCourseProgressesMapper.getAvgProgresses(userId);
+        StudentStudyOverview vo = studentCourseProgressesMapper.getAvgProgresses(userId);
         //如果课程总数为0，则吧其他数据设置为0
         if (vo.getStudyCourseTotal() == 0) {
             vo.setStudyCourseTotal(0);
@@ -116,10 +116,8 @@ public class HomeServiceImpl implements HomeService {
             vo.setAvgTaskScore(0.0);
             vo.setAvgKnowledgeCoverRate(0.0);
             vo.setAvgTaskCompletionRate(0.0);
-            return vo;
-        } else {
-            return vo;
         }
+        return vo;
     }
 
     /**

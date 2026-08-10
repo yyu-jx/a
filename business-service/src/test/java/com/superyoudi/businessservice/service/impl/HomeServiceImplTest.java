@@ -6,7 +6,7 @@ import com.superyoudi.aiservice.service.HomeAiService;
 import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
 import com.superyoudi.businessservice.mapper.StudentKnowledgeMasteryMapper;
-import com.superyoudi.businessservice.pojo.entity.StudyOverview;
+import com.superyoudi.businessservice.pojo.dto.StudentStudyOverview;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
 import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;
 import com.superyoudi.common.dto.StudentKnowledgeMastery;
@@ -68,7 +68,7 @@ public class HomeServiceImplTest {
     @Test
     void getStudyOverview_HasData() {
         // 模拟mapper返回数据
-        StudyOverview mockData = new StudyOverview();
+        StudentStudyOverview mockData = new StudentStudyOverview();
         mockData.setStudyCourseTotal(3);
         mockData.setAvgTotalProgress(46.50);
         mockData.setAvgInteractionCount(32);
@@ -79,7 +79,7 @@ public class HomeServiceImplTest {
         when(studentCourseProgressesMapper.getAvgProgresses(any(Long.class))).thenReturn(mockData);
 
         //执行真实HomeService里面业务方法
-        StudyOverview result = homeServiceImpl.getStudyOverview(4l);
+        StudentStudyOverview result = homeServiceImpl.getStudyOverview(4l);
 
         Assertions.assertNotNull(result);
         Assertions.assertEquals(3, result.getStudyCourseTotal());
@@ -96,7 +96,7 @@ public class HomeServiceImplTest {
     @Test
     void getStudyOverview_NoData() {
 
-        StudyOverview mockData = new StudyOverview();
+        StudentStudyOverview mockData = new StudentStudyOverview();
         mockData.setStudyCourseTotal(0);
         mockData.setAvgTotalProgress(null);
         mockData.setAvgInteractionCount(null);
@@ -106,7 +106,7 @@ public class HomeServiceImplTest {
 
         when(studentCourseProgressesMapper.getAvgProgresses(any(Long.class))).thenReturn(mockData);
 
-        StudyOverview result = homeServiceImpl.getStudyOverview(10l);
+        StudentStudyOverview result = homeServiceImpl.getStudyOverview(10l);
 
         Assertions.assertNotNull(result);
         Assertions.assertEquals(0, result.getStudyCourseTotal());

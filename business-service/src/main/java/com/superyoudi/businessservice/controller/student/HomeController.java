@@ -1,10 +1,10 @@
 package com.superyoudi.businessservice.controller.student;
 
-import com.superyoudi.common.entity.Result;
-import com.superyoudi.businessservice.pojo.entity.StudyOverview;
+import com.superyoudi.businessservice.pojo.dto.StudentStudyOverview;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
 import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;
 import com.superyoudi.businessservice.service.HomeService;
+import com.superyoudi.common.entity.Result;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,12 +27,12 @@ public class HomeController {
      * @author gaoyuxin
      */
     @GetMapping("/study/overview")
-    public Result<StudyOverview> studyOverview(Long userId) {
-        StudyOverview studyOverviewVO=homeService.getStudyOverview(userId);
-        return Result.success(studyOverviewVO);
+    public Result<StudentStudyOverview> studyOverview(Long userId) {
+        StudentStudyOverview studentStudyOverviewVO = homeService.getStudyOverview(userId);
+        return Result.success(studentStudyOverviewVO);
     }
 
-     /**
+    /**
      * 获取最近学习记录
      *
      * @param userId

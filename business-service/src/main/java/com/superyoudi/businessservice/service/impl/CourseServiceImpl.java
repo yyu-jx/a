@@ -2,16 +2,14 @@ package com.superyoudi.businessservice.service.impl;
 
 import com.superyoudi.aiservice.ai.agent.CourseDataGenerateModel;
 import com.superyoudi.aiservice.mapper.LearningPathMapper;
+import com.superyoudi.aiservice.pojo.entity.LearningPath;
+import com.superyoudi.aiservice.pojo.entity.LearningPathNode;
+import com.superyoudi.aiservice.service.LearningPathService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.mapper.*;
 import com.superyoudi.businessservice.pojo.dto.CourseDataDTO;
-import com.superyoudi.businessservice.pojo.entity.Chapter;
-import com.superyoudi.businessservice.pojo.entity.Course;
-import com.superyoudi.businessservice.pojo.entity.Section;
-import com.superyoudi.businessservice.pojo.entity.SectionKnowledgeRel;
-import com.superyoudi.businessservice.pojo.vo.CourseVO;
-import com.superyoudi.businessservice.pojo.vo.StudentCourseProgressVO;
-import com.superyoudi.businessservice.pojo.vo.TodayTaskVO;
+import com.superyoudi.businessservice.pojo.entity.*;
+import com.superyoudi.businessservice.pojo.vo.*;
 import com.superyoudi.businessservice.service.CourseService;
 import com.superyoudi.common.dto.StudentCourseProgress;
 import com.superyoudi.common.dto.TodayTaskRawDTO;
@@ -20,7 +18,6 @@ import com.superyoudi.common.exception.NoStudyTaskException;
 import com.superyoudi.common.exception.StudentRepeatJoinCourseException;
 import com.superyoudi.kdbservice.dto.KnowledgeExtractionResult;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
-import com.superyoudi.kdbservice.repository.KnowledgePointRepository;
 import com.superyoudi.kdbservice.service.KnowledgeGraphService;
 import com.superyoudi.kdbservice.service.KnowledgePointService;
 import lombok.RequiredArgsConstructor;
@@ -48,9 +45,10 @@ public class CourseServiceImpl implements CourseService {
     private final CourseDataGenerateModel courseDataGenerateModel;
     private final ChapterMapper chapterMapper;
     private final SectionMapper sectionMapper;
-    private final KnowledgePointRepository knowledgePointRepository;
     private final SectionKnowledgeRelMapper sectionKnowledgeRelMapper;
     private final KnowledgeGraphService knowledgeGraphService;
+    private final LearningPathService learningPathService;
+    private final TeacherCourseAnalysisMapper teacherCourseAnalysisMapper;
 
     /**
      * 获取单门课程详情
@@ -60,7 +58,7 @@ public class CourseServiceImpl implements CourseService {
      */
     @Override
     public CourseVO getCourseInfo(Long courseId) throws CourseNotExistException {
-        Course course = courseMapper.selectCourseById(courseId);
+        Course course = courseMapper.selectById(courseId);
         if (course == null) {
             // 抛出业务异常：课程不存在
             throw new CourseNotExistException("课程不存在");
@@ -70,6 +68,11 @@ public class CourseServiceImpl implements CourseService {
         BeanUtils.copyProperties(course, vo);
 
         return vo;
+    }
+
+    @Override
+    public List<Course> getCoursesByTeacherId(Long teacherId) {
+        return courseMapper.selectByTeacherId(teacherId);
     }
 
 
@@ -95,6 +98,30 @@ public class CourseServiceImpl implements CourseService {
         return vo;
     }
 
+    @Override
+    public List<CourseStudyOverviewVO> getCourseStudyOverviews(Long teacherId) {
+        List<Course> courses = courseMapper.selectByTeacherId(teacherId);
+
+        List<TeacherCourseAnalysis> courseAnalyses = courses.stream()
+                .map(course ->
+                        teacherCourseAnalysisMapper.selectByCourseId(course.getId()))
+                .filter(Objects::nonNull)
+                .toList();
+
+        // TODO 改接口文档
+        return courseAnalyses.stream()
+                .map(analysis -> {
+                    Course course = courseMapper.selectById(analysis.getCourseId());
+                    if (course == null) return null;
+
+                    return new CourseStudyOverviewVO(course.getId(), course.getName(),
+                            analysis.getAvgProgress().doubleValue(), analysis.getAvgScoreRate().doubleValue(),
+                            analysis.getSubmissionRate().doubleValue(), analysis.getWeakestKnowledge());
+                })
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
 
     /**
      * 加入课程
@@ -111,7 +138,7 @@ public class CourseServiceImpl implements CourseService {
         }
 
         // 2. 校验课程是否真实存在
-        Course course = courseMapper.selectCourseById(courseId);
+        Course course = courseMapper.selectById(courseId);
         if (Objects.isNull(course)) {
             throw new CourseNotExistException("课程不存在");
         }
@@ -165,6 +192,27 @@ public class CourseServiceImpl implements CourseService {
     }
 
     /**
+     * 获取课程的学习路径。如果没有，就创建学习路径。
+     */
+    @Override
+    public LearningPathVO getCourseLearningPath(Long studentId, Long courseId) {
+        LearningPath learningPath = learningPathService.getLearningPathByStudentAndCourse(studentId, courseId);
+        if (learningPath == null) {
+            Long lpId = learningPathService.createLearningPath(studentId, courseId);
+            learningPath = learningPathService.getLearningPathById(lpId);
+        }
+
+        List<LearningPathNode> learningPathNodes = learningPathService.getLearningPathNodes(learningPath.getId());
+
+        List<LearningPathVO.PathNode> nodes = learningPathNodes.stream()
+                .map(node -> new LearningPathVO.PathNode(
+                        node.getId(), node.getNodeName(), node.getKnowledgeIds(), node.getStatus()))
+                .toList();
+
+        return new LearningPathVO(learningPath.getId(), courseId, learningPath.getAdditionalInfo(), nodes);
+    }
+
+    /**
      * 开课，调用AI生成课程数据
      */
     @Override
@@ -184,7 +232,6 @@ public class CourseServiceImpl implements CourseService {
             throw new RuntimeException("课程数据生成失败");
         }
     }
-
 
     public void saveCourseData(CourseDataDTO courseData) {
         List<KnowledgeExtractionResult.KnowledgePointItem> knowledgePoints = new ArrayList<>();

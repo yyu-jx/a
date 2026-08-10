@@ -5,6 +5,8 @@ import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.List;
+
 @Mapper
 public interface CourseMapper {
 
@@ -16,7 +18,10 @@ public interface CourseMapper {
      * @return 1:已加入，0:未加入
      */
     @Select("SELECT COUNT(*) FROM course_student_rel WHERE student_id = #{studentId} AND course_id = #{courseId}")
-     Integer countStudentJoinCourse(Long studentId, Long courseId) ;
+    Integer countStudentJoinCourse(Long studentId, Long courseId);
+
+    @Select("SELECT * FROM courses WHERE teacher_id = #{teacherId}")
+    List<Course> selectByTeacherId(Long teacherId);
 
     /**
      * 根据课程id查询课程名称
@@ -26,19 +31,6 @@ public interface CourseMapper {
      */
     @Select("select name from courses where id = #{courseId}")
     String getNameById(Long courseId);
-
-    /**
-     * 根据课程id查询课程详情
-     *
-     * @param courseId 课程id
-     * @return 课程详情
-     */
-    @Select("SELECT c.id course_id, c.name, c.description, c.cover_url cover_url, c.credit, c.status, " +
-            "c.teacher_id, u.realname teacher_name, c.created_at, c.updated_at " +
-            "FROM courses c " +
-            "LEFT JOIN users u ON c.teacher_id = u.id " +
-            "WHERE c.id = #{courseId}")
-    Course selectCourseById(Long courseId);
 
     /**
      * 加入课程
