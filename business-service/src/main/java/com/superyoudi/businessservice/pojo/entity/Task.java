@@ -1,6 +1,7 @@
 package com.superyoudi.businessservice.pojo.entity;
 
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 /**
@@ -9,6 +10,10 @@ import java.time.LocalDateTime;
  */
 @Data
 public class Task {
+
+    public static final String SUBMIT_STRATEGY_AUTO_ALL = "auto_all";
+    public static final String SUBMIT_STRATEGY_AUTO_OBJECTIVE = "auto_objective";
+    public static final String SUBMIT_STRATEGY_MANUAL = "manual";
 
     /**
      * 主键id

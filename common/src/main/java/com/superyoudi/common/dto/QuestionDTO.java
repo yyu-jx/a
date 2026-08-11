@@ -4,7 +4,7 @@ import lombok.Data;
 
 
 @Data
-public class QuestionsDTO {
+public class QuestionDTO {
     private Integer id;
     private String content;
     private String answer;

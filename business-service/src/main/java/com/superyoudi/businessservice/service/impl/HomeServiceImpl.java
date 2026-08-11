@@ -26,8 +26,8 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static com.superyoudi.common.constant.RedisConstant.AI_SUGGEST_CACHE_HOUR;
-import static com.superyoudi.common.constant.RedisConstant.AI_SUGGEST_CACHE_KEY;
+import static com.superyoudi.common.constants.RedisConstants.AI_SUGGEST_CACHE_HOUR;
+import static com.superyoudi.common.constants.RedisConstants.AI_SUGGEST_CACHE_KEY;
 
 @Service
 @RequiredArgsConstructor

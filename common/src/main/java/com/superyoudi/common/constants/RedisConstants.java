@@ -1,6 +1,6 @@
-package com.superyoudi.common.constant;
+package com.superyoudi.common.constants;
 
-public class RedisConstant {
+public class RedisConstants {
 
     public static final String AI_SUGGEST_CACHE_KEY = "student:home:ai:suggest:";
     public static final String AI_DIAGNOSE_CACHE_KEY = "student:task:ai:diagnose:";
