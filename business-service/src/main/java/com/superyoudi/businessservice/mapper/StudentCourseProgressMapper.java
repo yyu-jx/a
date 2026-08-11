@@ -1,6 +1,6 @@
 package com.superyoudi.businessservice.mapper;
 
-import com.superyoudi.businessservice.pojo.entity.StudyOverview;
+import com.superyoudi.businessservice.pojo.dto.StudentStudyOverview;
 import com.superyoudi.common.dto.StudentCourseProgress;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
@@ -26,7 +26,7 @@ public interface StudentCourseProgressMapper {
               AVG(task_completion_rate) AS avg_task_completion_rate
             FROM student_course_progresses
             WHERE student_id = #{studentId};""")
-    StudyOverview getAvgProgresses(Long studentId);
+    StudentStudyOverview getAvgProgresses(Long studentId);
 
     /**
      * 获取学生课程进度

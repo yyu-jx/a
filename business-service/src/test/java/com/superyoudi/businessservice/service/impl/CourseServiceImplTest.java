@@ -14,7 +14,6 @@ import com.superyoudi.businessservice.pojo.entity.Section;
 import com.superyoudi.businessservice.pojo.entity.SectionKnowledgeRel;
 import com.superyoudi.businessservice.pojo.vo.CourseVO;
 import com.superyoudi.businessservice.pojo.vo.TodayTaskVO;
-import com.superyoudi.businessservice.service.impl.CourseServiceImpl;
 import com.superyoudi.common.dto.TodayTaskRawDTO;
 import com.superyoudi.common.exception.CourseNotExistException;
 import com.superyoudi.common.exception.NoStudyTaskException;
@@ -538,7 +537,7 @@ public class CourseServiceImplTest {
         mockCourse.setTeacherName("张老师");
 
         // 模拟mapper返回数据
-        when(courseMapper.selectCourseById(anyLong()))
+        when(courseMapper.selectById(anyLong()))
                 .thenReturn(mockCourse);
 
         // 2.执行方法
@@ -557,7 +556,7 @@ public class CourseServiceImplTest {
     @Test
     void getCourseInfo_NotFound_ThrowException() {
         // mock返回null
-        when(courseMapper.selectCourseById(999l))
+        when(courseMapper.selectById(999l))
                 .thenReturn(null);
 
         // 断言抛出指定异常

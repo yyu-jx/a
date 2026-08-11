@@ -1,6 +1,6 @@
 package com.superyoudi.businessservice.service;
 
-import com.superyoudi.businessservice.pojo.entity.StudyOverview;
+import com.superyoudi.businessservice.pojo.dto.StudentStudyOverview;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
 import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;
 
@@ -21,7 +21,7 @@ public interface HomeService {
      * @param userId 用户ID
      * @return 学习概览
      */
-    StudyOverview getStudyOverview(Long userId);
+    StudentStudyOverview getStudyOverview(Long userId);
 
     /**
      * 获取薄弱知识点列表
