@@ -1,6 +1,6 @@
 package com.superyoudi.businessservice.controller.student;
 
-import com.superyoudi.businessservice.pojo.vo.ErrorQuestionVO;
+import com.superyoudi.common.dto.ErrorQuestionVO;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
 import com.superyoudi.businessservice.service.TaskService;
 import com.superyoudi.common.entity.Result;
@@ -41,9 +41,29 @@ public class TaskController {
         return Result.success(vo);
     }
 
+     /**
+     * GET /task/error/question 获取错题列表
+     * @param userId 学生id
+     * @param courseId 课程id
+     * @return Result<List<ErrorQuestionVO>>
+     */
     @GetMapping("/error/question")
     public Result<List<ErrorQuestionVO>> getErrorQuestionList(Long userId,Long courseId) {
         List<ErrorQuestionVO> voList = taskService.listUserErrorQuestion(userId, courseId);
         return Result.success(voList);
     }
+
+
+    /**
+     * 生成ai诊断报告
+     *
+     * @param studentId 学生id
+     * @return 诊断报告
+     */
+    @GetMapping("/ai/student/diagnose")
+    public Result<String> diagnose( Long studentId){
+        return Result.success(taskService.diagnose(studentId));
+    }
+
+
 }

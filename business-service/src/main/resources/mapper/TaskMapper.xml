@@ -4,7 +4,7 @@
 <mapper namespace="com.superyoudi.businessservice.mapper.TaskMapper">
 
 
-    <select id="selectUserErrorQuestion" resultType="com.superyoudi.businessservice.pojo.vo.ErrorQuestionVO">
+    <select id="selectUserErrorQuestion" resultType="com.superyoudi.common.dto.ErrorQuestionVO">
 
         SELECT
         q.id AS question_id,

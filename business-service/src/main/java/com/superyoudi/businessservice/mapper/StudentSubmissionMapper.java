@@ -1,10 +1,7 @@
 package com.superyoudi.businessservice.mapper;
 
 import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.*;
 
 import java.time.LocalDateTime;
 
@@ -21,6 +18,7 @@ public interface StudentSubmissionMapper {
 
     @Insert("insert into student_submissions(task_id, student_id, status, submitted_time, created_at) " +
             "values(#{taskId}, #{studentId}, #{status}, #{submittedTime}, #{createdAt})")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(StudentSubmission newRecord);
 
 
