@@ -1,21 +1,28 @@
 package com.superyoudi.businessservice.service.impl;
 
+import com.superyoudi.aiservice.service.TaskAiService;
 import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
 import com.superyoudi.businessservice.mapper.StudentSubmissionMapper;
 import com.superyoudi.businessservice.mapper.TaskMapper;
 import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
-import com.superyoudi.businessservice.pojo.vo.ErrorQuestionVO;
+import com.superyoudi.common.dto.ErrorQuestionVO;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
 import com.superyoudi.businessservice.service.TaskService;
+import com.superyoudi.common.constant.RedisConstant;
 import com.superyoudi.common.exception.ErrorQuestionNotFoundException;
 import com.superyoudi.common.exception.ParamInvalidException;
 import com.superyoudi.common.exception.StudentRepeatJoinCourseException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static com.superyoudi.common.constant.RedisConstant.AI_DIAGNOSE_CACHE_HOUR;
+import static com.superyoudi.common.constant.RedisConstant.AI_DIAGNOSE_CACHE_KEY;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +31,8 @@ public class TaskServiceImpl implements TaskService {
     private final StudentSubmissionMapper studentSubmissionMapper;
     private final TaskMapper taskMapper;
     private final StudentCourseProgressMapper studentCourseProgressMapper;
+    private final TaskAiService taskAiService;
+    private final StringRedisTemplate stringRedisTemplate;
 
     /**
      * 提交任务
@@ -97,6 +106,23 @@ public class TaskServiceImpl implements TaskService {
         }
 
         return errorQuestionVO;
+    }
+
+    @Override
+    public String diagnose(Long studentId) {
+        String cacheKey = AI_DIAGNOSE_CACHE_KEY + studentId;
+        String cached = stringRedisTemplate.opsForValue().get(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        Long courseId = null;
+        List<ErrorQuestionVO> allErrorQuestionVO = taskMapper.selectUserErrorQuestion(studentId, courseId);
+
+        String result = taskAiService.diagnose(allErrorQuestionVO);
+
+        stringRedisTemplate.opsForValue().set(cacheKey, result, AI_DIAGNOSE_CACHE_HOUR, TimeUnit.HOURS);
+        return result;
     }
 
 }

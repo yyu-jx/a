@@ -1,6 +1,6 @@
 package com.superyoudi.businessservice.mapper;
 
-import com.superyoudi.businessservice.pojo.vo.ErrorQuestionVO;
+import com.superyoudi.common.dto.ErrorQuestionVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 

@@ -1,4 +1,4 @@
-package com.superyoudi.businessservice.pojo.vo;
+package com.superyoudi.common.dto;
 
 import lombok.Data;
 import java.math.BigDecimal;

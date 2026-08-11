@@ -1,6 +1,6 @@
 package com.superyoudi.businessservice.service;
 
-import com.superyoudi.businessservice.pojo.vo.ErrorQuestionVO;
+import com.superyoudi.common.dto.ErrorQuestionVO;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
 
 import java.util.List;
@@ -32,4 +32,16 @@ public interface TaskService {
      * @return 用户错题
      */
     List<ErrorQuestionVO> listUserErrorQuestion(Long userId, Long courseId);
+
+
+
+    /**
+     * 生成ai诊断报告
+     *
+     * @param studentId 学生id
+     * @return 诊断报告
+     */
+    String diagnose(Long studentId);
 }
+
+
