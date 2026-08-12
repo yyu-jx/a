@@ -1,4 +1,4 @@
-package com.superyoudi.coursewareservice.dto;
+package com.superyoudi.coursewareservice.pojo.dto;
 
 import com.superyoudi.coursewareservice.model.ppt.PresentationData;
 import com.superyoudi.coursewareservice.model.word.WordData;

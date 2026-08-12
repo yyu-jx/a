@@ -1,6 +1,6 @@
 package com.superyoudi.coursewareservice;
 
-import com.superyoudi.coursewareservice.dto.CoursewareRecord;
+import com.superyoudi.coursewareservice.pojo.entity.CoursewareRecord;
 import com.superyoudi.coursewareservice.mapper.CoursewareRecordMapper;
 import com.superyoudi.coursewareservice.service.CoursewareRecordService;
 import org.junit.jupiter.api.BeforeEach;

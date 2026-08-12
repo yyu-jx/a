@@ -6,7 +6,7 @@ import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
 import com.superyoudi.coursewareservice.ai.node.HtmlPptGenNode;
 import com.superyoudi.coursewareservice.ai.tool.HtmlPptTools;
 import com.superyoudi.coursewareservice.config.GraphConfig;
-import com.superyoudi.coursewareservice.dto.GenerationStatus;
+import com.superyoudi.coursewareservice.pojo.dto.GenerationStatus;
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;
 import com.superyoudi.coursewareservice.service.CoursewareInteractionService;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +40,6 @@ class CoursewareInteractionController {
      */
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> doChat(@RequestBody UserChatMessage userChatMessage) {
-        // TODO 使用SSE或者WebSocket让AI主动发话
         return interactionService.executeWorkflowGraph(userChatMessage);
     }
 

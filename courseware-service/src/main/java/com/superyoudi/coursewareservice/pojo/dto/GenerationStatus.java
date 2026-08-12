@@ -1,4 +1,4 @@
-package com.superyoudi.coursewareservice.dto;
+package com.superyoudi.coursewareservice.pojo.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

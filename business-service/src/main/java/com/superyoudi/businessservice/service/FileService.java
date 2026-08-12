@@ -40,7 +40,7 @@ public class FileService {
      * 上传文件
      */
     @Transactional(rollbackFor = Exception.class)
-    public void saveUserFile(@NonNull MultipartFile file, @NonNull Long userId, String fileDesc, @NonNull String source) {
+    public Long saveUserFile(@NonNull MultipartFile file, @NonNull Long userId, String fileDesc, @NonNull String source) {
         // 存硬盘，存表
         Assert.notNull(file, "文件不能为null");
         Assert.notNull(userId, "userId不能为null");
@@ -91,6 +91,8 @@ public class FileService {
         Long rows = userFileMapper.insert(userFile);
         if (rows == null || rows == 0)
             throw new RuntimeException("文件保存失败");
+
+        return userFile.getId();
     }
 
     /**

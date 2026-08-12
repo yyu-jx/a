@@ -1,6 +1,6 @@
 package com.superyoudi.coursewareservice.mapper;
 
-import com.superyoudi.coursewareservice.dto.CoursewareRecord;
+import com.superyoudi.coursewareservice.pojo.entity.CoursewareRecord;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;

@@ -12,7 +12,7 @@ import com.superyoudi.coursewareservice.ai.node.*;
 import com.superyoudi.coursewareservice.ai.tool.HtmlPptTools;
 import com.superyoudi.coursewareservice.ai.tool.HtmlWordTools;
 import com.superyoudi.coursewareservice.ai.tool.RagTools;
-import com.superyoudi.coursewareservice.dto.GenerationStatus;
+import com.superyoudi.coursewareservice.pojo.dto.GenerationStatus;
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;
 import com.superyoudi.coursewareservice.service.CoursewareRecordService;
 import lombok.extern.slf4j.Slf4j;
