@@ -1,6 +1,8 @@
 package com.superyoudi.businessservice.controller.teacher;
 
 import com.superyoudi.businessservice.pojo.entity.Question;
+import com.superyoudi.businessservice.pojo.entity.UserFile;
+import com.superyoudi.businessservice.service.FileService;
 import com.superyoudi.businessservice.service.QuestionBaseService;
 import com.superyoudi.common.entity.Result;
 import org.springframework.stereotype.Controller;
@@ -18,9 +20,24 @@ import java.util.List;
 class CoursePreparingController {
 
     private final QuestionBaseService questionBaseService;
+    private final FileService fileService;
 
-    CoursePreparingController(QuestionBaseService questionBaseService) {
+    CoursePreparingController(QuestionBaseService questionBaseService, FileService fileService) {
         this.questionBaseService = questionBaseService;
+        this.fileService = fileService;
+    }
+
+    /// 获取用户文件列表
+    @GetMapping("/files/{userId}")
+    public Result<List<UserFile>> getUserFileList(@PathVariable Long userId) {
+        return Result.success(fileService.getUserFileList(userId));
+    }
+
+    /// 删除用户文件
+    @DeleteMapping("/files/{fileId}")
+    public Result<Void> deleteUserFile(@PathVariable Long fileId) {
+        fileService.deleteUserFile(fileId);
+        return Result.success();
     }
 
     /// 获取题目列表

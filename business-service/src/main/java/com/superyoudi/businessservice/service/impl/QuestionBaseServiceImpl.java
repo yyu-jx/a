@@ -125,6 +125,7 @@ public class QuestionBaseServiceImpl implements QuestionBaseService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public QuestionProperty getQuestionPropertyByQuestionId(Long questionId) {
         Assert.notNull(questionId, "questionId不能为null");
         return questionPropertyMapper.findByQuestionId(questionId);

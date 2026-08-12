@@ -43,8 +43,8 @@ app:
   # 正式部署时，使用docker挂载。
   storage:
     # 课件生成模块导出的文件
-    exports: 'D:\Desktop\file\exports'
+    exports: 'D:/Desktop/file/exports'
     # 用户上传的文件
-    uploads: 'D:\Desktop\file\uploads'
+    uploads: 'D:/Desktop/file/uploads'
 
 
