@@ -1,4 +1,4 @@
-package com.superyoudi.coursewareservice.utils;
+package com.superyoudi.common.utils;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;

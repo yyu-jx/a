@@ -9,18 +9,14 @@ import com.alibaba.cloud.ai.graph.agent.hook.messages.MessagesAgentHook;
 import com.superyoudi.aiservice.ai.agent.AiTutorAgent;
 import com.superyoudi.aiservice.pojo.entity.ChatMessage;
 import com.superyoudi.aiservice.service.ChatPersistenceService;
+import com.superyoudi.aiservice.utils.AiMessageUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
-import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * @author Sijayyx
@@ -40,30 +36,14 @@ public class AiTutorMessageAgentHook extends MessagesAgentHook {
         Long courseId = (Long) config.metadata(AiTutorAgent.METADATA_COURSE_ID).orElseThrow();
         Long studentId = (Long) config.metadata(AiTutorAgent.METADATA_STUDENT_ID).orElseThrow();
 
-        // 获取历史消息
-        List<ChatMessage> chatMessages = chatPersistenceService.getOrCreateChatMessages(studentId, courseId);
-
-        // 存用户消息
-        saveChatMessage(studentId, courseId, previousMessages);
-
-        if (chatMessages == null)
-            return super.beforeAgent(previousMessages, config);
-
-        // 拼接历史消息
-        ArrayList<Message> msgHistory = chatMessages.stream()
-                // 推断类型
-                .<Message>map(message -> {
-                    if (message.getRole().equals(ChatMessage.ROLE_USER)) {
-                        return new UserMessage(message.getMessage());
-                    } else if (message.getRole().equals(ChatMessage.ROLE_AI)) {
-                        return new AssistantMessage(message.getMessage());
-                    } else return null;
-                }).filter(Objects::nonNull) // 过滤空消息
-                .collect(Collectors.toCollection(ArrayList::new));
-
-        msgHistory.addAll(previousMessages);
+        List<Message> msgHistory = AiMessageUtils.recoverChatHistory(() ->
+                        chatPersistenceService.getOrCreateCourseRelChatMessages(studentId, courseId),
+                previousMessages);
 
         log.info("AI导师 历史消息列表:\n{}", msgHistory);
+
+        // 存最新用户消息
+        saveChatMessage(studentId, courseId, previousMessages);
 
         return new AgentCommand(msgHistory);
     }

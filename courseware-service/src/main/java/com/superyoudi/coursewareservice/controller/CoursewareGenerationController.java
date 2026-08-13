@@ -28,7 +28,7 @@ public class CoursewareGenerationController {
         this.coursewareFileRefService = coursewareFileRefService;
     }
 
-    /// 获取课件生成引用的表
+    /// 获取课件生成引用的列表
     @GetMapping("/refs/{coursewareRecordId}")
     public Result<List<UserFileRefDTO>> getCoursewareFileRefs(@PathVariable Long coursewareRecordId) {
         List<UserFileRefDTO> refedFiles = coursewareFileRefService.getRefedFiles(coursewareRecordId);
@@ -56,7 +56,6 @@ public class CoursewareGenerationController {
     public Result<CoursewareRecord> recoverCoursewareRecord(@PathVariable Long coursewareRecordId) {
         return Result.success(coursewareGenerationService.recoverCoursewareRecord(coursewareRecordId));
     }
-
 
     /// 导出压缩包，返回压缩包文件名
     @PostMapping("/export")

@@ -9,8 +9,8 @@ import org.springframework.ai.chat.model.ChatModel;
 
 import java.util.Map;
 
-import static com.superyoudi.coursewareservice.config.GraphConfig.KEY_GENERATION_INFO;
-import static com.superyoudi.coursewareservice.config.GraphConfig.KEY_PPT_OUTLINE;
+import static com.superyoudi.common.constants.CoursewareGenConstants.KEY_GENERATION_INFO;
+import static com.superyoudi.common.constants.CoursewareGenConstants.KEY_PPT_OUTLINE;
 
 @Slf4j
 public class PptOutlineGenNode implements NodeAction {

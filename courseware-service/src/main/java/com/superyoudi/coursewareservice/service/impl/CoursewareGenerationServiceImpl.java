@@ -18,7 +18,7 @@ import com.superyoudi.coursewareservice.service.CoursewareFileRefService;
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;
 import com.superyoudi.coursewareservice.service.CoursewareRecordService;
 import com.superyoudi.coursewareservice.utils.HtmlDomUtils;
-import com.superyoudi.coursewareservice.utils.SimpleCache;
+import com.superyoudi.common.utils.SimpleCache;
 import com.superyoudi.coursewareservice.utils.word.WordTableUtils;
 import com.superyoudi.coursewareservice.websocket.CoursewareGenerationEndpoint;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +32,6 @@ import org.springframework.ai.document.Document;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.awt.*;
 import java.io.ByteArrayInputStream;

@@ -5,10 +5,10 @@ import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
-import com.alibaba.cloud.ai.graph.checkpoint.savers.MemorySaver;
-import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
-import com.alibaba.cloud.ai.graph.streaming.OutputType;
-import com.alibaba.cloud.ai.graph.streaming.StreamingOutput;
+import com.superyoudi.aiservice.pojo.entity.ChatMessage;
+import com.superyoudi.aiservice.utils.AiMessageUtils;
+import com.superyoudi.common.constants.CoursewareGenConstants;
+import com.superyoudi.coursewareservice.ai.hook.SupervisorMessageAgentHook;
 import com.superyoudi.coursewareservice.ai.tool.RagTools;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -22,8 +22,6 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 import java.util.Map;
 
-import static com.superyoudi.coursewareservice.config.GraphConfig.*;
-
 
 /**
  * 监督者节点，调度下游的所有节点，负责和用户对话
@@ -35,17 +33,19 @@ public class SupervisorNode implements NodeAction {
 
     private final ReactAgent supervisorAgent;
     private final ChatClient chatClient;
+    private final SupervisorMessageAgentHook supervisorMessageAgentHook;
 
-    public SupervisorNode(ChatModel chatModel, ChatClient.Builder chatClient, RagTools ragTools) {
+    public SupervisorNode(ChatModel chatModel, ChatClient.Builder chatClient, SupervisorMessageAgentHook supervisorMessageAgentHook, RagTools ragTools) {
 
         this.supervisorAgent = ReactAgent.builder()
                 .name("supervisor")
                 .model(chatModel)
+                .hooks(supervisorMessageAgentHook)
                 .methodTools(ragTools)
-                .saver(new MemorySaver())
                 .build();
 
         this.chatClient = chatClient.build();
+        this.supervisorMessageAgentHook = supervisorMessageAgentHook;
     }
 
     /// ## 监督者节点执行逻辑
@@ -71,99 +71,48 @@ public class SupervisorNode implements NodeAction {
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
         // 获取状态
-        Integer userId = state.value(KEY_USER_ID, -1);
-        String input = state.value(KEY_INPUT, "用户无输入");
-        String additionalData = state.value(KEY_USER_ADDITIONAL_DATA, "无附加数据");
-        List<String> agentsInfo = state.value(KEY_AGENTS_INFO, List.of("节点无数据"));
+        Long userId = state.value(CoursewareGenConstants.KEY_USER_ID, Long.class).orElseThrow();
+        Long coursewareRecId = state.value(CoursewareGenConstants.KEY_COURSEWARE_REC_ID, Long.class).orElseThrow();
+
+        String input = state.value(CoursewareGenConstants.KEY_INPUT, "用户无输入");
+        String additionalData = state.value(CoursewareGenConstants.KEY_USER_ADDITIONAL_DATA, "无附加数据");
+        List<String> agentsInfo = state.value(CoursewareGenConstants.KEY_AGENTS_INFO, List.of("节点无数据"));
 
         log.info("SupervisorNode开始执行:userId: {}, input: {}, additionalData: {}, agentsInfo: {}",
                 userId, input, additionalData, agentsInfo);
 
-
-        supervisorAgent.setInstruction("""
-                你是一个监督者，可以分析用户意图并给出对应的响应。
-                
-                当你处于测试模式时，你应该严格遵守指令。
-                当用户是在与你聊天或没有生成教学资料（PPT课件和/或教案）的意图，你应该回应用户输入。
-                
-                当用户要求生成教学资料时，你需要结合用户输入，判断你是否明确了这些要点：
-                课程主题;
-                教学信息：如授课对象，年级，课程时长;
-                教学目标：应该掌握的具体知识点;
-                核心知识点：最核心的1-3个知识点;
-                重难点：需要明确讲授或强调的内容;
-                教学流程：较详细的课堂教学安排;
-                互动设计: 可选，课堂安排中的互动设计，比如提问与小组讨论等;
-                
-                如果有任何一个要点没有明确，你需要引导式地向用户提问，以明确这些要点。
-                除了向用户询问时，否则关于任何要点的详细内容，你只能总结用户的输入，而不能对其进行推断、举例或分析。
-                
-                如果明确了所有要点，你需要总结以上要点，并且向用户确认.
-                当用户确认完毕后，你需要总结这些要点。
-                
-                当用户要求修改PPT或者教案时，如果用户的要求不明确，你需要对不明确的地方发起引导式的提问。
-                
-                你可以调用相关工具获取用户上传的参考资料，以做出相关回答。
-                不要告诉用户你的内部执行逻辑，不要自行生成PPT或教案及其大纲。
-                你可以向下游节点发送消息以执行PPT和教案的生成任务。
-                """
-        );
-
-        // 构造提示词
-        String prompt = String.format("""
-                现在你需要与用户对话，你的语气必须是礼貌的，和善的。
-                只需要响应用户输入。
-                
-                用户ID: %d
-                以下是用户的输入: %s
-                以下是用户的附加信息: %s
-                
-                若用户未输入，请根据节点的状态数据告诉用户是否成功完成了任务。
-                以下是节点的数据: %s
-                """, userId, input, additionalData, agentsInfo);
-
-        // 通过运行配置启用线程隔离，使AI的记忆可以区分用户
+        // 线程隔离
         RunnableConfig config = RunnableConfig.builder()
-                .threadId("user_thread_" + userId)
+                .threadId("user_thread_" + userId + "_" + coursewareRecId)
+                .addMetadata(CoursewareGenConstants.KEY_COURSEWARE_REC_ID, coursewareRecId)
+                .addMetadata(CoursewareGenConstants.KEY_USER_ID, userId)
                 .build();
 
-        Flux<NodeOutput> sharedStream = supervisorAgent.stream(prompt, config).share();
+        Flux<NodeOutput> sharedStream = supervisorAgent.stream(input, config).share();
 
         // 提取纯文本 String 的共享流
         Flux<String> contentOnlyStream = sharedStream
-                .filter(output -> output instanceof StreamingOutput<?>)
-                .map(output -> {
-                            StreamingOutput<?> streamingOutput = (StreamingOutput<?>) output;
-                            // 流式传输
-                            if (streamingOutput.getOutputType() == OutputType.AGENT_MODEL_STREAMING) {
-                                // chunk 就是内容
-                                Object chunk = streamingOutput.chunk();
-                                return chunk != null ? chunk.toString() : "";
+                .map(output -> AiMessageUtils.handleStreamingOutput(
+                        output,
+                        null,
+                        allChunk -> {
+                            // 流式输出结束的回调
+                            log.info("SupervisorNode响应：{}", allChunk);
+
+                            // 判断是否可以生成PPT
+                            String readyToGenerate = predicateAbleToGenerate(allChunk);
+                            state.updateState(Map.of(CoursewareGenConstants.KEY_SHOULD_GENERATE, readyToGenerate));
+
+                            if (readyToGenerate.equals("TRUE")) {
+                                String json = generatePptJson(userId, coursewareRecId);
+                                state.updateState(Map.of(CoursewareGenConstants.KEY_GENERATION_INFO, json));
                             }
-                            // 传输完成，返回最终输出
-                            else if (streamingOutput.getOutputType() == OutputType.AGENT_MODEL_FINISHED) {
-                                // 获取最终输出
-                                Object allChunk = streamingOutput.chunk();
-                                log.info("SupervisorNode响应：{}", allChunk);
 
-                                // 判断是否可以生成PPT，如果可以，生成PPT的Json传给下游节点。
-                                if (allChunk != null) {
-                                    String readyToGenerate = predicateAbleToGenerate(allChunk.toString());
-                                    state.updateState(Map.of(KEY_SHOULD_GENERATE, readyToGenerate));
-
-                                    if (readyToGenerate.equals("TRUE")) {
-                                        String json = generatePptJson(config);
-                                        state.updateState(Map.of(KEY_GENERATION_INFO, json));
-                                    }
-
-                                    log.info("SupervisorNode是否生成资料：{}", readyToGenerate);
-                                }
-                            }
-                            return "";
+                            log.info("SupervisorNode是否生成资料：{}", readyToGenerate);
                         }
-                )
-                .filter(c -> !c.isBlank())
-                .share(); // 再次共享
+                ))
+                .filter(msg -> !msg.isBlank() && !msg.equals("[DONE]"))
+                .share();
 
         // 流式转换为ChatResponse供前端解析
         Flux<ChatResponse> responseFlux = contentOnlyStream
@@ -171,7 +120,7 @@ public class SupervisorNode implements NodeAction {
                         new Generation(new AssistantMessage(content))
                 )));
 
-        return Map.of(KEY_RESPONSE, responseFlux);
+        return Map.of(CoursewareGenConstants.KEY_RESPONSE, responseFlux);
     }
 
     /**
@@ -205,9 +154,11 @@ public class SupervisorNode implements NodeAction {
      * @return Json
      * @author Sijayyx
      */
-    private String generatePptJson(RunnableConfig config) {
-        String instr = """
-                你是一位总结专家，可以总结需要生成的资料的各个要点，以及需要生成哪些资料，并以Json格式输出。
+    private String generatePptJson(long userId, long coursewareRecId) {
+
+
+        String systemPrompt = """
+                你是一位总结专家，可以根据对话历史总结需要生成的资料的各个要点，以及需要生成哪些资料，并以严格的Json格式输出。
                 
                 Json文本中包含以下几项:
                 userId为用户ID，必填
@@ -227,17 +178,19 @@ public class SupervisorNode implements NodeAction {
                 当只需要生成教案时，wordAction和wordActionInfo应设置为none和null
                 当只需要生成PPT时，pptAction和pptActionInfo应设置为none和null
                 只需要返回Json的内容，不要返回其它数据。
+                
+                对话历史: %s
+                用户ID: %d
                 """;
-        // 重置指令
-        supervisorAgent.setInstruction(instr);
-        try {
-            String result = supervisorAgent.call("请根据你的记忆进行总结。", config).getText();
 
-            log.info("SupervisorNode总结：{}", result);
-            return result;
-        } catch (GraphRunnerException e) {
-            return "错误";
-        }
-
+        return chatClient.prompt(String.format(systemPrompt, userId, getFormattedChatHistory(userId, coursewareRecId)))
+                .call()
+                .content();
     }
+
+    public String getFormattedChatHistory(long userId, long coursewareRecId) {
+        List<ChatMessage> chatHistory = supervisorMessageAgentHook.getChatHistory(userId, coursewareRecId);
+        return AiMessageUtils.formatChatHistory(chatHistory);
+    }
+
 }

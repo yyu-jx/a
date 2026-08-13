@@ -4,7 +4,7 @@ import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.EdgeAction;
 import lombok.extern.slf4j.Slf4j;
 
-import static com.superyoudi.coursewareservice.config.GraphConfig.KEY_HITL_APPROVE_STATUS;
+import static com.superyoudi.common.constants.CoursewareGenConstants.KEY_HITL_APPROVE_STATUS;
 
 
 @Slf4j

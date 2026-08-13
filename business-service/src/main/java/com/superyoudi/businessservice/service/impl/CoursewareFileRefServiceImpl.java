@@ -26,7 +26,7 @@ public class CoursewareFileRefServiceImpl implements CoursewareFileRefService {
     private final UserFileMapper userFileMapper;
     private final FileService fileService;
 
-    public CoursewareFileRefServiceImpl(CoursewareFileRelMapper coursewareFileRelMapper, UserFileMapper userFileMapper, CoursewareFileRefService coursewareFileRefService, FileService fileService) {
+    public CoursewareFileRefServiceImpl(CoursewareFileRelMapper coursewareFileRelMapper, UserFileMapper userFileMapper, FileService fileService) {
         this.coursewareFileRelMapper = coursewareFileRelMapper;
         this.userFileMapper = userFileMapper;
         this.fileService = fileService;
