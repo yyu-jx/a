@@ -7,7 +7,8 @@ import com.superyoudi.aiservice.pojo.entity.LearningPathNode;
 import com.superyoudi.aiservice.service.LearningPathService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.mapper.*;
-import com.superyoudi.businessservice.pojo.dto.CourseDataDTO;
+import com.superyoudi.businessservice.pojo.dto.CourseOpeningDataDTO;
+import com.superyoudi.businessservice.pojo.vo.CourseStatisticsVO;
 import com.superyoudi.businessservice.pojo.entity.*;
 import com.superyoudi.businessservice.pojo.vo.*;
 import com.superyoudi.businessservice.service.CourseService;
@@ -68,6 +69,15 @@ public class CourseServiceImpl implements CourseService {
         BeanUtils.copyProperties(course, vo);
 
         return vo;
+    }
+
+    @Override
+    public CourseStatisticsVO getCourseStatistics(Long teacherId) {
+        int courseTotal = courseMapper.countCoursesByTeacherId(teacherId);
+        int studentTotal = courseMapper.countStudentsByTeacherId(teacherId);
+        double avgMasterRate = teacherCourseAnalysisMapper.getTotalAvgProgress(teacherId);
+
+        return new CourseStatisticsVO(courseTotal, studentTotal, avgMasterRate);
     }
 
     @Override
@@ -223,7 +233,7 @@ public class CourseServiceImpl implements CourseService {
 
         // ！！！description至少要包含出版社信息！！！
         String courseDataJson = courseDataGenerateModel.call(courseId, course.getName(), course.getDescription());
-        CourseDataDTO courseData = AiMessageUtils.readJsonValue(courseDataJson, CourseDataDTO.class);
+        CourseOpeningDataDTO courseData = AiMessageUtils.readJsonValue(courseDataJson, CourseOpeningDataDTO.class);
 
         if (courseData != null) {
             saveCourseData(courseData);
@@ -233,18 +243,18 @@ public class CourseServiceImpl implements CourseService {
         }
     }
 
-    public void saveCourseData(CourseDataDTO courseData) {
+    public void saveCourseData(CourseOpeningDataDTO courseData) {
         List<KnowledgeExtractionResult.KnowledgePointItem> knowledgePoints = new ArrayList<>();
         List<KnowledgeExtractionResult.KnowledgeRelationItem> knowledgeRelations = new ArrayList<>();
 
-        for (CourseDataDTO.ChapterData chapterData : courseData.getChapterDataList()) {
+        for (CourseOpeningDataDTO.ChapterData chapterData : courseData.getChapterDataList()) {
             Chapter chapter = new Chapter(null, courseData.getCourseId(), chapterData.getChapterName(),
                     null, chapterData.getOrder(), null, null);
             chapterMapper.insert(chapter);
             Long chapterId = chapter.getId();
             log.info(" chapterId:{}", chapterId);
 
-            for (CourseDataDTO.SectionData sectionData : chapterData.getSectionDataList()) {
+            for (CourseOpeningDataDTO.SectionData sectionData : chapterData.getSectionDataList()) {
                 Section section = new Section(null, chapterId, sectionData.getSectionName(),
                         null, sectionData.getOrder(), null, null);
                 sectionMapper.insert(section);

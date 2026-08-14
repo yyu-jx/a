@@ -20,6 +20,21 @@ public interface CourseMapper {
     @Select("SELECT COUNT(*) FROM course_student_rel WHERE student_id = #{studentId} AND course_id = #{courseId}")
     Integer countStudentJoinCourse(Long studentId, Long courseId);
 
+    /**
+     * 统计指定教师的所有课程数量
+     */
+    @Select("SELECT COUNT(*) FROM courses WHERE teacher_id = #{teacherId}")
+    Integer countCoursesByTeacherId(Long teacherId);
+
+    /**
+     * 统计指定教师的所有课程的学生总数
+     */
+    @Select("SELECT COUNT(DISTINCT cs.student_id) " +
+            "FROM courses c " +
+            "INNER JOIN course_student_rel cs ON c.id = cs.course_id " +
+            "WHERE c.teacher_id = #{teacherId}")
+    Integer countStudentsByTeacherId(Long teacherId);
+
     @Select("SELECT * FROM courses WHERE teacher_id = #{teacherId}")
     List<Course> selectByTeacherId(Long teacherId);
 

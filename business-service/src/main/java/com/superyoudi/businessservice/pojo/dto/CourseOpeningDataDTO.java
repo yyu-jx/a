@@ -13,7 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class CourseDataDTO {
+public class CourseOpeningDataDTO {
 
     private Long courseId;
     private String courseName;

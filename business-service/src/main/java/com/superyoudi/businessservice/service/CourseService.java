@@ -1,5 +1,6 @@
 package com.superyoudi.businessservice.service;
 
+import com.superyoudi.businessservice.pojo.vo.CourseStatisticsVO;
 import com.superyoudi.businessservice.pojo.entity.Course;
 import com.superyoudi.businessservice.pojo.vo.*;
 import com.superyoudi.common.exception.CourseNotExistException;
@@ -16,7 +17,11 @@ public interface CourseService {
      */
     CourseVO getCourseInfo(Long courseId) throws CourseNotExistException;
 
+    CourseStatisticsVO getCourseStatistics(Long teacherId);
+
+
     List<Course> getCoursesByTeacherId(Long teacherId);
+
 
     /**
      * 获取学生课程进度

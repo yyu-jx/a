@@ -28,6 +28,17 @@ public class CourseController {
     }
 
     /**
+     * GET /course/info
+     * 获取课程列表的课程统计信息
+     */
+    @GetMapping("/course/info")
+    public Result<CourseStatisticsVO> getCourseStatistics(Long teacherId) {
+        CourseStatisticsVO courseStatistics = courseService.getCourseStatistics(teacherId);
+        return Result.success(courseStatistics);
+    }
+
+
+    /**
      * 获取课程学习路径
      * <p>
      * 如果没有，就生成并返回
