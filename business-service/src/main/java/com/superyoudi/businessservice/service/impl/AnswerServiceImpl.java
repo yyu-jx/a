@@ -1,11 +1,11 @@
 package com.superyoudi.businessservice.service.impl;
 
 import com.superyoudi.aiservice.service.AnswerAiService;
-import com.superyoudi.businessservice.mapper.QuestionsMapper;
+import com.superyoudi.businessservice.mapper.QuestionMapper;
 import com.superyoudi.businessservice.mapper.StudentAnswerMapper;
 import com.superyoudi.businessservice.mapper.StudentSubmissionMapper;
 import com.superyoudi.businessservice.service.AnswerService;
-import com.superyoudi.common.dto.QuestionsDTO;
+import com.superyoudi.common.dto.QuestionDTO;
 import com.superyoudi.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,15 +14,13 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-import java.time.LocalDateTime;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AnswerServiceImpl implements AnswerService {
 
     private final AnswerAiService answerAiService;
-    private final QuestionsMapper questionsMapper;
+    private final QuestionMapper questionMapper;
     private final StudentSubmissionMapper studentSubmissionMapper;
     private final StudentAnswerMapper studentAnswerMapper;
     private final AnswerHelpRecordService answerHelpRecordService;
@@ -30,7 +28,7 @@ public class AnswerServiceImpl implements AnswerService {
 
     @Override
     public Flux<String> getQuestionHelpStream(Long questionId, Long taskId, Long studentId) {
-        QuestionsDTO question = questionsMapper.selectById(questionId);
+        QuestionDTO question = questionMapper.selectById(questionId);
         if (question == null) {
             throw new BusinessException("题目不存在");
         }

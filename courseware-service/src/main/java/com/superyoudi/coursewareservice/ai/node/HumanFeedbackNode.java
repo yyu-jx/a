@@ -5,6 +5,7 @@ import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.action.AsyncNodeActionWithConfig;
 import com.alibaba.cloud.ai.graph.action.InterruptableAction;
 import com.alibaba.cloud.ai.graph.action.InterruptionMetadata;
+import com.superyoudi.common.constants.CoursewareGenConstants;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,7 +13,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static com.superyoudi.coursewareservice.ai.dispatcher.HumanFeedbackDispatcher.EDIT;
-import static com.superyoudi.coursewareservice.config.GraphConfig.*;
 
 /// 处理中断状态的节点。
 ///
@@ -33,7 +33,7 @@ public class HumanFeedbackNode implements AsyncNodeActionWithConfig, Interruptab
             return Optional.empty();
         } else {
             return Optional.of(InterruptionMetadata.builder(nodeId, state)
-                    .addMetadata(KEY_PPT_OUTLINE, state.value(KEY_PPT_OUTLINE, "发生错误，请重新生成。"))
+                    .addMetadata(CoursewareGenConstants.KEY_PPT_OUTLINE, state.value(CoursewareGenConstants.KEY_PPT_OUTLINE, "发生错误，请重新生成。"))
                     .build());
         }
     }
@@ -52,12 +52,12 @@ public class HumanFeedbackNode implements AsyncNodeActionWithConfig, Interruptab
 
         // 更新反馈状态
         String approveStatus = (String) feedbackOpt.get();
-        updates.put(KEY_HITL_APPROVE_STATUS, approveStatus);
+        updates.put(CoursewareGenConstants.KEY_HITL_APPROVE_STATUS, approveStatus);
 
         // 如果修改，用户是否填入了反馈？
-        Optional<Object> userFeedback = config.metadata(KEY_HITL_USER_FEEDBACK);
+        Optional<Object> userFeedback = config.metadata(CoursewareGenConstants.KEY_HITL_USER_FEEDBACK);
         if (approveStatus.equals(EDIT) && userFeedback.isPresent()) {
-            updates.put(KEY_HITL_USER_FEEDBACK, userFeedback.get());
+            updates.put(CoursewareGenConstants.KEY_HITL_USER_FEEDBACK, userFeedback.get());
         }
 
         return CompletableFuture.completedFuture(updates);

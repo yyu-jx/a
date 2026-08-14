@@ -5,8 +5,8 @@ import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
+import com.superyoudi.common.constants.CoursewareGenConstants;
 import com.superyoudi.coursewareservice.ai.tool.HtmlPptTools;
-import com.superyoudi.coursewareservice.config.GraphConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 
@@ -131,7 +131,7 @@ public class HtmlPptGenNode implements NodeAction {
     @Override
     public Map<String, Object> apply(OverAllState state) {
 
-        Long coursewareId = state.value(GraphConfig.KEY_COURSEWARE_ID, Long.class).orElse(null);
+        Long coursewareId = state.value(CoursewareGenConstants.KEY_COURSEWARE_REC_ID, Long.class).orElse(null);
 
         String result = "";
         try {
@@ -141,7 +141,7 @@ public class HtmlPptGenNode implements NodeAction {
                     %s
                     
                     课件记录ID: %s
-                    """, state.value(GraphConfig.KEY_PPT_OUTLINE, "错误"), coursewareId);
+                    """, state.value(CoursewareGenConstants.KEY_PPT_OUTLINE, "错误"), coursewareId);
 
             result = reactAgent.call(prompt).getText();
         } catch (GraphRunnerException e) {

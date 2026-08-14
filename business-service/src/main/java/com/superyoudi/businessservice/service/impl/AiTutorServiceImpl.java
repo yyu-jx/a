@@ -89,14 +89,8 @@ public class AiTutorServiceImpl implements AiTutorService {
     @Override
     public ChatHistoryDTO getChatHistory(Long studentId, Long courseId) {
         ChatSession session = chatPersistenceService.getOrCreateChatSession(studentId, courseId);
-        List<ChatMessage> chatMessages = chatPersistenceService.getOrCreateChatMessages(session.getId());
-
-        List<ChatHistoryDTO.ChatMessageData> messages = chatMessages.stream().map(message ->
-                        new ChatHistoryDTO.ChatMessageData(message.getMsgSeq(), message.getMsgType(),
-                                message.getMessage(), message.getRole(), message.getSentAt()))
-                .toList();
-
-        return new ChatHistoryDTO(session.getId(), studentId, messages);
+        List<ChatMessage> chatMessages = chatPersistenceService.getChatMessages(session.getId());
+        return chatPersistenceService.constructChatHistory(session.getId(), studentId, chatMessages);
     }
 
     @Override

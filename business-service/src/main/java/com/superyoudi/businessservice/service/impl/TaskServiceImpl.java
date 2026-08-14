@@ -8,7 +8,6 @@ import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
 import com.superyoudi.common.dto.ErrorQuestionVO;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
 import com.superyoudi.businessservice.service.TaskService;
-import com.superyoudi.common.constant.RedisConstant;
 import com.superyoudi.common.exception.ErrorQuestionNotFoundException;
 import com.superyoudi.common.exception.ParamInvalidException;
 import com.superyoudi.common.exception.StudentRepeatJoinCourseException;
@@ -21,8 +20,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.superyoudi.common.constant.RedisConstant.AI_DIAGNOSE_CACHE_HOUR;
-import static com.superyoudi.common.constant.RedisConstant.AI_DIAGNOSE_CACHE_KEY;
+import static com.superyoudi.common.constants.RedisConstants.AI_DIAGNOSE_CACHE_HOUR;
+import static com.superyoudi.common.constants.RedisConstants.AI_DIAGNOSE_CACHE_KEY;
 
 @Service
 @RequiredArgsConstructor

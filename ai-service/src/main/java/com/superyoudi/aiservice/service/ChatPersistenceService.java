@@ -8,8 +8,10 @@ import com.superyoudi.aiservice.pojo.entity.ChatCourseRel;
 import com.superyoudi.aiservice.pojo.entity.ChatCoursewareRecRel;
 import com.superyoudi.aiservice.pojo.entity.ChatMessage;
 import com.superyoudi.aiservice.pojo.entity.ChatSession;
+import com.superyoudi.common.dto.ChatHistoryDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -29,17 +31,26 @@ public class ChatPersistenceService {
     private final ChatCourseRelMapper chatCourseRelMapper;
     private final ChatCoursewareRecRelMapper chatCoursewareRecRelMapper;
 
+    public ChatHistoryDTO constructChatHistory(Long chatSessionId, Long userId, List<ChatMessage> chatMessages) {
+        List<ChatHistoryDTO.ChatMessageData> messages = chatMessages.stream().map(message ->
+                        new ChatHistoryDTO.ChatMessageData(message.getMsgSeq(), message.getMsgType(),
+                                message.getMessage(), message.getRole(), message.getSentAt()))
+                .toList();
+
+        return new ChatHistoryDTO(chatSessionId, userId, messages);
+    }
+
     /**
      * 获取会话消息列表
      */
-    public List<ChatMessage> getOrCreateChatMessages(Long chatSessionId) {
+    public List<ChatMessage> getChatMessages(Long chatSessionId) {
         return chatMessageMapper.selectByChatId(chatSessionId);
     }
 
     /**
      * 获取会话消息列表。如果不存在会话元数据，就创建，并返回null。
      */
-    public List<ChatMessage> getOrCreateChatMessages(Long studentId, Long courseId) {
+    public List<ChatMessage> getOrCreateCourseRelChatMessages(Long studentId, Long courseId) {
         ChatCourseRel chatCourseRel = chatCourseRelMapper.selectByCourseAndStudentId(courseId, studentId);
         if (chatCourseRel == null) {
             log.info("未找到课程与聊天关联，创建新的关联关系。");
@@ -50,11 +61,30 @@ public class ChatPersistenceService {
         return chatMessageMapper.selectByChatId(chatCourseRel.getChatId());
     }
 
+    public List<ChatMessage> getOrCreateCoursewareRecChatMessages(Long studentId, Long coursewareRecId) {
+        ChatCoursewareRecRel chatCoursewareRecRel = chatCoursewareRecRelMapper.selectByCoursewareRecordId(coursewareRecId);
+        if (chatCoursewareRecRel == null) {
+            log.info("未找到课件生成与聊天关联，创建新的关联关系。");
+            createChatCoursewareRecRel(studentId, coursewareRecId);
+            return null;
+        }
+
+        return chatMessageMapper.selectByChatId(chatCoursewareRecRel.getChatId());
+    }
+
     /**
      * 向列表追加消息
      */
     public Long appendChatMessage(ChatMessage chatMessage) {
         return chatMessageMapper.insertWithAutoSeq(chatMessage);
+    }
+
+    /**
+     * 向列表追加消息
+     */
+    public void appendChatMessage(Long chatId, String message, String role) {
+        ChatMessage chatMessage = new ChatMessage(chatId, message, role);
+        chatMessageMapper.insertWithAutoSeq(chatMessage);
     }
 
     /**
@@ -95,7 +125,7 @@ public class ChatPersistenceService {
     /**
      * 获取课件生成记录对应的会话
      */
-    public ChatSession getChatSessionByCoursewareRecId(Long coursewareRecId) {
+    public ChatSession getChatSessionByCoursewareRecId(@NonNull Long coursewareRecId) {
         return chatSessionMapper.selectByCoursewareRecordId(coursewareRecId);
     }
 
@@ -124,9 +154,6 @@ public class ChatPersistenceService {
         return createChatCourseRel(chatSession.getId(), courseId, userId);
     }
 
-    /**
-     * 创建会话与课程关联关系
-     */
     public Long createChatCourseRel(Long chatId, Long courseId, Long userId) {
         ChatCourseRel chatCourseRel = new ChatCourseRel(null, chatId, courseId, userId);
         chatCourseRelMapper.insert(chatCourseRel);
@@ -134,8 +161,15 @@ public class ChatPersistenceService {
     }
 
     /**
-     * 创建会话与课件生成记录关联关系
+     * 创建会话与课程关联关系
      */
+    public Long createChatCoursewareRecRel(Long userId, Long coursewareRecId) {
+        ChatSession chatSession = new ChatSession(null, userId, null);
+        chatSessionMapper.insert(chatSession);
+
+        return createChatCoursewareRecRel(chatSession.getId(), coursewareRecId, userId);
+    }
+
     public Long createChatCoursewareRecRel(Long chatId, Long coursewareRecId, Long userId) {
         ChatCoursewareRecRel chatCoursewareRecRel = new ChatCoursewareRecRel(null, chatId, coursewareRecId, userId);
         chatCoursewareRecRelMapper.insert(chatCoursewareRecRel);

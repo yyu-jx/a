@@ -1,11 +1,12 @@
 package com.superyoudi.coursewareservice.service;
 
 import com.microsoft.playwright.Page;
-import com.superyoudi.coursewareservice.dto.CoursewareGenData;
-import com.superyoudi.coursewareservice.dto.CoursewareRecord;
-import com.superyoudi.coursewareservice.dto.GenerationStatus;
+import com.superyoudi.coursewareservice.pojo.dto.CoursewareGenData;
+import com.superyoudi.coursewareservice.pojo.dto.GenerationStatus;
+import com.superyoudi.coursewareservice.pojo.entity.CoursewareRecord;
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
@@ -33,7 +34,7 @@ public interface CoursewareGenerationService {
     void notifyCoursewareGeneratingStatus(GenerationStatus message);
 
     /**
-     * 搜索用户文件
+     * 搜索用户文档
      *
      * @param userId 用户ID
      * @param query  搜索关键词
@@ -42,7 +43,7 @@ public interface CoursewareGenerationService {
     List<Document> searchUserDocuments(Integer userId, String query);
 
     /**
-     * 搜索全局文件
+     * 搜索全局文档
      *
      * @param query 搜索关键词
      * @return 搜索结果

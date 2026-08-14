@@ -3,9 +3,9 @@ package com.superyoudi.coursewareservice.service.impl;
 import com.microsoft.playwright.Page;
 import com.superyoudi.coursewareservice.component.FileZipper;
 import com.superyoudi.coursewareservice.component.PlaywrightManager;
-import com.superyoudi.coursewareservice.dto.CoursewareGenData;
-import com.superyoudi.coursewareservice.dto.CoursewareRecord;
-import com.superyoudi.coursewareservice.dto.GenerationStatus;
+import com.superyoudi.coursewareservice.pojo.dto.CoursewareGenData;
+import com.superyoudi.coursewareservice.pojo.entity.CoursewareRecord;
+import com.superyoudi.coursewareservice.pojo.dto.GenerationStatus;
 import com.superyoudi.coursewareservice.model.common.TableData;
 import com.superyoudi.coursewareservice.model.ppt.PresentationData;
 import com.superyoudi.coursewareservice.model.ppt.SlideData;
@@ -14,10 +14,11 @@ import com.superyoudi.coursewareservice.model.word.WordData;
 import com.superyoudi.coursewareservice.model.word.WordElement;
 import com.superyoudi.coursewareservice.model.word.WordImage;
 import com.superyoudi.coursewareservice.model.word.WordParagraph;
+import com.superyoudi.coursewareservice.service.CoursewareFileRefService;
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;
 import com.superyoudi.coursewareservice.service.CoursewareRecordService;
 import com.superyoudi.coursewareservice.utils.HtmlDomUtils;
-import com.superyoudi.coursewareservice.utils.SimpleCache;
+import com.superyoudi.common.utils.SimpleCache;
 import com.superyoudi.coursewareservice.utils.word.WordTableUtils;
 import com.superyoudi.coursewareservice.websocket.CoursewareGenerationEndpoint;
 import lombok.RequiredArgsConstructor;
@@ -62,6 +63,7 @@ public class CoursewareGenerationServiceImpl implements CoursewareGenerationServ
 
     private final PlaywrightManager playwrightManager;
     private final CoursewareRecordService coursewareRecordService;
+    private final CoursewareFileRefService coursewareFileRefService;
 
     @Value("${app.storage.exports}")
     private String exportFilePath;
@@ -95,6 +97,7 @@ public class CoursewareGenerationServiceImpl implements CoursewareGenerationServ
 
         return cr;
     }
+
 
     /**
      * 导出课件，返回压缩包文件名

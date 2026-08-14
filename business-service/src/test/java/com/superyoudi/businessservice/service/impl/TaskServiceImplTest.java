@@ -21,8 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.superyoudi.common.constant.RedisConstant.AI_DIAGNOSE_CACHE_HOUR;
-import static com.superyoudi.common.constant.RedisConstant.AI_DIAGNOSE_CACHE_KEY;
+import static com.superyoudi.common.constants.RedisConstants.AI_DIAGNOSE_CACHE_HOUR;
+import static com.superyoudi.common.constants.RedisConstants.AI_DIAGNOSE_CACHE_KEY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 

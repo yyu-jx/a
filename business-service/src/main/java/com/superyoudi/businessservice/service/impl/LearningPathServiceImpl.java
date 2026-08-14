@@ -18,6 +18,7 @@ import com.superyoudi.common.exception.AllCourseKnowledgeMasteredException;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
 import java.util.HashMap;
@@ -64,6 +65,7 @@ public class LearningPathServiceImpl implements LearningPathService {
     /// @return 新建的LearningPath的ID
     /// @author Sijayyx
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long createLearningPath(@NonNull Long studentId, @NonNull Long courseId) {
 
         Assert.notNull(studentId, "createLearningPath: studentId不能为null");
@@ -108,36 +110,7 @@ public class LearningPathServiceImpl implements LearningPathService {
             throw new AllCourseKnowledgeMasteredException("没有找到未掌握的知识点");
         }
 
-//        String json = learningPathGenerateModel.call(studentId, courseId, generateCandidateKnowledgeInfo(unmasteredKnowledgeMap));
-        String json = """
-                {
-                  "studentId" : 1,
-                  "courseId" : 1,
-                  "additionalInfo" : "该路径严格遵循输入知识点的原始顺序，将微积分核心概念（极限、连续、导数、积分）按逻辑流进行聚合。建议学生重点关注极限计算工具（洛必达、等价无穷小）与积分应用（面积、微元法）的结合练习。",
-                  "pathNodeDataList" : [ {
-                    "nodeName" : "基础函数与极限理论",
-                    "knowledgeIds" : [ "知识点ID: 函数", "知识点ID: 反函数", "知识点ID: 数列极限", "知识点ID: 函数极限", "知识点ID: 重要极限" ]
-                  }, {
-                    "nodeName" : "极限计算与连续性分析",
-                    "knowledgeIds" : [ "知识点ID: 无穷小", "知识点ID: 无穷大", "知识点ID: 等价无穷小", "知识点ID: 夹逼准则", "知识点ID: 连续" ]
-                  }, {
-                    "nodeName" : "导数概念与运算法则",
-                    "knowledgeIds" : [ "知识点ID: 初等函数连续性", "知识点ID: 间断点", "知识点ID: 介值定理", "知识点ID: 导数", "知识点ID: 求导法则" ]
-                  }, {
-                    "nodeName" : "微分应用与中值定理",
-                    "knowledgeIds" : [ "知识点ID: 隐函数求导", "知识点ID: 单调性", "知识点ID: 极值", "知识点ID: 拉格朗日中值定理", "知识点ID: 高阶导数" ]
-                  }, {
-                    "nodeName" : "积分理论与计算方法",
-                    "knowledgeIds" : [ "知识点ID: 不定积分", "知识点ID: 定积分", "知识点ID: 牛顿-莱布尼茨公式", "知识点ID: 洛必达法则", "知识点ID: 泰勒公式" ]
-                  }, {
-                    "nodeName" : "积分技巧与应用拓展",
-                    "knowledgeIds" : [ "知识点ID: 换元积分法", "知识点ID: 分部积分法", "知识点ID: 定积分换元法", "知识点ID: 有理函数积分", "知识点ID: 反常积分" ]
-                  }, {
-                    "nodeName" : "几何应用与曲率",
-                    "knowledgeIds" : [ "知识点ID: 面积", "知识点ID: 微元法", "知识点ID: 曲率" ]
-                  } ]
-                }
-                """;
+        String json = learningPathGenerateModel.call(studentId, courseId, generateCandidateKnowledgeInfo(unmasteredKnowledgeMap));
 
         LearningPathDataDTO lpData = AiMessageUtils.readJsonValue(json, LearningPathDataDTO.class);
 

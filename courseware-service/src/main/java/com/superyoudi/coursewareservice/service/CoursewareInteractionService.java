@@ -3,15 +3,20 @@ package com.superyoudi.coursewareservice.service;
 import com.alibaba.cloud.ai.graph.CompiledGraph;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
+import com.superyoudi.aiservice.pojo.entity.ChatMessage;
+import com.superyoudi.aiservice.pojo.entity.ChatSession;
+import com.superyoudi.aiservice.service.ChatPersistenceService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
+import com.superyoudi.common.constants.CoursewareGenConstants;
+import com.superyoudi.common.dto.ChatHistoryDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ForkJoinPool;
-
-import static com.superyoudi.coursewareservice.config.GraphConfig.*;
 
 /**
  * @author Sijayyx
@@ -22,9 +27,11 @@ public class CoursewareInteractionService {
 
 
     private final CompiledGraph compiledGraph;
+    private final ChatPersistenceService chatPersistenceService;
 
-    public CoursewareInteractionService(CompiledGraph compiledGraph) {
+    public CoursewareInteractionService(CompiledGraph compiledGraph, ChatPersistenceService chatPersistenceService) {
         this.compiledGraph = compiledGraph;
+        this.chatPersistenceService = chatPersistenceService;
     }
 
     /**
@@ -37,8 +44,10 @@ public class CoursewareInteractionService {
     public Flux<String> executeWorkflowGraph(UserChatMessage userChatMessage) {
         Long userId = userChatMessage.getUserId();
         String input = userChatMessage.getMessage();
-
         Long coursewareId = (Long) userChatMessage.getAdditionalData();
+
+        Assert.notNull(userId, "userId不能为null");
+        Assert.notNull(coursewareId, "coursewareId不能为null");
 
         // 构建线程ID
         String threadId = constructThreadId(userId);
@@ -47,20 +56,20 @@ public class CoursewareInteractionService {
         // 创建并行节点的图配置
         RunnableConfig config = RunnableConfig.builder()
                 .threadId(threadId)
-                .addParallelNodeExecutor(NODE_WORD_GENERATION, ForkJoinPool.commonPool())
-                .addParallelNodeExecutor(NODE_PPT_GENERATION, ForkJoinPool.commonPool())
+                .addParallelNodeExecutor(CoursewareGenConstants.NODE_WORD_GENERATION, ForkJoinPool.commonPool())
+                .addParallelNodeExecutor(CoursewareGenConstants.NODE_PPT_GENERATION, ForkJoinPool.commonPool())
                 .build();
 
         return compiledGraph.stream(Map.of(
-                        KEY_USER_ID, userId,
-                        KEY_INPUT, input,
-                        KEY_COURSEWARE_ID, coursewareId
+                        CoursewareGenConstants.KEY_USER_ID, userId,
+                        CoursewareGenConstants.KEY_INPUT, input,
+                        CoursewareGenConstants.KEY_COURSEWARE_REC_ID, coursewareId
                 ), config)
                 .map(output -> AiMessageUtils.handleStreamingOutput(
                         output,
                         interruptionMetadata -> {
                             String nodeName = interruptionMetadata.node();
-                            String outline = interruptionMetadata.metadata(KEY_PPT_OUTLINE).get().toString();
+                            String outline = interruptionMetadata.metadata(CoursewareGenConstants.KEY_PPT_OUTLINE).get().toString();
 
                             log.error("节点执行中断！{}, outline: {}", nodeName, outline);
 
@@ -92,9 +101,9 @@ public class CoursewareInteractionService {
         RunnableConfig resumeConfig = RunnableConfig.builder()
                 .threadId(threadId)
                 .addMetadata(RunnableConfig.HUMAN_FEEDBACK_METADATA_KEY, resumeStatus)
-                .addMetadata(KEY_HITL_USER_FEEDBACK, resumeUserFeedback)
-                .addParallelNodeExecutor(NODE_WORD_GENERATION, ForkJoinPool.commonPool())
-                .addParallelNodeExecutor(NODE_PPT_GENERATION, ForkJoinPool.commonPool())
+                .addMetadata(CoursewareGenConstants.KEY_HITL_USER_FEEDBACK, resumeUserFeedback)
+                .addParallelNodeExecutor(CoursewareGenConstants.NODE_WORD_GENERATION, ForkJoinPool.commonPool())
+                .addParallelNodeExecutor(CoursewareGenConstants.NODE_PPT_GENERATION, ForkJoinPool.commonPool())
                 .build();
 
         return compiledGraph.stream(null, resumeConfig)
@@ -102,7 +111,7 @@ public class CoursewareInteractionService {
                         output,
                         interruptionMetadata -> {
                             String nodeName = interruptionMetadata.node();
-                            String outline = interruptionMetadata.metadata(KEY_PPT_OUTLINE).get().toString();
+                            String outline = interruptionMetadata.metadata(CoursewareGenConstants.KEY_PPT_OUTLINE).get().toString();
 
                             log.error("节点执行中断！{}, outline: {}", nodeName, outline);
 
@@ -118,6 +127,11 @@ public class CoursewareInteractionService {
                 ));
     }
 
+    public ChatHistoryDTO getChatHistory(Long coursewareRecId) {
+        ChatSession session = chatPersistenceService.getChatSessionByCoursewareRecId(coursewareRecId);
+        List<ChatMessage> chatMessages = chatPersistenceService.getChatMessages(session.getId());
+        return chatPersistenceService.constructChatHistory(session.getId(), session.getUserId(), chatMessages);
+    }
 
     private String constructThreadId(Long userId) {
         return "user_graph_thread_" + userId;

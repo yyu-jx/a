@@ -1,4 +1,4 @@
-package com.superyoudi.coursewareservice.dto;
+package com.superyoudi.coursewareservice.pojo.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,7 +18,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CoursewareRecord {
-
     private Long id;
     private Long userId;
     private Long chatId;

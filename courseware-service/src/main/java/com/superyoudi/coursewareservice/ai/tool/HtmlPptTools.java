@@ -2,7 +2,7 @@ package com.superyoudi.coursewareservice.ai.tool;
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
-import com.superyoudi.coursewareservice.dto.GenerationStatus;
+import com.superyoudi.coursewareservice.pojo.dto.GenerationStatus;
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;
 import com.superyoudi.coursewareservice.utils.HtmlDomUtils;
 import com.superyoudi.coursewareservice.utils.HtmlLayoutUtils;

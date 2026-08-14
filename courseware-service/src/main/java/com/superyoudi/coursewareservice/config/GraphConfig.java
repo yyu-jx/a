@@ -8,11 +8,12 @@ import com.alibaba.cloud.ai.graph.action.AsyncEdgeAction;
 import com.alibaba.cloud.ai.graph.action.AsyncNodeAction;
 import com.alibaba.cloud.ai.graph.exception.GraphStateException;
 import com.superyoudi.coursewareservice.ai.dispatcher.HumanFeedbackDispatcher;
+import com.superyoudi.coursewareservice.ai.hook.SupervisorMessageAgentHook;
 import com.superyoudi.coursewareservice.ai.node.*;
 import com.superyoudi.coursewareservice.ai.tool.HtmlPptTools;
 import com.superyoudi.coursewareservice.ai.tool.HtmlWordTools;
 import com.superyoudi.coursewareservice.ai.tool.RagTools;
-import com.superyoudi.coursewareservice.dto.GenerationStatus;
+import com.superyoudi.coursewareservice.pojo.dto.GenerationStatus;
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;
 import com.superyoudi.coursewareservice.service.CoursewareRecordService;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,8 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 import java.util.Map;
 
+import static com.superyoudi.common.constants.CoursewareGenConstants.*;
+
 
 /**
  * 工作流图的配置类
@@ -34,52 +37,6 @@ import java.util.Map;
 @Slf4j
 @Configuration
 public class GraphConfig {
-
-    /// 用户ID
-    public static final String KEY_USER_ID = "user_id";
-    /// 课件生成记录ID
-    public static final String KEY_COURSEWARE_ID = "courseware_id";
-    /// 用户输入
-    public static final String KEY_INPUT = "input";
-    /// HITL的用户反馈信息（如果有）
-    public static final String KEY_HITL_USER_FEEDBACK = "hitl_user_feedback";
-    /// HITL的批准状态
-    public static final String KEY_HITL_APPROVE_STATUS = "hitl_approve_status";
-    /// 用户聊天消息的附加信息
-    public static final String KEY_USER_ADDITIONAL_DATA = "additional_data";
-    /// AI的流式输出
-    public static final String KEY_RESPONSE = "response";
-    /// 生成PPT和Word所需信息
-    public static final String KEY_GENERATION_INFO = "generation_info";
-    /// PPT大纲，Markdown格式
-    public static final String KEY_PPT_OUTLINE = "ppt_outline";
-    /// 是否可以生成PPT: TRUE | FALSE
-    public static final String KEY_SHOULD_GENERATE = "should_generate";
-    /// Agents的生成结果
-    public static final String KEY_AGENTS_INFO = "agents_info";
-
-//    /// word的名称
-//    public static final String KEY_WORD_NAME = "word_name";
-//    /// PPT的名称
-//    public static final String KEY_PPT_NAME = "ppt_name";
-
-    /// 监督者节点
-    public static final String NODE_SUPERVISOR = "supervisorNode";
-    /// HTML大纲生成节点
-    public static final String NODE_OUTLINE_GENERATION = "htmlOutlineGenNode";
-    /// HITL节点
-    public static final String NODE_PPT_HITL_NODE = "pptHitlNode";
-    /// PPT生成节点
-    public static final String NODE_PPT_GENERATION = "pptGenerationNode";
-    /// Word生成节点
-    public static final String NODE_WORD_GENERATION = "wordGenerationNode";
-    /// 子Agents入口节点
-    public static final String NODE_SUB_AGENTS_ENTRY = "subAgentsEntryNode";
-    /// 子Agents出口节点
-    public static final String NODE_SUB_AGENTS_EXIT = "subAgentsExitNode";
-
-    /// PPT子图
-    public static final String SUBGRAPH_PPT_GENERATION = "pptGenSubGraph";
 
     private final CoursewareGenerationService coursewareGenerationService;
     private final HtmlPptTools htmlPptTools;
@@ -121,13 +78,13 @@ public class GraphConfig {
     /// @return 工作流图的Bean
     /// @author Sijayyx
     @Bean("coursewareGraph")
-    public CompiledGraph coursewareGraph(ChatClient.Builder chatClient, ChatModel chatModel, CoursewareRecordService coursewareRecordService) throws GraphStateException {
+    public CompiledGraph coursewareGraph(ChatClient.Builder chatClient, ChatModel chatModel, CoursewareRecordService coursewareRecordService, SupervisorMessageAgentHook supervisorMessageAgentHook) throws GraphStateException {
 
         log.info("正在初始化 CoursewareGraph。");
 
         KeyStrategyFactory keyStrategyFactory = () -> Map.ofEntries(
                 Map.entry(KEY_USER_ID, KeyStrategy.REPLACE),
-                Map.entry(KEY_COURSEWARE_ID, KeyStrategy.REPLACE),
+                Map.entry(KEY_COURSEWARE_REC_ID, KeyStrategy.REPLACE),
                 Map.entry(KEY_INPUT, KeyStrategy.REPLACE),
                 Map.entry(KEY_RESPONSE, KeyStrategy.APPEND),
                 Map.entry(KEY_USER_ADDITIONAL_DATA, KeyStrategy.REPLACE),
@@ -143,7 +100,7 @@ public class GraphConfig {
         RagTools ragTools = new RagTools(coursewareGenerationService);
 
         // 创建节点
-        var supervisorNode = AsyncNodeAction.node_async(new SupervisorNode(chatModel, chatClient, ragTools));
+        var supervisorNode = AsyncNodeAction.node_async(new SupervisorNode(chatModel, chatClient, supervisorMessageAgentHook, ragTools));
 
         var pptOutlineGenNode = AsyncNodeAction.node_async(new PptOutlineGenNode(chatModel));
         var pptHitlNode = new HumanFeedbackNode();
@@ -170,7 +127,7 @@ public class GraphConfig {
                     log.info("子Agents出口节点执行");
 
                     // 生成完成，将HTML发送到前端
-                    Long coursewareId = state.value(KEY_COURSEWARE_ID, Long.class).orElse(null);
+                    Long coursewareId = state.value(KEY_COURSEWARE_REC_ID, Long.class).orElse(null);
                     String pptHtml = coursewareGenerationService.getPptHtml(coursewareId);
                     String wordHtml = coursewareGenerationService.getWordHtml(coursewareId);
                     coursewareGenerationService

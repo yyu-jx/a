@@ -71,7 +71,7 @@ class ChatPersistenceServiceTest {
         when(chatMessageMapper.selectByChatId(1L)).thenReturn(expectedMessages);
 
         // When
-        List<ChatMessage> result = chatPersistenceService.getOrCreateChatMessages(1L);
+        List<ChatMessage> result = chatPersistenceService.getChatMessages(1L);
 
         // Then
         assertThat(result).isNotNull()
@@ -90,7 +90,7 @@ class ChatPersistenceServiceTest {
         when(chatMessageMapper.selectByChatId(1L)).thenReturn(Arrays.asList());
 
         // When
-        List<ChatMessage> result = chatPersistenceService.getOrCreateChatMessages(1L);
+        List<ChatMessage> result = chatPersistenceService.getChatMessages(1L);
 
         // Then
         assertThat(result).isNotNull().isEmpty();

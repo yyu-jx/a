@@ -3,10 +3,12 @@ package com.superyoudi.coursewareservice.controller;
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.AsyncNodeAction;
 import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
+import com.superyoudi.common.constants.CoursewareGenConstants;
+import com.superyoudi.common.dto.ChatHistoryDTO;
+import com.superyoudi.common.entity.Result;
 import com.superyoudi.coursewareservice.ai.node.HtmlPptGenNode;
 import com.superyoudi.coursewareservice.ai.tool.HtmlPptTools;
-import com.superyoudi.coursewareservice.config.GraphConfig;
-import com.superyoudi.coursewareservice.dto.GenerationStatus;
+import com.superyoudi.coursewareservice.pojo.dto.GenerationStatus;
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;
 import com.superyoudi.coursewareservice.service.CoursewareInteractionService;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +26,7 @@ import java.util.Map;
 @RequestMapping("/ai/coursepreparing")
 @RequiredArgsConstructor
 class CoursewareInteractionController {
-    private final CoursewareInteractionService interactionService;
+    private final CoursewareInteractionService coursewareInteractionService;
 
     private final ChatModel chatModel;
     private final HtmlPptTools htmlPptTools;
@@ -40,20 +42,24 @@ class CoursewareInteractionController {
      */
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> doChat(@RequestBody UserChatMessage userChatMessage) {
-        // TODO 使用SSE或者WebSocket让AI主动发话
-        return interactionService.executeWorkflowGraph(userChatMessage);
+        return coursewareInteractionService.executeWorkflowGraph(userChatMessage);
     }
 
     @PostMapping(value = "/chat/resume", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> doResume(@RequestBody UserChatMessage userChatMessage) {
-        return interactionService.resumeWorkflowGraph(userChatMessage);
+        return coursewareInteractionService.resumeWorkflowGraph(userChatMessage);
+    }
+
+    @GetMapping("/history/{coursewareRecordId}")
+    public Result<ChatHistoryDTO> getChatHistory(@PathVariable Long coursewareRecordId) {
+        return Result.success(coursewareInteractionService.getChatHistory(coursewareRecordId));
     }
 
     @GetMapping(value = "/tppt")
     public Flux<String> testPptGeneration() {
         var pptGenerationNode = AsyncNodeAction.node_async(new HtmlPptGenNode(chatModel, htmlPptTools));
 
-        OverAllState state = new OverAllState(Map.of(GraphConfig.KEY_PPT_OUTLINE, """
+        OverAllState state = new OverAllState(Map.of(CoursewareGenConstants.KEY_PPT_OUTLINE, """
                 # 测试演示文稿（3页精简版）
                 
                   > **受众**：内部测试 / 项目汇报 | **时长**：约3分钟
@@ -102,7 +108,7 @@ class CoursewareInteractionController {
                   - 预计9月启动第二批试点（新增销售与供应链部门） \s
                   - 欢迎各位反馈测试体验，共同完善方案 \s
                   > 可放置联系二维码、项目组邮箱或下一阶段时间轴示意图
-                """, GraphConfig.KEY_COURSEWARE_ID, 1)
+                """, CoursewareGenConstants.KEY_COURSEWARE_REC_ID, 1)
         );
 
         Map<String, Object> result = pptGenerationNode.apply(state).join();
@@ -118,13 +124,13 @@ class CoursewareInteractionController {
     // 测试接口
     @GetMapping(value = "/tchat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> testChat(@RequestParam String input) {
-        return interactionService.executeWorkflowGraph(new UserChatMessage(1L, input, null));
+        return coursewareInteractionService.executeWorkflowGraph(new UserChatMessage(1L, input, 1L));
     }
 
     // 测试接口
     @GetMapping(value = "/tresume", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> testResme(@RequestParam String approve) { // TODO UserChatMessage
-        return interactionService.resumeWorkflowGraph(new UserChatMessage(1L, "", approve));
+        return coursewareInteractionService.resumeWorkflowGraph(new UserChatMessage(1L, "", approve));
     }
 
 }

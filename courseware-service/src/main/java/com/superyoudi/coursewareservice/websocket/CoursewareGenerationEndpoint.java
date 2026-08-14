@@ -1,7 +1,7 @@
 package com.superyoudi.coursewareservice.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.superyoudi.coursewareservice.dto.GenerationStatus;
+import com.superyoudi.coursewareservice.pojo.dto.GenerationStatus;
 import jakarta.websocket.*;
 import jakarta.websocket.server.HandshakeRequest;
 import jakarta.websocket.server.PathParam;

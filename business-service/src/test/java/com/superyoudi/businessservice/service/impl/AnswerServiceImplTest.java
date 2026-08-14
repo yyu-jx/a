@@ -1,12 +1,12 @@
 package com.superyoudi.businessservice.service.impl;
 
 import com.superyoudi.aiservice.service.AnswerAiService;
-import com.superyoudi.businessservice.mapper.QuestionsMapper;
+import com.superyoudi.businessservice.mapper.QuestionMapper;
 import com.superyoudi.businessservice.mapper.StudentAnswerMapper;
 import com.superyoudi.businessservice.mapper.StudentSubmissionMapper;
 import com.superyoudi.businessservice.pojo.entity.StudentAnswer;
 import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
-import com.superyoudi.common.dto.QuestionsDTO;
+import com.superyoudi.common.dto.QuestionDTO;
 import com.superyoudi.common.exception.BusinessException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,7 +24,7 @@ import static org.mockito.Mockito.*;
 public class AnswerServiceImplTest {
 
     @Mock
-    private QuestionsMapper questionsMapper;
+    private QuestionMapper questionMapper;
     @Mock
     private AnswerAiService answerAiService;
     @Mock
@@ -43,7 +43,7 @@ public class AnswerServiceImplTest {
         Long qId = 1L;
         Long tId = 2L;
         Long sId = 3L;
-        when(questionsMapper.selectById(qId)).thenReturn(null);
+        when(questionMapper.selectById(qId)).thenReturn(null);
 
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> questionHelpService.getQuestionHelpStream(qId, tId, sId));
@@ -60,11 +60,11 @@ public class AnswerServiceImplTest {
         Long qId = 10L;
         Long tId = 20L;
         Long sId = 30L;
-        QuestionsDTO dto = new QuestionsDTO();
+        QuestionDTO dto = new QuestionDTO();
         dto.setContent("题目内容");
         dto.setAnswer("参考答案");
 
-        when(questionsMapper.selectById(qId)).thenReturn(dto);
+        when(questionMapper.selectById(qId)).thenReturn(dto);
         Flux<String> mockAiFlux = Flux.just("片段1", "片段2", "片段3");
         when(answerAiService.streamQuestionSuggest(dto.getContent(), dto.getAnswer())).thenReturn(mockAiFlux);
 
@@ -85,11 +85,11 @@ public class AnswerServiceImplTest {
         Long qId = 11L;
         Long tId = 21L;
         Long sId = 31L;
-        QuestionsDTO dto = new QuestionsDTO();
+        QuestionDTO dto = new QuestionDTO();
         dto.setContent("题目");
         dto.setAnswer("答案");
 
-        when(questionsMapper.selectById(qId)).thenReturn(dto);
+        when(questionMapper.selectById(qId)).thenReturn(dto);
         Flux<String> errorFlux = Flux.error(new RuntimeException("大模型调用失败"));
         when(answerAiService.streamQuestionSuggest(any(), any())).thenReturn(errorFlux);
 

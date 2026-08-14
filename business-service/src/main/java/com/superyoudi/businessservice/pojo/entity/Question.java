@@ -1,6 +1,9 @@
 package com.superyoudi.businessservice.pojo.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -8,8 +11,12 @@ import java.time.LocalDateTime;
  * 题目实体
  * 对应数据库 questions 题目表
  */
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 @Data
 public class Question {
+
 
     /**
      * 主键id

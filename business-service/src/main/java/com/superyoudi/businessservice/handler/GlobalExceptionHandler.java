@@ -1,7 +1,7 @@
 package com.superyoudi.businessservice.handler;
 
 
-import com.superyoudi.common.constant.MessageConstant;
+import com.superyoudi.common.constants.MessageConstants;
 import com.superyoudi.common.entity.Result;
 import com.superyoudi.common.exception.BaseException;
 import lombok.extern.slf4j.Slf4j;
@@ -35,10 +35,10 @@ public class GlobalExceptionHandler {
         String me = ex.getMessage();
         if (me.contains("Duplicate entry")) {
             String[] split = me.split(" ");
-            String msg = split[2] + MessageConstant.ALREADY_EXISTS;
+            String msg = split[2] + MessageConstants.ALREADY_EXISTS;
             return Result.error(msg);
         } else {
-            return Result.error(MessageConstant.UNKNOWN_ERROR);
+            return Result.error(MessageConstants.UNKNOWN_ERROR);
         }
 
 

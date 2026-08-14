@@ -9,13 +9,21 @@ import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.superyoudi.aiservice.pojo.entity.ChatMessage;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.lang.Nullable;
 
 import javax.validation.constraints.NotNull;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * @author Sijayyx
@@ -31,6 +39,49 @@ public class AiMessageUtils {
             .enable(JsonReadFeature.ALLOW_TRAILING_COMMA)        // 允许尾随逗号
             .build()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    public static List<Message> recoverChatHistory(Supplier<List<ChatMessage>> chatHistorySupplier, List<Message> previousMessages) {
+        List<ChatMessage> chatMessages = chatHistorySupplier.get();
+
+        if (chatMessages == null) {
+            return previousMessages;
+        }
+
+        ArrayList<Message> msgHistory = chatMessages.stream()
+                // 推断类型
+                .<Message>map(message -> {
+                    if (message.getRole().equals(ChatMessage.ROLE_USER)) {
+                        return new UserMessage(message.getMessage());
+                    } else if (message.getRole().equals(ChatMessage.ROLE_AI)) {
+                        return new AssistantMessage(message.getMessage());
+                    } else return null;
+                }).filter(Objects::nonNull) // 过滤空消息
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        if (previousMessages != null)
+            msgHistory.addAll(previousMessages);
+
+        return msgHistory;
+    }
+
+    /**
+     * 格式化聊天消息列表，只包含AI和用户的对话
+     *
+     * @param messages 聊天消息列表
+     * @return 格式化后的对话文本
+     */
+    public static String formatChatHistory(List<ChatMessage> messages) {
+        if (messages == null || messages.isEmpty()) {
+            return "";
+        }
+
+        return messages.stream()
+                .filter(msg -> msg != null && msg.getMessage() != null)
+                .filter(msg -> ChatMessage.ROLE_AI.equals(msg.getRole())
+                        || ChatMessage.ROLE_USER.equals(msg.getRole()))
+                .map(msg -> msg.getRole() + ": " + msg.getMessage())
+                .collect(Collectors.joining("\n"));
+    }
 
     /// 处理AI的流式输出，将NodeOutput的文本解析出来。
     ///
