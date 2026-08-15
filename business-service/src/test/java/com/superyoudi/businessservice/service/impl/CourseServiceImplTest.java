@@ -185,7 +185,7 @@ public class CourseServiceImplTest {
                     .thenReturn(mockCourseData);
 
             // 5. 执行测试
-            courseService.openCourse(COURSE_ID);
+            courseService.generateCourseData(COURSE_ID);
 
             // 6. 验证结果
             verify(courseMapper).selectById(COURSE_ID);
@@ -213,7 +213,7 @@ public class CourseServiceImplTest {
         // 2. 执行测试并验证异常
         CourseNotExistException exception = assertThrows(
                 CourseNotExistException.class,
-                () -> courseService.openCourse(COURSE_ID)
+                () -> courseService.generateCourseData(COURSE_ID)
         );
 
         assertEquals("课程不存在", exception.getMessage());
@@ -248,7 +248,7 @@ public class CourseServiceImplTest {
             // 4. 执行测试并验证异常
             RuntimeException exception = assertThrows(
                     RuntimeException.class,
-                    () -> courseService.openCourse(COURSE_ID)
+                    () -> courseService.generateCourseData(COURSE_ID)
             );
 
             assertEquals("课程数据生成失败", exception.getMessage());
@@ -299,7 +299,7 @@ public class CourseServiceImplTest {
                     .thenReturn(minimalCourseData);
 
             // 执行测试
-            courseService.openCourse(COURSE_ID);
+            courseService.generateCourseData(COURSE_ID);
 
             // 验证：保存了1个章节和1个小节，但没有保存知识点
             verify(chapterMapper, times(1)).insert(any(Chapter.class));
@@ -352,7 +352,7 @@ public class CourseServiceImplTest {
                     .thenReturn(courseData);
 
             // 执行测试
-            courseService.openCourse(COURSE_ID);
+            courseService.generateCourseData(COURSE_ID);
 
             // 验证：保存了1个章节和1个小节，但没有保存知识点
             verify(chapterMapper, times(1)).insert(any(Chapter.class));
@@ -534,7 +534,6 @@ public class CourseServiceImplTest {
         Course mockCourse = new Course();
         mockCourse.setId(1l);
         mockCourse.setName("Java基础课程");
-        mockCourse.setTeacherName("张老师");
 
         // 模拟mapper返回数据
         when(courseMapper.selectById(anyLong()))

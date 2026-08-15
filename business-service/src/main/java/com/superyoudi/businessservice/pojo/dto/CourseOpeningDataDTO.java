@@ -15,7 +15,7 @@ import java.util.List;
 @Data
 public class CourseOpeningDataDTO {
 
-    private Long courseId;
+    private Long courseDataId;
     private String courseName;
     private List<ChapterData> chapterDataList;
 

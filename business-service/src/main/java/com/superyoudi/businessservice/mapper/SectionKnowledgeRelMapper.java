@@ -24,28 +24,28 @@ public interface SectionKnowledgeRelMapper {
     /**
      * 根据课程ID查询所有关联的知识点
      */
-    @Select("SELECT * FROM section_knowledge_rel WHERE course_id = #{courseId} LIMIT #{limit}")
-    List<SectionKnowledgeRel> selectByCourseId(@Param("courseId") Long courseId,
-                                                          @Param("limit") Integer limit);
+    @Select("SELECT * FROM section_knowledge_rel WHERE course_data_id = #{courseDataId} LIMIT #{limit}")
+    List<SectionKnowledgeRel> selectByCourseDataId(@Param("courseDataId") Long courseDataId,
+                                                   @Param("limit") Integer limit);
 
     /**
      * 根据课程ID查询关联的知识点
      * <p>
      * 查询startId后的元素
      *
-     * @param courseId 课程ID
+     * @param courseDataId 课程数据ID
      * @param startId  起始ID
      * @param limit    查询条数
      * @return 知识点列表
      */
     @Select("""
             SELECT * FROM section_knowledge_rel
-            WHERE course_id = #{courseId} AND id > #{startId}
+            WHERE course_data_id = #{courseDataId} AND id > #{startId}
             ORDER BY id
             LIMIT #{limit}""")
-    List<SectionKnowledgeRel> selectBehindStartByCourseId(@Param("courseId") Long courseId,
-                                                          @Param("startId") Long startId,
-                                                          @Param("limit") Integer limit);
+    List<SectionKnowledgeRel> selectBehindStartByCourseDataId(@Param("courseDataId") Long courseDataId,
+                                                              @Param("startId") Long startId,
+                                                              @Param("limit") Integer limit);
 
     /**
      * 根据小节ID和知识点ID查询唯一关联
@@ -62,7 +62,7 @@ public interface SectionKnowledgeRelMapper {
     /**
      * 插入关联关系
      */
-    @Insert("INSERT INTO section_knowledge_rel (course_id, section_id, neo4j_kp_id, created_at) " +
+    @Insert("INSERT INTO section_knowledge_rel (course_data_id, section_id, neo4j_kp_id, created_at) " +
             "VALUES (#{courseId}, #{sectionId}, #{neo4jKpId}, #{createdTime})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     Long insert(SectionKnowledgeRel sectionKnowledgeRel);

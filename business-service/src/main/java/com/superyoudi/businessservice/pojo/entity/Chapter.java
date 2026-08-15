@@ -19,9 +19,9 @@ public class Chapter {
     private Long id;
 
     /**
-     * 关联课程id
+     * 关联课程数据id
      */
-    private Long courseId;
+    private Long courseDataId;
 
     /**
      * 章节名称

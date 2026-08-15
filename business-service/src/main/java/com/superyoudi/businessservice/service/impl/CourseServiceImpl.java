@@ -7,11 +7,12 @@ import com.superyoudi.aiservice.pojo.entity.LearningPathNode;
 import com.superyoudi.aiservice.service.LearningPathService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.mapper.*;
+import com.superyoudi.businessservice.pojo.dto.CourseDTO;
 import com.superyoudi.businessservice.pojo.dto.CourseOpeningDataDTO;
-import com.superyoudi.businessservice.pojo.vo.CourseStatisticsVO;
 import com.superyoudi.businessservice.pojo.entity.*;
 import com.superyoudi.businessservice.pojo.vo.*;
 import com.superyoudi.businessservice.service.CourseService;
+import com.superyoudi.common.constants.CourseConstants;
 import com.superyoudi.common.dto.StudentCourseProgress;
 import com.superyoudi.common.dto.TodayTaskRawDTO;
 import com.superyoudi.common.exception.CourseNotExistException;
@@ -24,6 +25,7 @@ import com.superyoudi.kdbservice.service.KnowledgePointService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -50,6 +52,36 @@ public class CourseServiceImpl implements CourseService {
     private final KnowledgeGraphService knowledgeGraphService;
     private final LearningPathService learningPathService;
     private final TeacherCourseAnalysisMapper teacherCourseAnalysisMapper;
+    private final CourseDataMapper courseDataMapper;
+
+    /**
+     * 获取全部课程数据表
+     */
+    @Override
+    public List<CourseData> getCourseDataList() {
+        return courseDataMapper.selectAll();
+    }
+
+    /**
+     * 添加新课程
+     */
+    @Override
+    public Long addNewCourse(@NonNull CourseDTO courseDTO) {
+        Course course = new Course();
+        BeanUtils.copyProperties(courseDTO, course);
+
+        // 验证是否存在引用的课程数据
+        if (courseDataMapper.existsById(courseDTO.getCourseDataId()) == 0) {
+            log.error("课程数据 {} 不存在", courseDTO.getCourseDataId());
+            throw new CourseNotExistException("课程数据不存在");
+        }
+
+        course.setStatus(CourseConstants.STATUS_OPENING);
+
+        courseMapper.insert(course);
+
+        return course.getId();
+    }
 
     /**
      * 获取单门课程详情
@@ -75,7 +107,7 @@ public class CourseServiceImpl implements CourseService {
     public CourseStatisticsVO getCourseStatistics(Long teacherId) {
         int courseTotal = courseMapper.countCoursesByTeacherId(teacherId);
         int studentTotal = courseMapper.countStudentsByTeacherId(teacherId);
-        double avgMasterRate = teacherCourseAnalysisMapper.getTotalAvgProgress(teacherId);
+        Double avgMasterRate = teacherCourseAnalysisMapper.getTotalAvgProgress(teacherId);
 
         return new CourseStatisticsVO(courseTotal, studentTotal, avgMasterRate);
     }
@@ -227,12 +259,11 @@ public class CourseServiceImpl implements CourseService {
      */
     @Override
     @Transactional
-    public void openCourse(Long courseId) throws CourseNotExistException {
-        Course course = courseMapper.selectById(courseId);
-        if (course == null) throw new CourseNotExistException("课程不存在");
+    public void generateCourseData(Long courseDataId) throws CourseNotExistException {
+        CourseData cd = courseDataMapper.selectById(courseDataId); // FIXME
+        if (cd == null) throw new CourseNotExistException("课程数据不存在");
 
-        // ！！！description至少要包含出版社信息！！！
-        String courseDataJson = courseDataGenerateModel.call(courseId, course.getName(), course.getDescription());
+        String courseDataJson = courseDataGenerateModel.call(courseDataId, cd.getName(), cd.getInfo());
         CourseOpeningDataDTO courseData = AiMessageUtils.readJsonValue(courseDataJson, CourseOpeningDataDTO.class);
 
         if (courseData != null) {
@@ -248,7 +279,7 @@ public class CourseServiceImpl implements CourseService {
         List<KnowledgeExtractionResult.KnowledgeRelationItem> knowledgeRelations = new ArrayList<>();
 
         for (CourseOpeningDataDTO.ChapterData chapterData : courseData.getChapterDataList()) {
-            Chapter chapter = new Chapter(null, courseData.getCourseId(), chapterData.getChapterName(),
+            Chapter chapter = new Chapter(null, courseData.getCourseDataId(), chapterData.getChapterName(),
                     null, chapterData.getOrder(), null, null);
             chapterMapper.insert(chapter);
             Long chapterId = chapter.getId();
@@ -266,7 +297,7 @@ public class CourseServiceImpl implements CourseService {
 
                     for (KnowledgeExtractionResult.KnowledgePointItem item : extractionResult.getKnowledgePoints()) {
                         SectionKnowledgeRel sectionKnowledgeRel =
-                                new SectionKnowledgeRel(null, courseData.getCourseId(), sectionId, item.getName(), null);
+                                new SectionKnowledgeRel(null, courseData.getCourseDataId(), sectionId, item.getName(), null);
                         sectionKnowledgeRelMapper.insert(sectionKnowledgeRel);
                     }
 

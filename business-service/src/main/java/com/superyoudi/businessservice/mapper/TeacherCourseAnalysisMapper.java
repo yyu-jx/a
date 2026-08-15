@@ -88,8 +88,8 @@ public interface TeacherCourseAnalysisMapper {
             SELECT AVG(avg_score_rate)
             FROM teacher_course_analysises tca
             INNER JOIN courses c ON tca.course_id = c.id
-            WHERE c.teacher_id = #{teacherId}'
-            '""")
+            WHERE c.teacher_id = #{teacherId}
+            """)
     Double getTotalAvgProgress(Long teacherId);
 
     /**

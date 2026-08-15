@@ -13,26 +13,41 @@ public class Course {
 
     private Long id;
 
-    /** 课程名称 */
+    /**
+     * 课程名称
+     */
     private String name;
 
-    /** 课程描述 */
+    /**
+     * 课程数据关联ID
+     */
+    private Long courseDataId;
+
+    /**
+     * 课程描述
+     */
     private String description;
 
-    /** 封面图 */
+    /**
+     * 封面图
+     */
     private String coverUrl;
 
-    /** 学分 */
+    /**
+     * 学分
+     */
     private Integer credit;
 
-    /** 课程状态 opening正在上课 | archived已结课 */
+    /**
+     * 课程状态 opening正在上课 | archived已结课
+     */
     private String status;
 
-    /** 任课教师id，外键关联users.id */
+    /**
+     * 任课教师id，外键关联users.id
+     */
     private Long teacherId;
 
-    /** 任课教师名称  课程表无此字段*/
-    private String teacherName;
 
     private LocalDateTime createdAt;
 

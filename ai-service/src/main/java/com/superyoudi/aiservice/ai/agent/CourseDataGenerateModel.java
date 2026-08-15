@@ -16,7 +16,7 @@ public class CourseDataGenerateModel {
         this.chatModel = chatModel;
     }
 
-    public String call(Long courseId, String courseName, String courseDesc) {
+    public String call(Long courseDataId, String courseName, String courseInfo) {
         String prompt = String.format("""
                 你是一名资深课程规划师，擅长根据课程信息生成结构清晰、逻辑递进的章、节和知识点体系。请根据以下课程信息，生成完整的课程大纲结构。
                 
@@ -55,7 +55,7 @@ public class CourseDataGenerateModel {
                 严格按照以下JSON示例的结构输出，不得包含任何额外文字、注释或Markdown标记：
                 
                 {
-                  "courseId": 1024,
+                  "courseDataId": 1024,
                   "courseName": "数据结构与算法",
                   "chapterDataList": [
                     {
@@ -83,7 +83,7 @@ public class CourseDataGenerateModel {
                 }
                 
                 请根据上述要求，为给定的课程名称和目录生成完整的大纲JSON，不要输出其它内容。
-                """, courseId, courseName, courseDesc);
+                """, courseDataId, courseName, courseInfo);
 
         return AiMessageUtils.extractJson(chatModel.call(prompt));
     }
