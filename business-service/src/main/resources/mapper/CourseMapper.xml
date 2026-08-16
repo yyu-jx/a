@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.superyoudi.businessservice.mapper.CourseMapper">
+
+
+    <!-- 教师查询任教课程，联表拿到老师真实姓名realname作为teacherName -->
+    <select id="selectTeacherCourseList" resultType="com.superyoudi.businessservice.pojo.vo.CourseVO">
+        SELECT
+            c.id AS courseId,
+            c.name,
+            c.description,
+            c.cover_url AS coverUrl,
+            c.credit,
+            c.status,
+            c.created_at AS createdAt,
+            u.realname AS teacherName,
+            c.updated_at AS updatedAt
+        FROM courses c
+                 INNER JOIN users u ON c.teacher_id = u.id
+        WHERE c.teacher_id = #{teacherId}
+    </select>
+
+    <!-- 学生查询参加的课程，关联课程学生中间表 -->
+    <select id="selectStudentCourseList" resultType="com.superyoudi.businessservice.pojo.vo.CourseVO">
+        SELECT
+            c.id AS courseId,
+            c.name,
+            c.description,
+            c.cover_url AS coverUrl,
+            c.credit,
+            c.status,
+            c.created_at AS createdAt,
+            u.realname AS teacherName,
+            c.updated_at AS updatedAt
+        FROM course_student_rel cs
+                 INNER JOIN courses c ON cs.course_id = c.id
+                 INNER JOIN users u ON c.teacher_id = u.id
+        WHERE cs.student_id = #{studentId}
+    </select>
+
+
+</mapper>

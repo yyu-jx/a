@@ -48,4 +48,12 @@ public interface CourseService {
     LearningPathVO getCourseLearningPath(Long studentId, Long courseId);
 
     void openCourse(Long courseId);
+
+    /**
+     * 获取用户课程列表
+     *
+     * @param userId 用户id
+     * @return 用户课程列表
+     */
+    List<CourseVO> getUserCourseList(Long userId);
 }

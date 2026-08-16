@@ -13,6 +13,7 @@ import com.superyoudi.businessservice.pojo.vo.*;
 import com.superyoudi.businessservice.service.CourseService;
 import com.superyoudi.common.dto.StudentCourseProgress;
 import com.superyoudi.common.dto.TodayTaskRawDTO;
+import com.superyoudi.common.exception.BusinessException;
 import com.superyoudi.common.exception.CourseNotExistException;
 import com.superyoudi.common.exception.NoStudyTaskException;
 import com.superyoudi.common.exception.StudentRepeatJoinCourseException;
@@ -49,6 +50,7 @@ public class CourseServiceImpl implements CourseService {
     private final KnowledgeGraphService knowledgeGraphService;
     private final LearningPathService learningPathService;
     private final TeacherCourseAnalysisMapper teacherCourseAnalysisMapper;
+    private final UserMapper userMapper;
 
     /**
      * 获取单门课程详情
@@ -231,6 +233,41 @@ public class CourseServiceImpl implements CourseService {
             log.error("课程数据生成失败，courseDataJson:{}", courseDataJson);
             throw new RuntimeException("课程数据生成失败");
         }
+    }
+
+
+    /**
+     * 获取用户课程列表
+     *
+     * @param userId 用户id
+     * @return 课程列表
+     */
+    @Override
+    public List<CourseVO> getUserCourseList(Long userId) {
+        if (userId == null) {
+            throw new BusinessException("用户ID不能为空");
+        }
+
+        // 查询用户角色
+        String role = userMapper.selectUserRoleById(userId);
+        if (role == null) {
+            throw new BusinessException("用户角色不存在");
+        }
+
+        List<CourseVO> result;
+        if ("teacher".equals(role)) {
+            //教师角色，查授课课程
+            result = courseMapper.selectTeacherCourseList(userId);
+        } else if ("student".equals(role)) {
+            //学生角色，查已加入课程
+            result = courseMapper.selectStudentCourseList(userId);
+        } else {
+            // researcher等其他角色返回空集合
+            result = new ArrayList<>();
+        }
+
+
+        return result;
     }
 
     public void saveCourseData(CourseDataDTO courseData) {

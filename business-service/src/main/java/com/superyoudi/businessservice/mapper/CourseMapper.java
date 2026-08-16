@@ -1,6 +1,7 @@
 package com.superyoudi.businessservice.mapper;
 
 import com.superyoudi.businessservice.pojo.entity.Course;
+import com.superyoudi.businessservice.pojo.vo.CourseVO;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
@@ -49,4 +50,28 @@ public interface CourseMapper {
      */
     @Select("SELECT * FROM courses WHERE id = #{courseId}")
     Course selectById(Long courseId);
+
+    /**
+     * 根据用户id查询用户角色
+     *
+     * @param userId 用户id
+     * @return 用户角色
+     */
+    String selectUserRoleById(Long userId);
+
+    /**
+     * 根据教师id查询课程列表
+     *
+     * @param teacherId 教师id
+     * @return 课程列表
+     */
+    List<CourseVO> selectTeacherCourseList(Long teacherId);
+
+    /**
+     * 根据学生id查询课程列表
+     *
+     * @param studentId 学生id
+     * @return 课程列表
+     */
+    List<CourseVO> selectStudentCourseList(Long studentId);
 }
