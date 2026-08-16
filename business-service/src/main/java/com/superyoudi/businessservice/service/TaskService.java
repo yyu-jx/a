@@ -1,11 +1,14 @@
 package com.superyoudi.businessservice.service;
 
-import com.superyoudi.common.dto.ErrorQuestionVO;
+import com.superyoudi.businessservice.pojo.dto.TaskDTO;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
+import com.superyoudi.common.dto.ErrorQuestionVO;
 
 import java.util.List;
 
 public interface TaskService {
+
+    Long saveTaskData(TaskDTO taskDTO);
 
     /**
      * 学生提交作业
@@ -27,12 +30,11 @@ public interface TaskService {
     /**
      * 获取用户错题
      *
-     * @param userId  用户id
+     * @param userId   用户id
      * @param courseId 课程id
      * @return 用户错题
      */
     List<ErrorQuestionVO> listUserErrorQuestion(Long userId, Long courseId);
-
 
 
     /**

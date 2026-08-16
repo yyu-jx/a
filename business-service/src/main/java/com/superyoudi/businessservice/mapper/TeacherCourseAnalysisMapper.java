@@ -81,12 +81,23 @@ public interface TeacherCourseAnalysisMapper {
     @Update("UPDATE teacher_course_analysises SET avg_score_rate = #{avgScoreRate} WHERE course_id = #{courseId}")
     Long updateAvgScoreRate(@Param("courseId") Long courseId, @Param("avgScoreRate") BigDecimal avgScoreRate);
 
+    /**
+     * 获取任教课程的总平均进度
+     */
+    @Select("""
+            SELECT AVG(avg_score_rate)
+            FROM teacher_course_analysises tca
+            INNER JOIN courses c ON tca.course_id = c.id
+            WHERE c.teacher_id = #{teacherId}
+            """)
+    Double getTotalAvgProgress(Long teacherId);
 
     /**
      * 统计总记录数
      */
     @Select("SELECT COUNT(*) FROM teacher_course_analysises")
     long count();
+
 
 
 }

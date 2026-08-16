@@ -10,6 +10,7 @@ import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.aiservice.pojo.entity.LearningPathNode;
 import com.superyoudi.aiservice.service.LearningPathService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
+import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.businessservice.mapper.SectionKnowledgeRelMapper;
 import com.superyoudi.businessservice.mapper.StudentKnowledgeMasteryMapper;
 import com.superyoudi.businessservice.pojo.entity.SectionKnowledgeRel;
@@ -43,13 +44,15 @@ public class LearningPathServiceImpl implements LearningPathService {
     private final SectionKnowledgeRelMapper sectionKnowledgeRelMapper;
     private final StudentKnowledgeMasteryMapper studentKnowledgeMasteryMapper;
     private final LearningPathGenerateModel learningPathGenerateModel;
+    private final CourseMapper courseMapper;
 
-    public LearningPathServiceImpl(LearningPathMapper learningPathMapper, LearningPathNodeMapper learningPathNodeMapper, SectionKnowledgeRelMapper sectionKnowledgeRelMapper, StudentKnowledgeMasteryMapper studentKnowledgeMasteryMapper, LearningPathGenerateModel learningPathGenerateModel) {
+    public LearningPathServiceImpl(LearningPathMapper learningPathMapper, LearningPathNodeMapper learningPathNodeMapper, SectionKnowledgeRelMapper sectionKnowledgeRelMapper, StudentKnowledgeMasteryMapper studentKnowledgeMasteryMapper, LearningPathGenerateModel learningPathGenerateModel, CourseMapper courseMapper) {
         this.learningPathMapper = learningPathMapper;
         this.learningPathNodeMapper = learningPathNodeMapper;
         this.sectionKnowledgeRelMapper = sectionKnowledgeRelMapper;
         this.studentKnowledgeMasteryMapper = studentKnowledgeMasteryMapper;
         this.learningPathGenerateModel = learningPathGenerateModel;
+        this.courseMapper = courseMapper;
     }
 
     /// 生成并覆盖旧的学习路径
@@ -74,10 +77,17 @@ public class LearningPathServiceImpl implements LearningPathService {
         // 候选知识点
         Map<SectionKnowledgeRel, StudentKnowledgeMastery> unmasteredKnowledgeMap = new HashMap<>();
 
+        Long courseDataId = courseMapper.getCourseDataId(courseId);
+
+        if (courseDataId == null) {
+            log.error("课程数据获取失败，无法生成学习路径");
+            throw new NullPointerException("课程数据获取失败，无法生成学习路径");
+        }
+
         long startRelId = 0L;
         for (int i = 0; i < CREATE_LEARNING_PATH_MAX_RETRIES; i++) {
             Map<SectionKnowledgeRel, StudentKnowledgeMastery> candidateMap = new HashMap<>();
-            List<SectionKnowledgeRel> sectionKnowledgeRels = sectionKnowledgeRelMapper.selectBehindStartByCourseId(courseId, startRelId, KNOWLEDGE_POINTS_EACH_PATH);
+            List<SectionKnowledgeRel> sectionKnowledgeRels = sectionKnowledgeRelMapper.selectBehindStartByCourseDataId(courseDataId, startRelId, KNOWLEDGE_POINTS_EACH_PATH);
 
             for (SectionKnowledgeRel sectionKnowledgeRel : sectionKnowledgeRels) {
                 StudentKnowledgeMastery studentKnowledgeMastery =

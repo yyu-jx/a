@@ -31,6 +31,7 @@ public class CourseStudyOverviewVO {
      * 提交率
      */
     private double avgSubmitRate;
+
     /**
      * 薄弱知识点列表，字符串数组。作为tag显示
      */

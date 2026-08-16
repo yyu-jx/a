@@ -1,12 +1,18 @@
 package com.superyoudi.businessservice.service;
 
+import com.superyoudi.businessservice.pojo.dto.CourseDTO;
+import com.superyoudi.businessservice.pojo.entity.CourseData;
+import com.superyoudi.businessservice.pojo.vo.CourseStatisticsVO;
 import com.superyoudi.businessservice.pojo.entity.Course;
 import com.superyoudi.businessservice.pojo.vo.*;
 import com.superyoudi.common.exception.CourseNotExistException;
+import org.springframework.lang.NonNull;
 
 import java.util.List;
 
 public interface CourseService {
+
+    Long addNewCourse(@NonNull CourseDTO courseDTO);
 
     /**
      * 获取单门课程详情
@@ -16,7 +22,11 @@ public interface CourseService {
      */
     CourseVO getCourseInfo(Long courseId) throws CourseNotExistException;
 
+    CourseStatisticsVO getCourseStatistics(Long teacherId);
+
+
     List<Course> getCoursesByTeacherId(Long teacherId);
+
 
     /**
      * 获取学生课程进度
@@ -47,5 +57,7 @@ public interface CourseService {
 
     LearningPathVO getCourseLearningPath(Long studentId, Long courseId);
 
-    void openCourse(Long courseId);
+    List<CourseData> getCourseDataList();
+
+    void generateCourseData(Long courseId);
 }

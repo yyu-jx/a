@@ -34,15 +34,16 @@ CREATE TABLE `classes`
 DROP TABLE IF EXISTS `courses`;
 CREATE TABLE `courses`
 (
-    `id`          BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-    `name`        VARCHAR(128)                NOT NULL COMMENT '课程名称',
-    `description` TEXT COMMENT '课程描述',
-    `cover_url`   VARCHAR(512)                         DEFAULT '' COMMENT '封面图',
-    `credit`      TINYINT                     NOT NULL DEFAULT 0 COMMENT '学分',
-    `status`      ENUM ('opening','archived') NOT NULL COMMENT '课程状态：上课中/已结课',
-    `teacher_id`  BIGINT                      NOT NULL COMMENT '任课教师ID',
-    `created_at`  DATETIME                             DEFAULT CURRENT_TIMESTAMP,
-    `updated_at`  DATETIME                             DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `id`             BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    `course_data_id` BIGINT                      NOT NULL COMMENT '关联课程数据ID',
+    `name`           VARCHAR(128)                NOT NULL COMMENT '课程名称',
+    `description`    TEXT COMMENT '课程描述',
+    `cover_url`      VARCHAR(512)                         DEFAULT '' COMMENT '封面图',
+    `credit`         TINYINT                     NOT NULL DEFAULT 0 COMMENT '学分',
+    `status`         ENUM ('opening','archived') NOT NULL COMMENT '课程状态：上课中/已结课',
+    `teacher_id`     BIGINT                      NOT NULL COMMENT '任课教师ID',
+    `created_at`     DATETIME                             DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`     DATETIME                             DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     KEY idx_teacher (`teacher_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='课程表';
@@ -51,14 +52,14 @@ CREATE TABLE `courses`
 DROP TABLE IF EXISTS `chapters`;
 CREATE TABLE `chapters`
 (
-    `id`         BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-    `course_id`  BIGINT       NOT NULL COMMENT '关联课程id',
-    `name`       VARCHAR(128) NOT NULL COMMENT '章节名称',
-    `summary`    TEXT COMMENT '章节简介',
-    `sort_order` INT          NOT NULL DEFAULT 0 COMMENT '排序',
-    `created_at` DATETIME              DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` DATETIME              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    KEY idx_course (`course_id`)
+    `id`             BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    `course_data_id` BIGINT       NOT NULL COMMENT '关联课程数据id',
+    `name`           VARCHAR(128) NOT NULL COMMENT '章节名称',
+    `summary`        TEXT COMMENT '章节简介',
+    `sort_order`     INT          NOT NULL DEFAULT 0 COMMENT '排序',
+    `created_at`     DATETIME              DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`     DATETIME              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_course (`course_data_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='章表';
 
@@ -81,11 +82,11 @@ CREATE TABLE `sections`
 DROP TABLE IF EXISTS `section_knowledge_rel`;
 CREATE TABLE `section_knowledge_rel`
 (
-    `id`          BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-    `course_id`   BIGINT      NOT NULL COMMENT '课程ID，冗余',
-    `section_id`  BIGINT      NOT NULL COMMENT '小节id',
-    `neo4j_kp_id` VARCHAR(64) NOT NULL COMMENT 'Neo4j知识点唯一id',
-    `created_at`  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `id`             BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    `course_data_id` BIGINT      NOT NULL COMMENT '课程数据ID，冗余',
+    `section_id`     BIGINT      NOT NULL COMMENT '小节id',
+    `neo4j_kp_id`    VARCHAR(64) NOT NULL COMMENT 'Neo4j知识点唯一id',
+    `created_at`     DATETIME DEFAULT CURRENT_TIMESTAMP,
     KEY idx_section (`section_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='小节关联知识点';
@@ -100,8 +101,8 @@ CREATE TABLE `learning_paths`
     `current_node_id` BIGINT                                                    DEFAULT NULL COMMENT '当前正在进行的learning_path_node_id，NULL表示未开始',
     `current_stage`   ENUM ('introducing', 'explaining', 'testing', 'finished') DEFAULT NULL COMMENT '当前教学阶段：introducing-引入, explaining-讲解, testing-测验, finished-结束',
     `additional_info` TEXT COMMENT 'AI附加描述',
-    `created_at`      DATETIME DEFAULT CURRENT_TIMESTAMP,
-    `updated_at`      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `created_at`      DATETIME                                                  DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`      DATETIME                                                  DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uk_stu_course (`student_id`, `course_id`),
     KEY idx_student (`student_id`),
     KEY idx_course (`course_id`)
@@ -572,3 +573,16 @@ CREATE TABLE `chat_courseware_rec_rel`
     KEY idx_user (`user_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='会话-课件生成记录关联表';
+
+-- 37. 课程数据表 course_data
+DROP TABLE IF EXISTS course_data;
+CREATE TABLE IF NOT EXISTS `course_data`
+(
+    `id`         BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `name`       VARCHAR(255) NOT NULL COMMENT '课程名称',
+    `info`       TEXT COMMENT '课程的教材等信息',
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='课程数据表';

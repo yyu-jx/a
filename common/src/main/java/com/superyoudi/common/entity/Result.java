@@ -18,6 +18,7 @@ public class Result<T> {
         Result<T> result = new Result<>();
         result.code = 1;
         result.message = "success";
+        result.data = null;
         return result;
     }
 
