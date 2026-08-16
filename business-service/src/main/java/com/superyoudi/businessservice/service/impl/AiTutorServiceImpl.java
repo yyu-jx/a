@@ -78,8 +78,15 @@ public class AiTutorServiceImpl implements AiTutorService {
         try {
             return aiTutorAgent.callAgent(userChatMessage.getMessage(), runnableConfig)
                     .map(nodeOutput ->
-                            AiMessageUtils.handleStreamingOutput(nodeOutput, null,
-                                    message -> log.info("AI Tutor回复: {}", message)));
+                            AiMessageUtils.handleStreamingOutput(
+                                    nodeOutput,
+                                    null,
+                                    message -> log.info("AI Tutor回复: {}", message), // 打日志
+                                    () -> {
+                                        ChatSession chatSession = chatPersistenceService.getOrCreateChatSession(userChatMessage.getUserId(), courseId);
+                                        ChatMessage latestMsg = chatPersistenceService.getLatestAiMessageByChatId(chatSession.getId());
+                                        return latestMsg.getId().toString(); // 附加AI对话的消息ID
+                                    }));
         } catch (GraphRunnerException e) {
             log.error("调用AI Tutor失败", e);
             throw new RuntimeException("调用AI Tutor失败", e);

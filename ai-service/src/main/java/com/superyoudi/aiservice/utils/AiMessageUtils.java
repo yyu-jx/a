@@ -39,6 +39,7 @@ public class AiMessageUtils {
             .enable(JsonReadFeature.ALLOW_TRAILING_COMMA)        // 允许尾随逗号
             .build()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private static final String EMPTY_STRING = "";
 
     public static List<Message> recoverChatHistory(Supplier<List<ChatMessage>> chatHistorySupplier, List<Message> previousMessages) {
         List<ChatMessage> chatMessages = chatHistorySupplier.get();
@@ -95,10 +96,12 @@ public class AiMessageUtils {
     /// @param output                    Agent/Graph的节点输出。
     /// @param interruptionCallback      图执行中断的回调。
     /// @param streamingFinishedCallback 流式输出结束的回调，可获取输出的全部文本。
+    /// @param dataInFinish              流式输出结束时的额外数据，附在`\[DONE:%s\]`中。若无数据，则返回`\[DONE\]`。
     /// @return 输出文本。
     public static String handleStreamingOutput(@NotNull NodeOutput output,
                                                @Nullable Function<InterruptionMetadata, String> interruptionCallback,
-                                               @Nullable Consumer<String> streamingFinishedCallback) {
+                                               @Nullable Consumer<String> streamingFinishedCallback,
+                                               @Nullable Supplier<String> dataInFinish) {
 
         // 处理HITL中断
         if (output instanceof InterruptionMetadata interruptionMetadata) {
@@ -111,14 +114,14 @@ public class AiMessageUtils {
             Message message = streamingOutput.message();
 
             if (message == null)
-                return formatOutput("");
+                return EMPTY_STRING;
 
             // 判断节点输出类型
             if (outputType == OutputType.GRAPH_NODE_STREAMING || outputType == OutputType.AGENT_MODEL_STREAMING) {
                 // 流式输出
                 String chunk = message.getText();
                 if (chunk != null)
-                    return formatOutput(chunk);
+                    return chunk;
             } else if (outputType == OutputType.GRAPH_NODE_FINISHED || outputType == OutputType.AGENT_MODEL_FINISHED) {
                 // 输出结束
                 if (streamingFinishedCallback != null) {
@@ -126,14 +129,14 @@ public class AiMessageUtils {
                     streamingFinishedCallback.accept(allMessage);
                 }
 
-                return formatOutput("[DONE]"); // 输出结束
+                if (dataInFinish != null)
+                    // 输出结束并附带额外数据
+                    return String.format("[DONE:%s]", dataInFinish.get());
+
+                return "[DONE]";
             }
         }
-        return formatOutput("");
-    }
-
-    private static String formatOutput(String output) {
-        return output;
+        return EMPTY_STRING;
     }
 
     public static <T> T readJsonValue(String json, Class<T> type) {

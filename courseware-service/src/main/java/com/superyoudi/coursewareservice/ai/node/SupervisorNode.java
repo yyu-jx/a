@@ -110,7 +110,7 @@ public class SupervisorNode implements NodeAction {
 
                             log.info("SupervisorNode是否生成资料：{}", readyToGenerate);
                         }
-                ))
+                        , null))
                 .filter(msg -> !msg.isBlank() && !msg.equals("[DONE]"))
                 .share();
 

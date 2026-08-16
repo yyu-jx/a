@@ -319,7 +319,7 @@ CREATE TABLE `ai_citations`
     `chat_message_id` BIGINT DEFAULT NULL,
     `suggestion_id`   BIGINT DEFAULT NULL,
     `title`           VARCHAR(256)                                                                                       NOT NULL,
-    `data_type`       ENUM ('file','url','text_quote','student_record','student_progress','knowledge','exercise','exam') NOT NULL,
+    `data_type`       ENUM ('file','url','text_quote','student_record','student_progress','knowledge','question','exam') NOT NULL,
     `data`            TEXT COMMENT '引用数据JSON',
     KEY idx_msg (`chat_message_id`),
     KEY idx_sug (`suggestion_id`)

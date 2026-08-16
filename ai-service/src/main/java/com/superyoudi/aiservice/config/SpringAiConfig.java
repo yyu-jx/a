@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class SpringAIconfig {
+public class SpringAiConfig {
 
     /**
      * 配置 ChatClient

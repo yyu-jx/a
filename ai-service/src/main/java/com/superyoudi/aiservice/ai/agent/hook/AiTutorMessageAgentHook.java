@@ -65,16 +65,18 @@ public class AiTutorMessageAgentHook extends MessagesAgentHook {
      * <p>
      * 获取最后一个消息，并向消息列表追加它。
      */
-    private void saveChatMessage(Long studentId, Long courseId, List<Message> messages) {
+    private Long saveChatMessage(Long studentId, Long courseId, List<Message> messages) {
         Message lastMsg = messages.get(messages.size() - 1);
 
         log.info("保存消息记录: 文本: {}, 角色: {}, 学生ID/课程ID: {}/{}", lastMsg.getText(), lastMsg.getMessageType(), studentId, courseId);
 
         if (lastMsg.getMessageType() == MessageType.ASSISTANT) {
-            chatPersistenceService.appendChatMessage(studentId, courseId, lastMsg.getText(), ChatMessage.ROLE_AI);
+            return chatPersistenceService.appendChatMessage(studentId, courseId, lastMsg.getText(), ChatMessage.ROLE_AI);
         } else if (lastMsg.getMessageType() == MessageType.USER) {
-            chatPersistenceService.appendChatMessage(studentId, courseId, lastMsg.getText(), ChatMessage.ROLE_USER);
+            return chatPersistenceService.appendChatMessage(studentId, courseId, lastMsg.getText(), ChatMessage.ROLE_USER);
         }
+
+        return null; // 如果消息类型不是用户或AI，返回null
     }
 
     @Override

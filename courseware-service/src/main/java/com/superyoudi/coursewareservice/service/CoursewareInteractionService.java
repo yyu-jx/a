@@ -25,7 +25,6 @@ import java.util.concurrent.ForkJoinPool;
 @Service
 public class CoursewareInteractionService {
 
-
     private final CompiledGraph compiledGraph;
     private final ChatPersistenceService chatPersistenceService;
 
@@ -44,10 +43,10 @@ public class CoursewareInteractionService {
     public Flux<String> executeWorkflowGraph(UserChatMessage userChatMessage) {
         Long userId = userChatMessage.getUserId();
         String input = userChatMessage.getMessage();
-        Long coursewareId = (Long) userChatMessage.getAdditionalData();
+        Long coursewareRecId = (Long) userChatMessage.getAdditionalData();
 
         Assert.notNull(userId, "userId不能为null");
-        Assert.notNull(coursewareId, "coursewareId不能为null");
+        Assert.notNull(coursewareRecId, "coursewareId不能为null");
 
         // 构建线程ID
         String threadId = constructThreadId(userId);
@@ -63,13 +62,13 @@ public class CoursewareInteractionService {
         return compiledGraph.stream(Map.of(
                         CoursewareGenConstants.KEY_USER_ID, userId,
                         CoursewareGenConstants.KEY_INPUT, input,
-                        CoursewareGenConstants.KEY_COURSEWARE_REC_ID, coursewareId
+                        CoursewareGenConstants.KEY_COURSEWARE_REC_ID, coursewareRecId
                 ), config)
                 .map(output -> AiMessageUtils.handleStreamingOutput(
                         output,
                         interruptionMetadata -> {
                             String nodeName = interruptionMetadata.node();
-                            String outline = interruptionMetadata.metadata(CoursewareGenConstants.KEY_PPT_OUTLINE).get().toString();
+                            String outline = interruptionMetadata.metadata(CoursewareGenConstants.KEY_PPT_OUTLINE).orElseThrow().toString();
 
                             log.error("节点执行中断！{}, outline: {}", nodeName, outline);
 
@@ -81,7 +80,12 @@ public class CoursewareInteractionService {
                                     [DONE]
                                     """, nodeName, outline);
                         },
-                        null
+                        null,
+                        () -> {
+                            Long latestChatMessageId = getLatestChatMessageId(coursewareRecId);
+                            if (latestChatMessageId == null) return null;
+                            return latestChatMessageId.toString();
+                        }
                 ));
     }
 
@@ -123,6 +127,7 @@ public class CoursewareInteractionService {
                                     [DONE]
                                     """, nodeName, outline);
                         },
+                        null,
                         null
                 ));
     }
@@ -131,6 +136,16 @@ public class CoursewareInteractionService {
         ChatSession session = chatPersistenceService.getChatSessionByCoursewareRecId(coursewareRecId);
         List<ChatMessage> chatMessages = chatPersistenceService.getChatMessages(session.getId());
         return chatPersistenceService.constructChatHistory(session.getId(), session.getUserId(), chatMessages);
+    }
+
+    private Long getLatestChatMessageId(Long coursewareRecId) {
+        ChatSession chatSession = chatPersistenceService.getChatSessionByCoursewareRecId(coursewareRecId);
+        if (chatSession == null) {
+            log.error("未找到与课件生成对应的聊天记录！");
+            return null;
+        }
+
+        return chatPersistenceService.getLatestAiMessageByChatId(chatSession.getId()).getId();
     }
 
     private String constructThreadId(Long userId) {
