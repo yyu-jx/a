@@ -1,7 +1,10 @@
 package com.superyoudi.businessservice.service;
 
+import com.superyoudi.businessservice.pojo.entity.TaskList;
+import com.superyoudi.businessservice.pojo.vo.TaskQuestionVO;
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
+import org.springframework.data.domain.Page;
 import com.superyoudi.common.dto.ErrorQuestionVO;
 
 import java.util.List;
@@ -44,6 +47,27 @@ public interface TaskService {
      * @return 诊断报告
      */
     String diagnose(Long studentId);
+
+
+    /**
+     * 获取任务列表
+     *
+     * @param userId    用户id
+     * @param courseId  课程id
+     * @param pageNum   页码
+     * @param pageSize  页大小
+     * @param status    状态
+     * @return 任务列表
+     */
+    Page<TaskList> getTaskPage(Long userId, Long courseId, Integer pageNum, Integer pageSize, String status);
+
+    /**
+     * 获取任务题目列表
+     *
+     * @param taskId 任务id
+     * @return 任务问题列表
+     */
+    TaskQuestionVO getTaskQuestionList(Long taskId);
 }
 
 
