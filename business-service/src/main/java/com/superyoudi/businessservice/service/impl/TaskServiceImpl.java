@@ -1,14 +1,18 @@
 package com.superyoudi.businessservice.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.superyoudi.aiservice.service.TaskAiService;
+import com.superyoudi.businessservice.mapper.StudentAnswerMapper;
 import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
 import com.superyoudi.businessservice.mapper.StudentSubmissionMapper;
 import com.superyoudi.businessservice.mapper.TaskMapper;
 import com.superyoudi.businessservice.mapper.TaskQuestionRelMapper;
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
+import com.superyoudi.businessservice.pojo.entity.StudentAnswer;
 import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
 import com.superyoudi.businessservice.pojo.entity.Task;
 import com.superyoudi.businessservice.pojo.entity.TaskQuestionRel;
+import com.superyoudi.businessservice.pojo.vo.StudentAnswerVO;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
 import com.superyoudi.businessservice.service.TaskService;
 import com.superyoudi.common.dto.ErrorQuestionVO;
@@ -16,6 +20,7 @@ import com.superyoudi.common.exception.ErrorQuestionNotFoundException;
 import com.superyoudi.common.exception.ParamInvalidException;
 import com.superyoudi.common.exception.StudentRepeatJoinCourseException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -29,16 +34,19 @@ import java.util.concurrent.TimeUnit;
 import static com.superyoudi.common.constants.RedisConstants.AI_DIAGNOSE_CACHE_HOUR;
 import static com.superyoudi.common.constants.RedisConstants.AI_DIAGNOSE_CACHE_KEY;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TaskServiceImpl implements TaskService {
 
     private final StudentSubmissionMapper studentSubmissionMapper;
+    private final StudentAnswerMapper studentAnswerMapper;
     private final TaskMapper taskMapper;
     private final StudentCourseProgressMapper studentCourseProgressMapper;
     private final TaskAiService taskAiService;
     private final StringRedisTemplate stringRedisTemplate;
     private final TaskQuestionRelMapper taskQuestionRelMapper;
+    private final ObjectMapper objectMapper;
 
     /**
      * 更新任务信息
@@ -164,6 +172,62 @@ public class TaskServiceImpl implements TaskService {
 
         stringRedisTemplate.opsForValue().set(cacheKey, result, AI_DIAGNOSE_CACHE_HOUR, TimeUnit.HOURS);
         return result;
+    }
+
+    @Override
+    public List<StudentAnswerVO> getStudentAnswers(Long studentId, Long submissionId) {
+        List<StudentAnswer> list;
+        if (submissionId != null) {
+            list = studentAnswerMapper.selectBySubmissionId(submissionId);
+        } else if (studentId != null) {
+            list = studentAnswerMapper.selectByStudentId(studentId);
+        } else {
+            list = studentAnswerMapper.selectAll();
+        }
+        return list.stream().map(this::toAnswerVO).toList();
+    }
+
+    @Override
+    public void updateStudentAnswer(StudentAnswerVO dto) {
+        if (dto == null || dto.getId() == null) {
+            throw new ParamInvalidException("答题记录ID不能为空");
+        }
+        StudentAnswer entity = studentAnswerMapper.selectById(dto.getId());
+        if (entity == null) {
+            throw new ParamInvalidException("答题记录不存在");
+        }
+        // 只更新可批改字段，createdAt 保持答题时间不变
+        if (dto.getAnswer() != null) entity.setAnswer(dto.getAnswer().toString());
+        if (dto.getScore() != null) entity.setScore(dto.getScore());
+        if (dto.getComment() != null) entity.setComment(dto.getComment());
+        if (dto.getTimeSpent() != null) entity.setTimeSpent(dto.getTimeSpent());
+        if (dto.getAttemptCount() != null) entity.setAttemptCount(dto.getAttemptCount());
+        if (dto.getHelpRequestCount() != null) entity.setHelpRequestCount(dto.getHelpRequestCount());
+        if (dto.getErrorType() != null) entity.setErrorType(dto.getErrorType());
+        studentAnswerMapper.updateById(entity);
+    }
+
+    @Override
+    public List<StudentSubmission> getSubmissions(Long taskId) {
+        if (taskId != null) {
+            return studentSubmissionMapper.selectByTaskId(taskId);
+        }
+        return studentSubmissionMapper.selectAll();
+    }
+
+    /** 实体转VO：answer 字符串解析为 JSON 对象 */
+    private StudentAnswerVO toAnswerVO(StudentAnswer e) {
+        StudentAnswerVO vo = new StudentAnswerVO();
+        BeanUtils.copyProperties(e, vo);
+        if (e.getAnswer() != null && !e.getAnswer().isBlank()) {
+            try {
+                vo.setAnswer(objectMapper.readTree(e.getAnswer()));
+            } catch (Exception ex) {
+                log.warn("答题答案JSON解析失败, id={}", e.getId(), ex);
+                vo.setAnswer(null);
+            }
+        }
+        return vo;
     }
 
 }
