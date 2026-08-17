@@ -46,7 +46,7 @@ class TestController {
     public String testCourseKnowledgePoints() throws IOException {
         String json = Files.readString(Paths.get("D:\\Desktop\\test.txt"), StandardCharsets.UTF_8);
 
-        CourseOpeningDataDTO courseOpeningDataDTO = AiMessageUtils.readJsonValue(json, CourseOpeningDataDTO.class);
+        CourseOpeningDataDTO courseOpeningDataDTO = AiMessageUtils.convertJsonValue(json, CourseOpeningDataDTO.class);
 
         courseService.saveCourseData(courseOpeningDataDTO);
         return "success";

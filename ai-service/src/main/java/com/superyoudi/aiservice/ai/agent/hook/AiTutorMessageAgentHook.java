@@ -6,7 +6,9 @@ import com.alibaba.cloud.ai.graph.agent.hook.HookPosition;
 import com.alibaba.cloud.ai.graph.agent.hook.HookPositions;
 import com.alibaba.cloud.ai.graph.agent.hook.messages.AgentCommand;
 import com.alibaba.cloud.ai.graph.agent.hook.messages.MessagesAgentHook;
+import com.alibaba.cloud.ai.graph.utils.TypeRef;
 import com.superyoudi.aiservice.ai.agent.AiTutorAgent;
+import com.superyoudi.aiservice.pojo.dto.AiCitation;
 import com.superyoudi.aiservice.pojo.entity.ChatMessage;
 import com.superyoudi.aiservice.service.ChatPersistenceService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
@@ -17,6 +19,7 @@ import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Sijayyx
@@ -53,9 +56,25 @@ public class AiTutorMessageAgentHook extends MessagesAgentHook {
         // 这里能拿到用户消息、工具调用消息、AI回复的消息
         Long courseId = (Long) config.metadata(AiTutorAgent.METADATA_COURSE_ID).orElseThrow();
         Long studentId = (Long) config.metadata(AiTutorAgent.METADATA_STUDENT_ID).orElseThrow();
+        Map<String, Object> metadata = config
+                .metadata(AiTutorAgent.METADATA_CUSTOM_METADATA, new TypeRef<Map<String, Object>>() {
+                }).orElse(null);
+
 
         // 存AI回复的消息
-        saveChatMessage(studentId, courseId, previousMessages);
+        Long messageId = saveChatMessage(studentId, courseId, previousMessages);
+
+        if (metadata != null && metadata.containsKey("citations")) {
+            List<AiCitation> citations = (List<AiCitation>) metadata.get("citations");
+            citations.forEach(citation ->
+            {
+                citation.setChatMessageId(messageId);
+                chatPersistenceService.saveCitation(citation);
+                log.info("AI导师 保存引用消息: 标题: {}, 数据类型: {}, 数据: {}", citation.getTitle(), citation.getDataType(), citation.getData());
+            });
+        }
+
+        // 存引用消息: metadata.citations
 
         return super.afterAgent(previousMessages, config);
     }

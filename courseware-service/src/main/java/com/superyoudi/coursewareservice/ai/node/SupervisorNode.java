@@ -9,7 +9,7 @@ import com.superyoudi.aiservice.pojo.entity.ChatMessage;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.common.constants.CoursewareGenConstants;
 import com.superyoudi.coursewareservice.ai.hook.SupervisorMessageAgentHook;
-import com.superyoudi.coursewareservice.ai.tool.RagTools;
+import com.superyoudi.aiservice.ai.tools.RagTools;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;

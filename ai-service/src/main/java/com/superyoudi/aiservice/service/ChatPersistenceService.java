@@ -48,7 +48,6 @@ public class ChatPersistenceService {
 
 
     public void saveCitation(AiCitation citation) {
-        // 自动填充创建时间（由数据库默认填充）
         aiCitationMapper.insert(citation);
     }
 
@@ -170,17 +169,28 @@ public class ChatPersistenceService {
 
         chatCourseRel = chatCourseRelMapper.selectByCourseAndStudentId(courseId, studentId);
 
-        return chatSessionMapper.selectById(chatCourseRel.getChatId());
+        ChatSession chatSession = chatSessionMapper.selectById(chatCourseRel.getChatId());
+        if (chatSession == null) {
+            chatSession = createChatSession(chatCourseRel.getChatId());
+            chatCourseRel.setChatId(chatSession.getId());
+            chatCourseRelMapper.update(chatCourseRel);
+        }
+
+        return chatSession;
     }
 
     /**
      * 创建会话与课程关联关系
      */
     public Long createChatSessionAndCourseRel(Long userId, Long courseId) {
+        ChatSession chatSession = createChatSession(userId);
+        return createChatCourseRel(chatSession.getId(), courseId, userId);
+    }
+
+    private ChatSession createChatSession(Long userId) {
         ChatSession chatSession = new ChatSession(null, userId, null);
         chatSessionMapper.insert(chatSession);
-
-        return createChatCourseRel(chatSession.getId(), courseId, userId);
+        return chatSession;
     }
 
     public Long createChatCourseRel(Long chatId, Long courseId, Long userId) {
@@ -193,8 +203,7 @@ public class ChatPersistenceService {
      * 创建会话与课程关联关系
      */
     public Long createChatCoursewareRecRel(Long userId, Long coursewareRecId) {
-        ChatSession chatSession = new ChatSession(null, userId, null);
-        chatSessionMapper.insert(chatSession);
+        ChatSession chatSession = createChatSession(userId);
 
         return createChatCoursewareRecRel(chatSession.getId(), coursewareRecId, userId);
     }

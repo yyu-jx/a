@@ -31,6 +31,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -73,10 +74,11 @@ public class AiTutorServiceImpl implements AiTutorService {
                 .threadId("ai_tutor_thread_" + userChatMessage.getUserId() + "_" + courseId)
                 .addMetadata(AiTutorAgent.METADATA_STUDENT_ID, userChatMessage.getUserId())
                 .addMetadata(AiTutorAgent.METADATA_COURSE_ID, courseId)
+                .addMetadata(AiTutorAgent.METADATA_CUSTOM_METADATA, new HashMap<String, Object>())
                 .build();
 
         try {
-            return aiTutorAgent.callAgent(userChatMessage.getMessage(), runnableConfig)
+            Flux<String> result = aiTutorAgent.callAgent(userChatMessage.getMessage(), runnableConfig)
                     .map(nodeOutput ->
                             AiMessageUtils.handleStreamingOutput(
                                     nodeOutput,
@@ -84,9 +86,19 @@ public class AiTutorServiceImpl implements AiTutorService {
                                     message -> log.info("AI Tutor回复: {}", message), // 打日志
                                     () -> {
                                         ChatSession chatSession = chatPersistenceService.getOrCreateChatSession(userChatMessage.getUserId(), courseId);
+                                        if (chatSession == null)
+                                            return null; // 如果聊天会话不存在，返回null
+
                                         ChatMessage latestMsg = chatPersistenceService.getLatestAiMessageByChatId(chatSession.getId());
+
+                                        if (latestMsg == null)
+                                            return null;
+
                                         return latestMsg.getId().toString(); // 附加AI对话的消息ID
                                     }));
+
+
+            return result;
         } catch (GraphRunnerException e) {
             log.error("调用AI Tutor失败", e);
             throw new RuntimeException("调用AI Tutor失败", e);
@@ -194,7 +206,7 @@ public class AiTutorServiceImpl implements AiTutorService {
 
     @Override
     public String queryKnowledgePoint(String kpName) {
-        return knowledgeGraphService.retrieveKnowledgePointInfo(kpName);
+        return knowledgeGraphService.retrieveKnowledgePoint(kpName);
     }
 
     @Override

@@ -139,7 +139,7 @@ public class AiMessageUtils {
         return EMPTY_STRING;
     }
 
-    public static <T> T readJsonValue(String json, Class<T> type) {
+    public static <T> T convertJsonValue(String json, Class<T> type) {
         try {
             return LENIENT_MAPPER.readValue(json, type);
         } catch (JsonProcessingException e) {

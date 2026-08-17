@@ -181,7 +181,7 @@ public class CourseServiceImplTest {
 
         // 4. Mock AiMessageUtils.readJsonValue (静态方法)
         try (MockedStatic<AiMessageUtils> utilities = mockStatic(AiMessageUtils.class)) {
-            utilities.when(() -> AiMessageUtils.readJsonValue(mockCourseDataJson, CourseOpeningDataDTO.class))
+            utilities.when(() -> AiMessageUtils.convertJsonValue(mockCourseDataJson, CourseOpeningDataDTO.class))
                     .thenReturn(mockCourseData);
 
             // 5. 执行测试
@@ -242,7 +242,7 @@ public class CourseServiceImplTest {
 
         // 3. 模拟AiMessageUtils.readJsonValue返回null
         try (MockedStatic<AiMessageUtils> utilities = mockStatic(AiMessageUtils.class)) {
-            utilities.when(() -> AiMessageUtils.readJsonValue(invalidJson, CourseOpeningDataDTO.class))
+            utilities.when(() -> AiMessageUtils.convertJsonValue(invalidJson, CourseOpeningDataDTO.class))
                     .thenReturn(null);
 
             // 4. 执行测试并验证异常
@@ -295,7 +295,7 @@ public class CourseServiceImplTest {
         CourseOpeningDataDTO minimalCourseData = buildMinimalCourseData();
 
         try (MockedStatic<AiMessageUtils> utilities = mockStatic(AiMessageUtils.class)) {
-            utilities.when(() -> AiMessageUtils.readJsonValue(minimalJson, CourseOpeningDataDTO.class))
+            utilities.when(() -> AiMessageUtils.convertJsonValue(minimalJson, CourseOpeningDataDTO.class))
                     .thenReturn(minimalCourseData);
 
             // 执行测试
@@ -348,7 +348,7 @@ public class CourseServiceImplTest {
         CourseOpeningDataDTO courseData = buildCourseDataWithEmptyKnowledgePoints();
 
         try (MockedStatic<AiMessageUtils> utilities = mockStatic(AiMessageUtils.class)) {
-            utilities.when(() -> AiMessageUtils.readJsonValue(json, CourseOpeningDataDTO.class))
+            utilities.when(() -> AiMessageUtils.convertJsonValue(json, CourseOpeningDataDTO.class))
                     .thenReturn(courseData);
 
             // 执行测试

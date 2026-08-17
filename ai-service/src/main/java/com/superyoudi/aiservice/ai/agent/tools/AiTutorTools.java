@@ -1,8 +1,11 @@
 package com.superyoudi.aiservice.ai.agent.tools;
 
 import com.superyoudi.aiservice.service.AiTutorService;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 /**
  * @author Sijayyx
@@ -24,9 +27,18 @@ public class AiTutorTools {
         return "成功";
     }
 
-    @Tool(name = "test", description = "测试工具")
-    public String test() {
-        return "success";
-    }
+//
+//    @SuppressWarnings("unchecked")
+//    @Tool(name = "test", description = "测试工具")
+//    public String test(ToolContext toolContext) {
+//        Map<String, Object> testData = (Map<String, Object>) toolContext.getContext().get("test_data");
+//
+//        if (testData != null) {
+//            testData.put("test_key", "test_value");
+//        }
+//
+//
+//        return "success";
+//    }
 
 }

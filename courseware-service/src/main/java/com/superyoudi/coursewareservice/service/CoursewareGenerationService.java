@@ -40,6 +40,7 @@ public interface CoursewareGenerationService {
      * @param query  搜索关键词
      * @return 搜索结果
      */
+    @Deprecated
     List<Document> searchUserDocuments(Integer userId, String query);
 
     /**
@@ -48,6 +49,7 @@ public interface CoursewareGenerationService {
      * @param query 搜索关键词
      * @return 搜索结果
      */
+    @Deprecated
     List<Document> searchGlobalDocuments(String query);
 
     /**
