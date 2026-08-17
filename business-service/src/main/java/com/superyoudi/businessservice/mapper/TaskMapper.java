@@ -1,8 +1,11 @@
 package com.superyoudi.businessservice.mapper;
 
 import com.superyoudi.businessservice.pojo.entity.Task;
+import com.superyoudi.businessservice.pojo.entity.TaskList;
 import com.superyoudi.common.dto.ErrorQuestionVO;
 import org.apache.ibatis.annotations.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -202,4 +205,8 @@ public interface TaskMapper {
     Integer countStudentAllTask(Long studentId);
 
     List<ErrorQuestionVO> selectUserErrorQuestion(Long studentId, Long courseId);
+
+    Page<TaskList> selectTeacherTaskPage(Pageable pageable, Long userId, Long courseId, String status);
+
+    Page<TaskList> selectStudentTaskPage(Pageable pageable, Long userId, Long courseId, String status);
 }

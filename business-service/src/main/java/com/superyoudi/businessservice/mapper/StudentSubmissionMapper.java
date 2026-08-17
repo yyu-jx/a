@@ -4,12 +4,21 @@ import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
 import org.apache.ibatis.annotations.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Mapper
 public interface StudentSubmissionMapper {
 
     @Select("select * from student_submissions where task_id = #{taskId} and student_id = #{student_id} limit 1")
     StudentSubmission selectByTaskAndStudentId(Long taskId, Long student_id);
+
+    /* ── 批改用 ── */
+
+    @Select("select * from student_submissions where task_id = #{taskId}")
+    List<StudentSubmission> selectByTaskId(Long taskId);
+
+    @Select("select * from student_submissions")
+    List<StudentSubmission> selectAll();
 
     @Update("update student_submissions " +
             "set status = #{status}, submitted_time = #{submittedTime} " +
