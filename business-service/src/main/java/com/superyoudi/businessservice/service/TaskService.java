@@ -3,6 +3,8 @@ package com.superyoudi.businessservice.service;
 import com.superyoudi.businessservice.pojo.entity.TaskList;
 import com.superyoudi.businessservice.pojo.vo.TaskQuestionVO;
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
+import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
+import com.superyoudi.businessservice.pojo.vo.StudentAnswerVO;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
 import org.springframework.data.domain.Page;
 import com.superyoudi.common.dto.ErrorQuestionVO;
@@ -40,6 +42,7 @@ public interface TaskService {
     List<ErrorQuestionVO> listUserErrorQuestion(Long userId, Long courseId);
 
 
+
     /**
      * 生成ai诊断报告
      *
@@ -70,4 +73,27 @@ public interface TaskService {
     TaskQuestionVO getTaskQuestionList(Long taskId);
 }
 
+    /**
+     * 获取学生单题答题记录（批改用）
+     *
+     * @param studentId    学生ID（可选）
+     * @param submissionId 提交表ID（可选）
+     * @return 答题记录列表
+     */
+    List<StudentAnswerVO> getStudentAnswers(Long studentId, Long submissionId);
 
+    /**
+     * 修改学生单题答题记录（批改打分）
+     *
+     * @param dto 答题记录
+     */
+    void updateStudentAnswer(StudentAnswerVO dto);
+
+    /**
+     * 获取所有学生的提交表（批改用）
+     *
+     * @param taskId 任务ID（可选）
+     * @return 提交记录列表
+     */
+    List<StudentSubmission> getSubmissions(Long taskId);
+}

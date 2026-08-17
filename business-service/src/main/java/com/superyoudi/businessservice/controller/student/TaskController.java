@@ -1,6 +1,8 @@
 package com.superyoudi.businessservice.controller.student;
 
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
+import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
+import com.superyoudi.businessservice.pojo.vo.StudentAnswerVO;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
 import com.superyoudi.businessservice.service.TaskService;
 import com.superyoudi.common.dto.ErrorQuestionVO;
@@ -76,6 +78,43 @@ public class TaskController {
     @GetMapping("/ai/student/diagnose")
     public Result<String> diagnose(Long studentId) {
         return Result.success(taskService.diagnose(studentId));
+    }
+
+    /**
+     * GET /task/answers 获取学生单题答题记录（批改）
+     *
+     * @param studentId    学生ID（可选）
+     * @param submissionId 提交表ID（可选）
+     * @return 答题记录列表
+     */
+    @GetMapping("/task/answers")
+    public Result<List<StudentAnswerVO>> getStudentAnswers(
+            @RequestParam(required = false) Long studentId,
+            @RequestParam(required = false) Long submissionId) {
+        return Result.success(taskService.getStudentAnswers(studentId, submissionId));
+    }
+
+    /**
+     * PUT /task/answers 修改学生单题答题记录（批改打分）
+     *
+     * @param dto 答题记录
+     * @return Result
+     */
+    @PutMapping("/task/answers")
+    public Result<Void> updateStudentAnswer(@RequestBody StudentAnswerVO dto) {
+        taskService.updateStudentAnswer(dto);
+        return Result.success();
+    }
+
+    /**
+     * GET /task/submissions 获取所有学生的提交表（批改）
+     *
+     * @param taskId 任务ID（可选）
+     * @return 提交记录列表
+     */
+    @GetMapping("/task/submissions")
+    public Result<List<StudentSubmission>> getSubmissions(@RequestParam(required = false) Long taskId) {
+        return Result.success(taskService.getSubmissions(taskId));
     }
 
 
