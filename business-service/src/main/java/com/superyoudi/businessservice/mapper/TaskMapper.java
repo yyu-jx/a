@@ -22,7 +22,6 @@ public interface TaskMapper {
     Long insert(Task task);
 
 
-
     /**
      * 根据ID删除
      */
@@ -116,6 +115,22 @@ public interface TaskMapper {
             "FROM tasks WHERE status = 'published' AND start_time > NOW() " +
             "ORDER BY start_time ASC")
     List<Task> selectUpcomingTasks();
+
+    @Update("""
+            UPDATE tasks SET
+            course_id = #{courseId},
+            assigner_id = #{assignerId},
+            title = #{title},
+            description = #{description},
+            type = #{type},
+            total_score = #{totalScore},
+            start_time = #{startTime},
+            deadline = #{deadline},
+            status = #{status},
+            after_submit_strategy = #{afterSubmitStrategy},
+            updated_at = NOW()
+            WHERE id = #{id}""")
+    Long update(Task task);
 
     /**
      * 更新任务状态

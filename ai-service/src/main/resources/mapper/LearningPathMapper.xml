@@ -6,14 +6,14 @@
         SELECT
             t.course_id,
             t.path_id,
-            t.knowledge_id,
+            t.knowledge_ids,
             t.status,
             t.course_name
         FROM (
                  SELECT
                      cs.course_id,
                      lp.id AS path_id,
-                     lpn.knowledge_id,
+                     lpn.knowledge_ids,
                      lpn.status,
                      c.name AS course_name,
                      ROW_NUMBER() OVER (

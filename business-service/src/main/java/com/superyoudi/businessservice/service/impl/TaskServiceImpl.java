@@ -3,33 +3,31 @@ package com.superyoudi.businessservice.service.impl;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.superyoudi.aiservice.service.TaskAiService;
 import com.superyoudi.businessservice.mapper.*;
-import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
-import com.superyoudi.businessservice.pojo.entity.Task;
-import com.superyoudi.businessservice.pojo.entity.TaskList;
-import com.superyoudi.businessservice.pojo.entity.TaskQuestion;
+import com.superyoudi.businessservice.pojo.dto.TaskDTO;
+import com.superyoudi.businessservice.pojo.entity.*;
 import com.superyoudi.businessservice.pojo.vo.QuestionItemVO;
 import com.superyoudi.businessservice.pojo.vo.QuestionOptionVO;
-import com.superyoudi.businessservice.pojo.vo.TaskQuestionVO;
-import com.superyoudi.common.dto.ErrorQuestionVO;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
+import com.superyoudi.businessservice.pojo.vo.TaskQuestionVO;
 import com.superyoudi.businessservice.service.TaskService;
+import com.superyoudi.common.dto.ErrorQuestionVO;
 import com.superyoudi.common.exception.BusinessException;
 import com.superyoudi.common.exception.ErrorQuestionNotFoundException;
 import com.superyoudi.common.exception.ParamInvalidException;
 import com.superyoudi.common.exception.StudentRepeatJoinCourseException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -50,6 +48,42 @@ public class TaskServiceImpl implements TaskService {
     private final StringRedisTemplate stringRedisTemplate;
     private final UserMapper userMapper;
     private final QuestionMapper questionMapper;
+    private final TaskQuestionRelMapper taskQuestionRelMapper;
+
+    /**
+     * 更新任务信息
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long saveTaskData(TaskDTO taskDTO) {
+        Task task = new Task();
+        BeanUtils.copyProperties(taskDTO, task);
+
+        if (task.getId() == null)
+            taskMapper.insert(task);
+        else
+            taskMapper.update(task);
+
+        // 删除旧的关联
+        taskQuestionRelMapper.deleteAllByTaskId(task.getId());
+
+        // 构造新的关联数据
+        List<TaskQuestionRel> list = taskDTO.getQuestionRelInfos().stream()
+                .map(rel -> TaskQuestionRel.builder()
+                        .id(null)
+                        .taskId(task.getId())
+                        .questionId(rel.getQuestionId())
+                        .score(rel.getScore())
+                        .questionSort(rel.getQuestionSort())
+                        .build())
+                .toList();
+
+        // 插入新关联
+        taskQuestionRelMapper.batchInsert(list);
+
+        return task.getId();
+    }
+
 
     /**
      * 提交任务
@@ -60,7 +94,7 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public void submitTask(Long userId, Long taskId) {
         //1.参数校验
-        if(userId == null || taskId == null){
+        if (userId == null || taskId == null) {
             throw new ParamInvalidException("参数不能为空");
         }
 
@@ -69,15 +103,15 @@ public class TaskServiceImpl implements TaskService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        if(existRecord != null){
+        if (existRecord != null) {
             //记录已存在
             // 已经批改完毕，禁止提交
-            if("passed".equals(existRecord.getStatus())){
+            if ("passed".equals(existRecord.getStatus())) {
                 throw new StudentRepeatJoinCourseException("已提交，不可重复提交");
             }
             //更新状态为已提交，更新提交时间；分数、评语、批改时间保留原值
             studentSubmissionMapper.updateById(existRecord);
-        }else{
+        } else {
             //3.不存在记录：新增提交记录
             StudentSubmission newRecord = new StudentSubmission();
             newRecord.setTaskId(taskId);
@@ -108,8 +142,8 @@ public class TaskServiceImpl implements TaskService {
         Integer todo = (allJoinTaskCount - finishedCount) + draftCount;
         vo.setTodoTaskCount(todo);
 
-        Double taskScore=studentCourseProgressMapper.getAvgTaskScore(userId);
-        vo.setAverageAccuracy(taskScore/100);
+        Double taskScore = studentCourseProgressMapper.getAvgTaskScore(userId);
+        vo.setAverageAccuracy(taskScore / 100);
 
         return vo;
     }
@@ -118,8 +152,8 @@ public class TaskServiceImpl implements TaskService {
     public List<ErrorQuestionVO> listUserErrorQuestion(Long userId, Long courseId) {
         List<ErrorQuestionVO> errorQuestionVO = taskMapper.selectUserErrorQuestion(userId, courseId);
 
-        if(CollectionUtils.isEmpty(errorQuestionVO)){
-            throw  new ErrorQuestionNotFoundException("没有错题");
+        if (CollectionUtils.isEmpty(errorQuestionVO)) {
+            throw new ErrorQuestionNotFoundException("没有错题");
         }
 
         return errorQuestionVO;
@@ -157,10 +191,10 @@ public class TaskServiceImpl implements TaskService {
         int realPageNum = (pageNum == null || pageNum < 1) ? 1 : pageNum;
         int realPageSize = (pageSize == null || pageSize < 1) ? 10 : pageSize;
         Pageable pageable = PageRequest.of(realPageNum - 1, realPageSize);
-        if("teacher".equals(role)){
+        if ("teacher".equals(role)) {
             // 教师：查自己布置的全部任务
             return taskMapper.selectTeacherTaskPage(pageable, userId, courseId, status);
-        }else{
+        } else {
             // 学生：只查已发布published分配给自己的任务
             return taskMapper.selectStudentTaskPage(pageable, userId, courseId, status);
         }

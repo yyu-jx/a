@@ -81,7 +81,7 @@ class LearningPathServiceImplTest {
         // Given
         // 只 mock 实际会被查询的知识点（前35个）
         List<SectionKnowledgeRel> queryResult = knowledgeRels.subList(0, 35);
-        when(sectionKnowledgeRelMapper.selectBehindStartByCourseId(eq(courseId), eq(0L), eq(35)))
+        when(sectionKnowledgeRelMapper.selectBehindStartByCourseDataId(eq(courseId), eq(0L), eq(35)))
                 .thenReturn(queryResult);
 
         // 只对实际返回的知识点设置 mock
@@ -144,7 +144,7 @@ class LearningPathServiceImplTest {
     @Test
     void testCreateLearningPath_AllMastered_ThrowsException() {
         // Given - 所有知识点都已掌握
-        when(sectionKnowledgeRelMapper.selectBehindStartByCourseId(eq(courseId), eq(0L), eq(35)))
+        when(sectionKnowledgeRelMapper.selectBehindStartByCourseDataId(eq(courseId), eq(0L), eq(35)))
                 .thenReturn(knowledgeRels.subList(0, 35));
 
         StudentKnowledgeMastery highMastery = new StudentKnowledgeMastery();
@@ -169,7 +169,7 @@ class LearningPathServiceImplTest {
     @Test
     void testCreateLearningPath_AIResponseNull() {
         // Given
-        when(sectionKnowledgeRelMapper.selectBehindStartByCourseId(eq(courseId), eq(0L), eq(35)))
+        when(sectionKnowledgeRelMapper.selectBehindStartByCourseDataId(eq(courseId), eq(0L), eq(35)))
                 .thenReturn(knowledgeRels.subList(0, 35));
 
         when(studentKnowledgeMasteryMapper.selectByStudentAndKnowledge(eq(studentId), anyString()))
@@ -191,9 +191,9 @@ class LearningPathServiceImplTest {
         List<SectionKnowledgeRel> firstBatch = knowledgeRels.subList(0, 35);
         List<SectionKnowledgeRel> secondBatch = knowledgeRels.subList(35, Math.min(70, knowledgeRels.size()));
 
-        when(sectionKnowledgeRelMapper.selectBehindStartByCourseId(eq(courseId), eq(0L), eq(35)))
+        when(sectionKnowledgeRelMapper.selectBehindStartByCourseDataId(eq(courseId), eq(0L), eq(35)))
                 .thenReturn(firstBatch);
-        when(sectionKnowledgeRelMapper.selectBehindStartByCourseId(eq(courseId), gt(0L), eq(35)))
+        when(sectionKnowledgeRelMapper.selectBehindStartByCourseDataId(eq(courseId), gt(0L), eq(35)))
                 .thenReturn(secondBatch);
 
         // 第一批大部分已掌握，只有5个未掌握
@@ -236,7 +236,7 @@ class LearningPathServiceImplTest {
 
         // Then - 验证至少调用了两次查询（重试）
         verify(sectionKnowledgeRelMapper, atLeast(2))
-                .selectBehindStartByCourseId(eq(courseId), anyLong(), eq(35));
+                .selectBehindStartByCourseDataId(eq(courseId), anyLong(), eq(35));
     }
 
     @Test
@@ -419,7 +419,7 @@ class LearningPathServiceImplTest {
     @Test
     void testCreateLearningPath_WithNullMasteryRecords() {
         // Given - 学生没有任何学习记录
-        when(sectionKnowledgeRelMapper.selectBehindStartByCourseId(eq(courseId), eq(0L), eq(35)))
+        when(sectionKnowledgeRelMapper.selectBehindStartByCourseDataId(eq(courseId), eq(0L), eq(35)))
                 .thenReturn(knowledgeRels.subList(0, 35));
 
         // 所有知识点都返回null（无学习记录）

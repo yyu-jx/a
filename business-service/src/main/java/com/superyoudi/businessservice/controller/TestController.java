@@ -3,7 +3,7 @@ package com.superyoudi.businessservice.controller;
 import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
 import com.superyoudi.aiservice.service.AiTutorService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
-import com.superyoudi.businessservice.pojo.dto.CourseDataDTO;
+import com.superyoudi.businessservice.pojo.dto.CourseOpeningDataDTO;
 import com.superyoudi.businessservice.service.impl.CourseServiceImpl;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -46,9 +46,9 @@ class TestController {
     public String testCourseKnowledgePoints() throws IOException {
         String json = Files.readString(Paths.get("D:\\Desktop\\test.txt"), StandardCharsets.UTF_8);
 
-        CourseDataDTO courseDataDTO = AiMessageUtils.readJsonValue(json, CourseDataDTO.class);
+        CourseOpeningDataDTO courseOpeningDataDTO = AiMessageUtils.readJsonValue(json, CourseOpeningDataDTO.class);
 
-        courseService.saveCourseData(courseDataDTO);
+        courseService.saveCourseData(courseOpeningDataDTO);
         return "success";
     }
 }

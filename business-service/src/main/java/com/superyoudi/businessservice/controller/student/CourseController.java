@@ -1,6 +1,8 @@
 package com.superyoudi.businessservice.controller.student;
 
 
+import com.superyoudi.businessservice.pojo.dto.CourseDTO;
+import com.superyoudi.businessservice.pojo.entity.CourseData;
 import com.superyoudi.businessservice.pojo.vo.*;
 import com.superyoudi.businessservice.service.CourseService;
 import com.superyoudi.common.entity.Result;
@@ -16,6 +18,26 @@ public class CourseController {
     private final CourseService courseService;
 
     /**
+     * GET /course/options
+     * 获取课程数据列表
+     */
+    @GetMapping("/course/options")
+    public Result<List<CourseData>> getCourseDataList() {
+        List<CourseData> courseDataList = courseService.getCourseDataList();
+        return Result.success(courseDataList);
+    }
+
+    /**
+     * POST /course
+     * 添加新课程
+     */
+    @PostMapping("/course")
+    public Result<Long> addNewCourse(@RequestBody CourseDTO courseDTO) {
+        Long courseId = courseService.addNewCourse(courseDTO);
+        return Result.success(courseId);
+    }
+
+    /**
      * 获取单门课程详情
      *
      * @param courseId 课程id
@@ -26,6 +48,17 @@ public class CourseController {
         CourseVO courseInfo = courseService.getCourseInfo(courseId);
         return Result.success(courseInfo);
     }
+
+    /**
+     * GET /course/info
+     * 获取课程列表的课程统计信息
+     */
+    @GetMapping("/course/info")
+    public Result<CourseStatisticsVO> getCourseStatistics(Long teacherId) {
+        CourseStatisticsVO courseStatistics = courseService.getCourseStatistics(teacherId);
+        return Result.success(courseStatistics);
+    }
+
 
     /**
      * 获取课程学习路径

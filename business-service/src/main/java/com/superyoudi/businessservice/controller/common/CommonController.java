@@ -1,7 +1,7 @@
 package com.superyoudi.businessservice.controller.common;
 
-import com.superyoudi.businessservice.pojo.vo.CourseVO;
 import com.superyoudi.businessservice.pojo.entity.TaskList;
+import com.superyoudi.businessservice.pojo.vo.CourseVO;
 import com.superyoudi.businessservice.pojo.vo.TaskQuestionVO;
 import com.superyoudi.businessservice.service.CourseService;
 import com.superyoudi.businessservice.service.TaskService;
@@ -29,7 +29,7 @@ public class CommonController {
      * @return 用户课程列表
      */
     @GetMapping("/course/list")
-    public Result<List<CourseVO>> getCourseList( Long userId) {
+    public Result<List<CourseVO>> getCourseList(Long userId) {
         List<CourseVO> voList = courseService.getUserCourseList(userId);
         return Result.success(voList);
     }
@@ -37,11 +37,12 @@ public class CommonController {
 
     /**
      * 学生/教师 任务分页列表
-     * @param userId 用户id（学生/教师）
+     *
+     * @param userId   用户id（学生/教师）
      * @param courseId 可选，课程筛选
-     * @param pageNum 页码
+     * @param pageNum  页码
      * @param pageSize 页大小
-     * @param status 可选，前端筛选提交状态
+     * @param status   可选，前端筛选提交状态
      */
     @GetMapping("/task")
     public Result<Page<TaskList>> getTaskList(

@@ -17,32 +17,32 @@ public interface ChapterMapper {
     /**
      * 根据课程ID查询所有章节（按排序字段升序）
      */
-    @Select("SELECT * FROM chapters WHERE course_id = #{courseId} ORDER BY sort_order ASC")
-    List<Chapter> selectByCourseId(Long courseId);
+    @Select("SELECT * FROM chapters WHERE course_data_id = #{courseDataId} ORDER BY sort_order")
+    List<Chapter> selectByCourseDataId(Long courseDataId);
 
     /**
      * 根据课程ID和排序查询章节
      */
-    @Select("SELECT * FROM chapters WHERE course_id = #{courseId} AND sort_order = #{sortOrder}")
-    Chapter selectByCourseIdAndSortOrder(@Param("courseId") Long courseId, @Param("sortOrder") Integer sortOrder);
+    @Select("SELECT * FROM chapters WHERE course_data_id = #{courseDataId} AND sort_order = #{sortOrder}")
+    Chapter selectByCourseDataIdAndSortOrder(@Param("courseDataId") Long courseDataId, @Param("sortOrder") Integer sortOrder);
 
     /**
      * 根据课程ID统计章节数量
      */
-    @Select("SELECT COUNT(*) FROM chapters WHERE course_id = #{courseId}")
-    Long countByCourseId(Long courseId);
+    @Select("SELECT COUNT(*) FROM chapters WHERE course_data_id = #{courseDataId}")
+    Long countByCourseDataId(Long courseDataId);
 
     /**
      * 获取课程中最大的排序值
      */
-    @Select("SELECT COALESCE(MAX(sort_order), 0) FROM chapters WHERE course_id = #{courseId}")
-    Integer selectMaxSortOrder(Long courseId);
+    @Select("SELECT COALESCE(MAX(sort_order), 0) FROM chapters WHERE course_data_id = #{courseDataId}")
+    Integer selectMaxSortOrder(Long courseDataId);
 
     /**
      * 插入章节
      */
-    @Insert("INSERT INTO chapters (course_id, name, summary, sort_order, created_at, updated_at) " +
-            "VALUES (#{courseId}, #{name}, #{summary}, #{sortOrder}, #{createdAt}, #{updatedAt})")
+    @Insert("INSERT INTO chapters (course_data_id, name, summary, sort_order, created_at, updated_at) " +
+            "VALUES (#{courseDataId}, #{name}, #{summary}, #{sortOrder}, #{createdAt}, #{updatedAt})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     Long insert(Chapter chapter);
 
@@ -74,6 +74,6 @@ public interface ChapterMapper {
     /**
      * 根据课程ID删除所有章节
      */
-    @Delete("DELETE FROM chapters WHERE course_id = #{courseId}")
-    Long deleteByCourseId(Long courseId);
+    @Delete("DELETE FROM chapters WHERE course_data_id = #{courseDataId}")
+    Long deleteByCourseDataId(Long courseDataId);
 }

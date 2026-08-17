@@ -7,7 +7,7 @@ import com.superyoudi.businessservice.mapper.ChapterMapper;
 import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.businessservice.mapper.SectionKnowledgeRelMapper;
 import com.superyoudi.businessservice.mapper.SectionMapper;
-import com.superyoudi.businessservice.pojo.dto.CourseDataDTO;
+import com.superyoudi.businessservice.pojo.dto.CourseOpeningDataDTO;
 import com.superyoudi.businessservice.pojo.entity.Chapter;
 import com.superyoudi.businessservice.pojo.entity.Course;
 import com.superyoudi.businessservice.pojo.entity.Section;
@@ -177,15 +177,15 @@ public class CourseServiceImplTest {
                 .thenReturn(mockCourseDataJson);
 
         // 3. 构建CourseDataDTO对象
-        CourseDataDTO mockCourseData = buildMockCourseData();
+        CourseOpeningDataDTO mockCourseData = buildMockCourseData();
 
         // 4. Mock AiMessageUtils.readJsonValue (静态方法)
         try (MockedStatic<AiMessageUtils> utilities = mockStatic(AiMessageUtils.class)) {
-            utilities.when(() -> AiMessageUtils.readJsonValue(mockCourseDataJson, CourseDataDTO.class))
+            utilities.when(() -> AiMessageUtils.readJsonValue(mockCourseDataJson, CourseOpeningDataDTO.class))
                     .thenReturn(mockCourseData);
 
             // 5. 执行测试
-            courseService.openCourse(COURSE_ID);
+            courseService.generateCourseData(COURSE_ID);
 
             // 6. 验证结果
             verify(courseMapper).selectById(COURSE_ID);
@@ -213,7 +213,7 @@ public class CourseServiceImplTest {
         // 2. 执行测试并验证异常
         CourseNotExistException exception = assertThrows(
                 CourseNotExistException.class,
-                () -> courseService.openCourse(COURSE_ID)
+                () -> courseService.generateCourseData(COURSE_ID)
         );
 
         assertEquals("课程不存在", exception.getMessage());
@@ -242,13 +242,13 @@ public class CourseServiceImplTest {
 
         // 3. 模拟AiMessageUtils.readJsonValue返回null
         try (MockedStatic<AiMessageUtils> utilities = mockStatic(AiMessageUtils.class)) {
-            utilities.when(() -> AiMessageUtils.readJsonValue(invalidJson, CourseDataDTO.class))
+            utilities.when(() -> AiMessageUtils.readJsonValue(invalidJson, CourseOpeningDataDTO.class))
                     .thenReturn(null);
 
             // 4. 执行测试并验证异常
             RuntimeException exception = assertThrows(
                     RuntimeException.class,
-                    () -> courseService.openCourse(COURSE_ID)
+                    () -> courseService.generateCourseData(COURSE_ID)
             );
 
             assertEquals("课程数据生成失败", exception.getMessage());
@@ -292,14 +292,14 @@ public class CourseServiceImplTest {
         when(courseDataGenerateModel.call(COURSE_ID, COURSE_NAME, COURSE_DESCRIPTION))
                 .thenReturn(minimalJson);
 
-        CourseDataDTO minimalCourseData = buildMinimalCourseData();
+        CourseOpeningDataDTO minimalCourseData = buildMinimalCourseData();
 
         try (MockedStatic<AiMessageUtils> utilities = mockStatic(AiMessageUtils.class)) {
-            utilities.when(() -> AiMessageUtils.readJsonValue(minimalJson, CourseDataDTO.class))
+            utilities.when(() -> AiMessageUtils.readJsonValue(minimalJson, CourseOpeningDataDTO.class))
                     .thenReturn(minimalCourseData);
 
             // 执行测试
-            courseService.openCourse(COURSE_ID);
+            courseService.generateCourseData(COURSE_ID);
 
             // 验证：保存了1个章节和1个小节，但没有保存知识点
             verify(chapterMapper, times(1)).insert(any(Chapter.class));
@@ -345,14 +345,14 @@ public class CourseServiceImplTest {
         when(courseDataGenerateModel.call(COURSE_ID, COURSE_NAME, COURSE_DESCRIPTION))
                 .thenReturn(json);
 
-        CourseDataDTO courseData = buildCourseDataWithEmptyKnowledgePoints();
+        CourseOpeningDataDTO courseData = buildCourseDataWithEmptyKnowledgePoints();
 
         try (MockedStatic<AiMessageUtils> utilities = mockStatic(AiMessageUtils.class)) {
-            utilities.when(() -> AiMessageUtils.readJsonValue(json, CourseDataDTO.class))
+            utilities.when(() -> AiMessageUtils.readJsonValue(json, CourseOpeningDataDTO.class))
                     .thenReturn(courseData);
 
             // 执行测试
-            courseService.openCourse(COURSE_ID);
+            courseService.generateCourseData(COURSE_ID);
 
             // 验证：保存了1个章节和1个小节，但没有保存知识点
             verify(chapterMapper, times(1)).insert(any(Chapter.class));
@@ -365,22 +365,22 @@ public class CourseServiceImplTest {
     /**
      * 构建模拟的CourseDataDTO对象 - 所有字段使用"xxx"
      */
-    private CourseDataDTO buildMockCourseData() {
-        CourseDataDTO courseData = new CourseDataDTO();
-        courseData.setCourseId(COURSE_ID);
+    private CourseOpeningDataDTO buildMockCourseData() {
+        CourseOpeningDataDTO courseData = new CourseOpeningDataDTO();
+        courseData.setCourseDataId(COURSE_ID);
         courseData.setCourseName("xxx");
 
-        List<CourseDataDTO.ChapterData> chapterList = new ArrayList<>();
+        List<CourseOpeningDataDTO.ChapterData> chapterList = new ArrayList<>();
 
         // 第1章
-        CourseDataDTO.ChapterData chapter1 = new CourseDataDTO.ChapterData();
+        CourseOpeningDataDTO.ChapterData chapter1 = new CourseOpeningDataDTO.ChapterData();
         chapter1.setChapterName("xxx");
         chapter1.setOrder(1);
 
-        List<CourseDataDTO.SectionData> sectionList1 = new ArrayList<>();
+        List<CourseOpeningDataDTO.SectionData> sectionList1 = new ArrayList<>();
 
         // 第1章第1节 - 包含2个extractionResults
-        CourseDataDTO.SectionData section1 = new CourseDataDTO.SectionData();
+        CourseOpeningDataDTO.SectionData section1 = new CourseOpeningDataDTO.SectionData();
         section1.setSectionName("xxx");
         section1.setOrder(1);
 
@@ -412,7 +412,7 @@ public class CourseServiceImplTest {
         sectionList1.add(section1);
 
         // 第1章第2节 - 包含1个extractionResult
-        CourseDataDTO.SectionData section2 = new CourseDataDTO.SectionData();
+        CourseOpeningDataDTO.SectionData section2 = new CourseOpeningDataDTO.SectionData();
         section2.setSectionName("xxx");
         section2.setOrder(2);
 
@@ -434,14 +434,14 @@ public class CourseServiceImplTest {
         chapterList.add(chapter1);
 
         // 第2章
-        CourseDataDTO.ChapterData chapter2 = new CourseDataDTO.ChapterData();
+        CourseOpeningDataDTO.ChapterData chapter2 = new CourseOpeningDataDTO.ChapterData();
         chapter2.setChapterName("xxx");
         chapter2.setOrder(2);
 
-        List<CourseDataDTO.SectionData> sectionList2 = new ArrayList<>();
+        List<CourseOpeningDataDTO.SectionData> sectionList2 = new ArrayList<>();
 
         // 第2章第1节 - 包含1个extractionResult
-        CourseDataDTO.SectionData section3 = new CourseDataDTO.SectionData();
+        CourseOpeningDataDTO.SectionData section3 = new CourseOpeningDataDTO.SectionData();
         section3.setSectionName("xxx");
         section3.setOrder(1);
 
@@ -466,19 +466,19 @@ public class CourseServiceImplTest {
     /**
      * 构建最小化的CourseDataDTO对象 - extractionResults为空
      */
-    private CourseDataDTO buildMinimalCourseData() {
-        CourseDataDTO courseData = new CourseDataDTO();
-        courseData.setCourseId(COURSE_ID);
+    private CourseOpeningDataDTO buildMinimalCourseData() {
+        CourseOpeningDataDTO courseData = new CourseOpeningDataDTO();
+        courseData.setCourseDataId(COURSE_ID);
         courseData.setCourseName("xxx");
 
-        List<CourseDataDTO.ChapterData> chapterList = new ArrayList<>();
+        List<CourseOpeningDataDTO.ChapterData> chapterList = new ArrayList<>();
 
-        CourseDataDTO.ChapterData chapter = new CourseDataDTO.ChapterData();
+        CourseOpeningDataDTO.ChapterData chapter = new CourseOpeningDataDTO.ChapterData();
         chapter.setChapterName("xxx");
         chapter.setOrder(1);
 
-        List<CourseDataDTO.SectionData> sectionList = new ArrayList<>();
-        CourseDataDTO.SectionData section = new CourseDataDTO.SectionData();
+        List<CourseOpeningDataDTO.SectionData> sectionList = new ArrayList<>();
+        CourseOpeningDataDTO.SectionData section = new CourseOpeningDataDTO.SectionData();
         section.setSectionName("xxx");
         section.setOrder(1);
         section.setExtractionResults(new ArrayList<>());
@@ -494,19 +494,19 @@ public class CourseServiceImplTest {
     /**
      * 构建包含空knowledgePoints的CourseDataDTO对象
      */
-    private CourseDataDTO buildCourseDataWithEmptyKnowledgePoints() {
-        CourseDataDTO courseData = new CourseDataDTO();
-        courseData.setCourseId(COURSE_ID);
+    private CourseOpeningDataDTO buildCourseDataWithEmptyKnowledgePoints() {
+        CourseOpeningDataDTO courseData = new CourseOpeningDataDTO();
+        courseData.setCourseDataId(COURSE_ID);
         courseData.setCourseName("xxx");
 
-        List<CourseDataDTO.ChapterData> chapterList = new ArrayList<>();
+        List<CourseOpeningDataDTO.ChapterData> chapterList = new ArrayList<>();
 
-        CourseDataDTO.ChapterData chapter = new CourseDataDTO.ChapterData();
+        CourseOpeningDataDTO.ChapterData chapter = new CourseOpeningDataDTO.ChapterData();
         chapter.setChapterName("xxx");
         chapter.setOrder(1);
 
-        List<CourseDataDTO.SectionData> sectionList = new ArrayList<>();
-        CourseDataDTO.SectionData section = new CourseDataDTO.SectionData();
+        List<CourseOpeningDataDTO.SectionData> sectionList = new ArrayList<>();
+        CourseOpeningDataDTO.SectionData section = new CourseOpeningDataDTO.SectionData();
         section.setSectionName("xxx");
         section.setOrder(1);
 
@@ -534,7 +534,6 @@ public class CourseServiceImplTest {
         Course mockCourse = new Course();
         mockCourse.setId(1l);
         mockCourse.setName("Java基础课程");
-        mockCourse.setTeacherName("张老师");
 
         // 模拟mapper返回数据
         when(courseMapper.selectById(anyLong()))
@@ -590,7 +589,7 @@ public class CourseServiceImplTest {
     void getTodayTaskList_normal_success() {
         // ===== given 准备mock返回数据 =====
         TodayTaskRawDTO rawDto = new TodayTaskRawDTO();
-        rawDto.setCourseId(200L);
+
         rawDto.setPathId(300L);
         rawDto.setKnowledgeId("k_001");
         rawDto.setStatus("proceeding");
@@ -631,7 +630,7 @@ public class CourseServiceImplTest {
     @Test
     void getTodayTaskList_knowledgeNameIsNull() {
         TodayTaskRawDTO rawDto = new TodayTaskRawDTO();
-        rawDto.setCourseId(200L);
+
         rawDto.setKnowledgeId("k_999");
         rawDto.setStatus("untested");
         rawDto.setCourseName("MySQL教程");
