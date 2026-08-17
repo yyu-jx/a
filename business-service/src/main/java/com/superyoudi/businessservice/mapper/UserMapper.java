@@ -11,6 +11,9 @@ import java.util.List;
 @Mapper
 public interface UserMapper {
 
+    @Select("SELECT role FROM users WHERE id = #{userId}")
+    String selectUserRoleById(Long userId);
+
     @Select("SELECT * FROM users WHERE id = #{id}")
     User selectById(Long id);
 

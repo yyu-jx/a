@@ -367,7 +367,7 @@ public class CourseServiceImplTest {
      */
     private CourseOpeningDataDTO buildMockCourseData() {
         CourseOpeningDataDTO courseData = new CourseOpeningDataDTO();
-        courseData.setCourseId(COURSE_ID);
+        courseData.setCourseDataId(COURSE_ID);
         courseData.setCourseName("xxx");
 
         List<CourseOpeningDataDTO.ChapterData> chapterList = new ArrayList<>();
@@ -468,7 +468,7 @@ public class CourseServiceImplTest {
      */
     private CourseOpeningDataDTO buildMinimalCourseData() {
         CourseOpeningDataDTO courseData = new CourseOpeningDataDTO();
-        courseData.setCourseId(COURSE_ID);
+        courseData.setCourseDataId(COURSE_ID);
         courseData.setCourseName("xxx");
 
         List<CourseOpeningDataDTO.ChapterData> chapterList = new ArrayList<>();
@@ -496,7 +496,7 @@ public class CourseServiceImplTest {
      */
     private CourseOpeningDataDTO buildCourseDataWithEmptyKnowledgePoints() {
         CourseOpeningDataDTO courseData = new CourseOpeningDataDTO();
-        courseData.setCourseId(COURSE_ID);
+        courseData.setCourseDataId(COURSE_ID);
         courseData.setCourseName("xxx");
 
         List<CourseOpeningDataDTO.ChapterData> chapterList = new ArrayList<>();
@@ -589,7 +589,7 @@ public class CourseServiceImplTest {
     void getTodayTaskList_normal_success() {
         // ===== given 准备mock返回数据 =====
         TodayTaskRawDTO rawDto = new TodayTaskRawDTO();
-        rawDto.setCourseId(200L);
+
         rawDto.setPathId(300L);
         rawDto.setKnowledgeId("k_001");
         rawDto.setStatus("proceeding");
@@ -630,7 +630,7 @@ public class CourseServiceImplTest {
     @Test
     void getTodayTaskList_knowledgeNameIsNull() {
         TodayTaskRawDTO rawDto = new TodayTaskRawDTO();
-        rawDto.setCourseId(200L);
+
         rawDto.setKnowledgeId("k_999");
         rawDto.setStatus("untested");
         rawDto.setCourseName("MySQL教程");
