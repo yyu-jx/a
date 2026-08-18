@@ -3,17 +3,16 @@
 <mapper namespace="com.superyoudi.businessservice.mapper.QuestionMapper">
 
 
-    <select id="selectByTaskId" resultType="com.superyoudi.businessservice.pojo.entity.TaskQuestion">
-        SELECT
-            q.id,
-            q.teacher_id,
-            q.type,
-            q.content,
-            q.answer,
-            rel.score
+    <select id="selectByTaskId" resultType="com.superyoudi.businessservice.pojo.dto.TaskQuestionDTO">
+        SELECT q.id,
+               q.teacher_id,
+               q.type,
+               q.content,
+               q.answer,
+               rel.score
         FROM task_question_rel rel
                  INNER JOIN questions q ON rel.question_id = q.id
         WHERE rel.task_id = #{taskId}
-        ORDER BY rel.question_id ASC
+        ORDER BY rel.question_id
     </select>
 </mapper>

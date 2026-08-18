@@ -1,11 +1,11 @@
 package com.superyoudi.businessservice.mapper;
 
+import com.superyoudi.businessservice.pojo.dto.TaskQuestionDTO;
 import com.superyoudi.businessservice.pojo.entity.Question;
-import com.superyoudi.businessservice.pojo.entity.TaskQuestion;
-import com.superyoudi.common.dto.QuestionDTO;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface QuestionMapper {
@@ -117,7 +117,7 @@ public interface QuestionMapper {
      */
     @Select("SELECT type, COUNT(*) as count FROM questions " +
             "WHERE course_id = #{courseId} GROUP BY type")
-    List<java.util.Map<String, Object>> countByTypeForCourse(Long courseId);
+    List<Map<String, Object>> countByTypeForCourse(Long courseId);
 
     /**
      * 分页查询课程题目
@@ -128,11 +128,8 @@ public interface QuestionMapper {
                                                  @Param("offset") Integer offset,
                                                  @Param("limit") Integer limit);
 
-    @Select("select id, content,  answer from questions where id = #{questionId}")
-    QuestionDTO selectById(Long questionId);
-
     /**
      * 根据任务ID查询题目
      */
-    List<TaskQuestion> selectByTaskId(Long taskId);
+    List<TaskQuestionDTO> selectByTaskId(Long taskId);
 }

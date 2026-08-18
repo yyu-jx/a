@@ -12,38 +12,60 @@ import java.time.LocalDateTime;
  * @author at
  */
 @Data
-public class StudentAnswerVO {
+public class StudentAnswerDTO {
 
-    /** 答题记录唯一主键ID */
+    /**
+     * 答题记录唯一主键ID
+     */
     private Long id;
 
-    /** 所属提交ID（关联任务提交记录） */
+    /**
+     * 所属提交ID（关联任务提交记录）
+     */
     private Long submissionId;
 
-    /** 题目ID */
+    /**
+     * 题目ID
+     */
     private Long questionId;
 
-    /** 学生答案（不同题型结构不同，JSON 对象） */
+    /**
+     * 学生答案（不同题型结构不同，JSON 对象）
+     */
     private JsonNode answer;
 
-    /** 单题得分 */
+    /**
+     * 单题得分
+     */
     private Integer score;
 
-    /** 评语 */
+    /**
+     * 评语
+     */
     private String comment;
 
-    /** 耗时（秒） */
+    /**
+     * 耗时（秒）
+     */
     private Integer timeSpent;
 
-    /** 提交前的修改次数 */
+    /**
+     * 提交前的修改次数
+     */
     private Integer attemptCount;
 
-    /** 求助次数 */
+    /**
+     * 求助次数
+     */
     private Integer helpRequestCount;
 
-    /** 错误类型（null表示无错误） */
+    /**
+     * 错误类型（null表示无错误）
+     */
     private String errorType;
 
-    /** 创建时间（答题时间） */
+    /**
+     * 创建时间（答题时间）
+     */
     private LocalDateTime createdAt;
 }

@@ -1,13 +1,21 @@
 package com.superyoudi.businessservice.pojo.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 学生单题答题实体
  * 对应数据库 student_answers 学生单题答题表
  */
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class StudentAnswer {
 
     /**
@@ -64,4 +72,77 @@ public class StudentAnswer {
      * 创建时间
      */
     private LocalDateTime createdAt;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FillAnswer {
+
+        /**
+         * 填空列表
+         */
+        private List<Blank> blanks;
+
+        /**
+         * 填空项
+         */
+        @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class Blank {
+            /**
+             * 填空序号
+             */
+            private String index;
+
+            /**
+             * 学生填写的内容
+             */
+            private String input;
+        }
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SubjectiveAnswer {
+
+        /**
+         * 学生回答内容
+         */
+        private String content;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TrueFalseAnswer {
+
+        /**
+         * 判断选择：true 正确，false 错误
+         */
+        private Boolean choose;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ChoiceAnswer {
+
+        /**
+         * 单选答案（如 "A"）
+         */
+        private String select;
+
+        /**
+         * 多选答案列表（如 ["A", "C"]）
+         * 当为多选时使用，单选时此字段为null
+         */
+        private List<String> selects;
+    }
 }

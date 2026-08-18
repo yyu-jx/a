@@ -4,6 +4,7 @@ import com.superyoudi.aiservice.service.AnswerAiService;
 import com.superyoudi.businessservice.mapper.QuestionMapper;
 import com.superyoudi.businessservice.mapper.StudentAnswerMapper;
 import com.superyoudi.businessservice.mapper.StudentSubmissionMapper;
+import com.superyoudi.businessservice.pojo.entity.Question;
 import com.superyoudi.businessservice.service.AnswerService;
 import com.superyoudi.common.dto.QuestionDTO;
 import com.superyoudi.common.exception.BusinessException;
@@ -28,7 +29,7 @@ public class AnswerServiceImpl implements AnswerService {
 
     @Override
     public Flux<String> getQuestionHelpStream(Long questionId, Long taskId, Long studentId) {
-        QuestionDTO question = questionMapper.selectById(questionId);
+        Question question = questionMapper.findById(questionId);
         if (question == null) {
             throw new BusinessException("题目不存在");
         }

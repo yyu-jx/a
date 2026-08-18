@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 题目实体
@@ -58,4 +59,111 @@ public class Question {
      * 修改时间
      */
     private LocalDateTime updatedAt;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ChoiceAnswer  {
+
+        /**
+         * 选项列表
+         */
+        private List<Option> options;
+
+        /**
+         * 正确答案（单选时使用，如 "A"）
+         */
+        private String select;
+
+        /**
+         * 正确答案列表（多选时使用，如 ["A", "C"]）
+         */
+        private List<String> correct;
+
+        /**
+         * 选项类
+         */
+        @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class Option {
+            /**
+             * 选项键：A, B, C, D
+             */
+            private String key;
+
+            /**
+             * 选项文本内容
+             */
+            private String text;
+        }
+    }
+
+    /**
+     * 填空题答案
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FillAnswer {
+
+        /**
+         * 填空列表
+         */
+        private List<Blank> blanks;
+
+        /**
+         * 填空项
+         */
+        @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class Blank {
+            /**
+             * 填空序号
+             */
+            private String index;
+
+            /**
+             * 正确答案
+             */
+            private String answer;
+        }
+    }
+
+    /**
+     * 主观题答案
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SubjectiveAnswer {
+
+        /**
+         * 参考答案
+         */
+        private String answer;
+
+        /**
+         * 评分要点列表
+         */
+        private List<String> scoreKey;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TrueFalseAnswer {
+
+        /**
+         * 判断结果：true 正确，false 错误
+         */
+        private Boolean result;
+    }
 }
