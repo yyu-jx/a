@@ -1,13 +1,13 @@
 package com.superyoudi.businessservice.service;
 
-import com.superyoudi.businessservice.pojo.entity.TaskList;
-import com.superyoudi.businessservice.pojo.vo.TaskQuestionVO;
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
 import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
+import com.superyoudi.businessservice.pojo.entity.TaskList;
 import com.superyoudi.businessservice.pojo.vo.StudentAnswerVO;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
-import org.springframework.data.domain.Page;
+import com.superyoudi.businessservice.pojo.vo.TaskQuestionVO;
 import com.superyoudi.common.dto.ErrorQuestionVO;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -42,7 +42,6 @@ public interface TaskService {
     List<ErrorQuestionVO> listUserErrorQuestion(Long userId, Long courseId);
 
 
-
     /**
      * 生成ai诊断报告
      *
@@ -55,11 +54,11 @@ public interface TaskService {
     /**
      * 获取任务列表
      *
-     * @param userId    用户id
-     * @param courseId  课程id
-     * @param pageNum   页码
-     * @param pageSize  页大小
-     * @param status    状态
+     * @param userId   用户id
+     * @param courseId 课程id
+     * @param pageNum  页码
+     * @param pageSize 页大小
+     * @param status   状态
      * @return 任务列表
      */
     Page<TaskList> getTaskPage(Long userId, Long courseId, Integer pageNum, Integer pageSize, String status);
@@ -71,7 +70,7 @@ public interface TaskService {
      * @return 任务问题列表
      */
     TaskQuestionVO getTaskQuestionList(Long taskId);
-}
+
 
     /**
      * 获取学生单题答题记录（批改用）

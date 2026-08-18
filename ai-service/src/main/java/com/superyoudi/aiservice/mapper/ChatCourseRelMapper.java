@@ -33,8 +33,8 @@ public interface ChatCourseRelMapper {
     /**
      * 更新会话课程关联
      */
-    @Update("UPDATE chat_course_rel SET course_id = #{courseId}, user_id = #{userId} WHERE chat_id = #{chatId}")
-    Long updateByChatId(ChatCourseRel chatCourseRel);
+    @Update("UPDATE chat_course_rel SET course_id = #{courseId}, user_id = #{userId}, chat_id = #{chatId} WHERE id = #{id}")
+    Long update(ChatCourseRel chatCourseRel);
 
     /**
      * 根据会话ID删除

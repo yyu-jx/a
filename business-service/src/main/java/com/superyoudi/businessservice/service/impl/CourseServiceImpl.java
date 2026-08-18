@@ -266,7 +266,7 @@ public class CourseServiceImpl implements CourseService {
         if (cd == null) throw new CourseNotExistException("课程数据不存在");
 
         String courseDataJson = courseDataGenerateModel.call(courseDataId, cd.getName(), cd.getInfo());
-        CourseOpeningDataDTO courseData = AiMessageUtils.readJsonValue(courseDataJson, CourseOpeningDataDTO.class);
+        CourseOpeningDataDTO courseData = AiMessageUtils.convertJsonValue(courseDataJson, CourseOpeningDataDTO.class);
 
         if (courseData != null) {
             saveCourseData(courseData);

@@ -7,12 +7,12 @@ import com.alibaba.cloud.ai.graph.StateGraph;
 import com.alibaba.cloud.ai.graph.action.AsyncEdgeAction;
 import com.alibaba.cloud.ai.graph.action.AsyncNodeAction;
 import com.alibaba.cloud.ai.graph.exception.GraphStateException;
+import com.superyoudi.aiservice.ai.tools.RagTools;
 import com.superyoudi.coursewareservice.ai.dispatcher.HumanFeedbackDispatcher;
 import com.superyoudi.coursewareservice.ai.hook.SupervisorMessageAgentHook;
 import com.superyoudi.coursewareservice.ai.node.*;
 import com.superyoudi.coursewareservice.ai.tool.HtmlPptTools;
 import com.superyoudi.coursewareservice.ai.tool.HtmlWordTools;
-import com.superyoudi.coursewareservice.ai.tool.RagTools;
 import com.superyoudi.coursewareservice.pojo.dto.GenerationStatus;
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;
 import com.superyoudi.coursewareservice.service.CoursewareRecordService;
@@ -78,7 +78,7 @@ public class GraphConfig {
     /// @return 工作流图的Bean
     /// @author Sijayyx
     @Bean("coursewareGraph")
-    public CompiledGraph coursewareGraph(ChatClient.Builder chatClient, ChatModel chatModel, CoursewareRecordService coursewareRecordService, SupervisorMessageAgentHook supervisorMessageAgentHook) throws GraphStateException {
+    public CompiledGraph coursewareGraph(ChatClient.Builder chatClient, ChatModel chatModel, CoursewareRecordService coursewareRecordService, SupervisorMessageAgentHook supervisorMessageAgentHook, RagTools ragTools) throws GraphStateException {
 
         log.info("正在初始化 CoursewareGraph。");
 
@@ -96,8 +96,6 @@ public class GraphConfig {
                 Map.entry(KEY_HITL_APPROVE_STATUS, KeyStrategy.REPLACE)
         );
 
-        // 创建 rag 工具
-        RagTools ragTools = new RagTools(coursewareGenerationService);
 
         // 创建节点
         var supervisorNode = AsyncNodeAction.node_async(new SupervisorNode(chatModel, chatClient, supervisorMessageAgentHook, ragTools));

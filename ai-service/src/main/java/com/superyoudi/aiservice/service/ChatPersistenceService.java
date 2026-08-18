@@ -1,9 +1,7 @@
 package com.superyoudi.aiservice.service;
 
-import com.superyoudi.aiservice.mapper.ChatCourseRelMapper;
-import com.superyoudi.aiservice.mapper.ChatCoursewareRecRelMapper;
-import com.superyoudi.aiservice.mapper.ChatMessageMapper;
-import com.superyoudi.aiservice.mapper.ChatSessionMapper;
+import com.superyoudi.aiservice.mapper.*;
+import com.superyoudi.aiservice.pojo.dto.AiCitation;
 import com.superyoudi.aiservice.pojo.entity.ChatCourseRel;
 import com.superyoudi.aiservice.pojo.entity.ChatCoursewareRecRel;
 import com.superyoudi.aiservice.pojo.entity.ChatMessage;
@@ -30,7 +28,11 @@ public class ChatPersistenceService {
     private final ChatMessageMapper chatMessageMapper;
     private final ChatCourseRelMapper chatCourseRelMapper;
     private final ChatCoursewareRecRelMapper chatCoursewareRecRelMapper;
+    private final AiCitationMapper aiCitationMapper;
 
+    /**
+     * 构造会话历史记录
+     */
     public ChatHistoryDTO constructChatHistory(Long chatSessionId, Long userId, List<ChatMessage> chatMessages) {
         List<ChatHistoryDTO.ChatMessageData> messages = chatMessages.stream().map(message ->
                         new ChatHistoryDTO.ChatMessageData(message.getMsgSeq(), message.getMsgType(),
@@ -38,6 +40,28 @@ public class ChatPersistenceService {
                 .toList();
 
         return new ChatHistoryDTO(chatSessionId, userId, messages);
+    }
+
+    public ChatMessage getLatestAiMessageByChatId(Long chatSessionId) {
+        return chatMessageMapper.selectLatestAiMessageByChatId(chatSessionId);
+    }
+
+
+    public void saveCitation(AiCitation citation) {
+        aiCitationMapper.insert(citation);
+    }
+
+
+    public List<AiCitation> getCitationsByMessageId(Long chatMessageId) {
+        return aiCitationMapper.selectByChatMessageId(chatMessageId);
+    }
+
+    public List<AiCitation> getCitationsBySuggestionId(Long suggestionId) {
+        return aiCitationMapper.selectByChatMessageId(suggestionId);
+    }
+
+    public void deleteByMessage(Long chatMessageId) {
+        aiCitationMapper.deleteByChatMessageId(chatMessageId);
     }
 
     /**
@@ -82,23 +106,27 @@ public class ChatPersistenceService {
     /**
      * 向列表追加消息
      */
-    public void appendChatMessage(Long chatId, String message, String role) {
+    public Long appendChatMessage(Long chatId, String message, String role) {
         ChatMessage chatMessage = new ChatMessage(chatId, message, role);
         chatMessageMapper.insertWithAutoSeq(chatMessage);
+
+        return chatMessage.getId();
     }
 
     /**
      * 向列表追加消息
      */
-    public void appendChatMessage(Long studentId, Long courseId, String message, String role) {
+    public Long appendChatMessage(Long studentId, Long courseId, String message, String role) {
         ChatCourseRel chatCourseRel = chatCourseRelMapper.selectByCourseAndStudentId(courseId, studentId);
         if (chatCourseRel == null) {
             log.error("保存消息记录失败: 未找到课程与聊天关联。");
-            return;
+            return null;
         }
 
         ChatMessage chatMessage = new ChatMessage(chatCourseRel.getChatId(), message, role);
         chatMessageMapper.insertWithAutoSeq(chatMessage);
+
+        return chatMessage.getId();
     }
 
     /**
@@ -141,17 +169,28 @@ public class ChatPersistenceService {
 
         chatCourseRel = chatCourseRelMapper.selectByCourseAndStudentId(courseId, studentId);
 
-        return chatSessionMapper.selectById(chatCourseRel.getChatId());
+        ChatSession chatSession = chatSessionMapper.selectById(chatCourseRel.getChatId());
+        if (chatSession == null) {
+            chatSession = createChatSession(chatCourseRel.getChatId());
+            chatCourseRel.setChatId(chatSession.getId());
+            chatCourseRelMapper.update(chatCourseRel);
+        }
+
+        return chatSession;
     }
 
     /**
      * 创建会话与课程关联关系
      */
     public Long createChatSessionAndCourseRel(Long userId, Long courseId) {
+        ChatSession chatSession = createChatSession(userId);
+        return createChatCourseRel(chatSession.getId(), courseId, userId);
+    }
+
+    private ChatSession createChatSession(Long userId) {
         ChatSession chatSession = new ChatSession(null, userId, null);
         chatSessionMapper.insert(chatSession);
-
-        return createChatCourseRel(chatSession.getId(), courseId, userId);
+        return chatSession;
     }
 
     public Long createChatCourseRel(Long chatId, Long courseId, Long userId) {
@@ -164,8 +203,7 @@ public class ChatPersistenceService {
      * 创建会话与课程关联关系
      */
     public Long createChatCoursewareRecRel(Long userId, Long coursewareRecId) {
-        ChatSession chatSession = new ChatSession(null, userId, null);
-        chatSessionMapper.insert(chatSession);
+        ChatSession chatSession = createChatSession(userId);
 
         return createChatCoursewareRecRel(chatSession.getId(), coursewareRecId, userId);
     }

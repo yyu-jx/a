@@ -327,35 +327,35 @@ class KdbServiceTests {
 
         // 测试检索第一个文档中的知识点
         String knowledgeName1 = "缓存";
-        String result1 = knowledgeGraphService.retrieveKnowledgePointInfo(knowledgeName1);
+        String result1 = knowledgeGraphService.retrieveKnowledgePoint(knowledgeName1);
         System.out.println("检索知识点：【" + knowledgeName1 + "】");
         System.out.println(result1);
         System.out.println("========================================\n");
 
         // 测试检索第二个文档中的知识点
         String knowledgeName2 = "虚拟内存";
-        String result2 = knowledgeGraphService.retrieveKnowledgePointInfo(knowledgeName2);
+        String result2 = knowledgeGraphService.retrieveKnowledgePoint(knowledgeName2);
         System.out.println("检索知识点：【" + knowledgeName2 + "】");
         System.out.println(result2);
         System.out.println("========================================\n");
 
         // 测试检索不存在的知识点
         String knowledgeName3 = "不存在的知识点";
-        String result3 = knowledgeGraphService.retrieveKnowledgePointInfo(knowledgeName3);
+        String result3 = knowledgeGraphService.retrieveKnowledgePoint(knowledgeName3);
         System.out.println("检索知识点：【" + knowledgeName3 + "】");
         System.out.println(result3);
         System.out.println("========================================\n");
 
         // 测试检索有多个关系的知识点（如：局部性原理）
         String knowledgeName4 = "局部性原理";
-        String result4 = knowledgeGraphService.retrieveKnowledgePointInfo(knowledgeName4);
+        String result4 = knowledgeGraphService.retrieveKnowledgePoint(knowledgeName4);
         System.out.println("检索知识点：【" + knowledgeName4 + "】");
         System.out.println(result4);
         System.out.println("========================================\n");
 
         // 测试检索被引用的知识点（如：页表）
         String knowledgeName5 = "页表";
-        String result5 = knowledgeGraphService.retrieveKnowledgePointInfo(knowledgeName5);
+        String result5 = knowledgeGraphService.retrieveKnowledgePoint(knowledgeName5);
         System.out.println("检索知识点：【" + knowledgeName5 + "】");
         System.out.println(result5);
         System.out.println("========================================\n");

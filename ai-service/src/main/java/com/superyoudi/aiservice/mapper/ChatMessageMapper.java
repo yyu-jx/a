@@ -27,6 +27,12 @@ public interface ChatMessageMapper {
     ChatMessage selectByChatIdAndSeq(@Param("chatId") Long chatId, @Param("msgSeq") Integer msgSeq);
 
     /**
+     * 查询指定chat_id下msg_seq最大，且role为AI的行
+     */
+    @Select("SELECT * FROM chat_messages WHERE chat_id = #{chatId} AND role = 'ai' ORDER BY msg_seq DESC LIMIT 1")
+    ChatMessage selectLatestAiMessageByChatId(Long chatId);
+
+    /**
      * 查询会话中指定角色类型的消息
      */
     @Select("SELECT * FROM chat_messages WHERE chat_id = #{chatId} AND role = #{role} ORDER BY msg_seq ASC")

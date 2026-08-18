@@ -122,7 +122,7 @@ public class LearningPathServiceImpl implements LearningPathService {
 
         String json = learningPathGenerateModel.call(studentId, courseId, generateCandidateKnowledgeInfo(unmasteredKnowledgeMap));
 
-        LearningPathDataDTO lpData = AiMessageUtils.readJsonValue(json, LearningPathDataDTO.class);
+        LearningPathDataDTO lpData = AiMessageUtils.convertJsonValue(json, LearningPathDataDTO.class);
 
         if (lpData == null) {
             log.error("学习路径数据解析失败。");

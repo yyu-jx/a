@@ -6,7 +6,9 @@ import com.alibaba.cloud.ai.graph.agent.hook.HookPosition;
 import com.alibaba.cloud.ai.graph.agent.hook.HookPositions;
 import com.alibaba.cloud.ai.graph.agent.hook.messages.AgentCommand;
 import com.alibaba.cloud.ai.graph.agent.hook.messages.MessagesAgentHook;
+import com.alibaba.cloud.ai.graph.utils.TypeRef;
 import com.superyoudi.aiservice.ai.agent.AiTutorAgent;
+import com.superyoudi.aiservice.pojo.dto.AiCitation;
 import com.superyoudi.aiservice.pojo.entity.ChatMessage;
 import com.superyoudi.aiservice.service.ChatPersistenceService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
@@ -17,6 +19,7 @@ import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Sijayyx
@@ -53,9 +56,25 @@ public class AiTutorMessageAgentHook extends MessagesAgentHook {
         // 这里能拿到用户消息、工具调用消息、AI回复的消息
         Long courseId = (Long) config.metadata(AiTutorAgent.METADATA_COURSE_ID).orElseThrow();
         Long studentId = (Long) config.metadata(AiTutorAgent.METADATA_STUDENT_ID).orElseThrow();
+        Map<String, Object> metadata = config
+                .metadata(AiTutorAgent.METADATA_CUSTOM_METADATA, new TypeRef<Map<String, Object>>() {
+                }).orElse(null);
+
 
         // 存AI回复的消息
-        saveChatMessage(studentId, courseId, previousMessages);
+        Long messageId = saveChatMessage(studentId, courseId, previousMessages);
+
+        if (metadata != null && metadata.containsKey("citations")) {
+            List<AiCitation> citations = (List<AiCitation>) metadata.get("citations");
+            citations.forEach(citation ->
+            {
+                citation.setChatMessageId(messageId);
+                chatPersistenceService.saveCitation(citation);
+                log.info("AI导师 保存引用消息: 标题: {}, 数据类型: {}, 数据: {}", citation.getTitle(), citation.getDataType(), citation.getData());
+            });
+        }
+
+        // 存引用消息: metadata.citations
 
         return super.afterAgent(previousMessages, config);
     }
@@ -65,16 +84,18 @@ public class AiTutorMessageAgentHook extends MessagesAgentHook {
      * <p>
      * 获取最后一个消息，并向消息列表追加它。
      */
-    private void saveChatMessage(Long studentId, Long courseId, List<Message> messages) {
+    private Long saveChatMessage(Long studentId, Long courseId, List<Message> messages) {
         Message lastMsg = messages.get(messages.size() - 1);
 
         log.info("保存消息记录: 文本: {}, 角色: {}, 学生ID/课程ID: {}/{}", lastMsg.getText(), lastMsg.getMessageType(), studentId, courseId);
 
         if (lastMsg.getMessageType() == MessageType.ASSISTANT) {
-            chatPersistenceService.appendChatMessage(studentId, courseId, lastMsg.getText(), ChatMessage.ROLE_AI);
+            return chatPersistenceService.appendChatMessage(studentId, courseId, lastMsg.getText(), ChatMessage.ROLE_AI);
         } else if (lastMsg.getMessageType() == MessageType.USER) {
-            chatPersistenceService.appendChatMessage(studentId, courseId, lastMsg.getText(), ChatMessage.ROLE_USER);
+            return chatPersistenceService.appendChatMessage(studentId, courseId, lastMsg.getText(), ChatMessage.ROLE_USER);
         }
+
+        return null; // 如果消息类型不是用户或AI，返回null
     }
 
     @Override
