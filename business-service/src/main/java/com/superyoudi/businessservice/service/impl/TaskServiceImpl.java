@@ -1,6 +1,7 @@
 package com.superyoudi.businessservice.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.superyoudi.aiservice.ai.AnswerCorrectionModel;
 import com.superyoudi.aiservice.service.TaskAiService;
 import com.superyoudi.businessservice.mapper.*;
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
@@ -12,7 +13,6 @@ import com.superyoudi.businessservice.utils.AnswerValidator;
 import com.superyoudi.common.dto.ErrorQuestionVO;
 import com.superyoudi.common.exception.BusinessException;
 import com.superyoudi.common.exception.ErrorQuestionNotFoundException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
@@ -24,10 +24,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.superyoudi.common.constants.RedisConstants.AI_DIAGNOSE_CACHE_HOUR;
@@ -35,8 +37,9 @@ import static com.superyoudi.common.constants.RedisConstants.AI_DIAGNOSE_CACHE_K
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
+// 不要使用RequiredArgsConstructor!!!! CorrectionStrategy需要已经初始化的AnswerCorrectionModel
 public class TaskServiceImpl implements TaskService {
+
 
     private final StudentSubmissionMapper studentSubmissionMapper;
     private final StudentAnswerMapper studentAnswerMapper;
@@ -48,6 +51,66 @@ public class TaskServiceImpl implements TaskService {
     private final QuestionMapper questionMapper;
     private final TaskQuestionRelMapper taskQuestionRelMapper;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    // 策略字段
+    private final AnswerValidator.CorrectionStrategy objectiveStrategy;
+    private final AnswerValidator.CorrectionStrategy subjectiveStrategy;
+
+    // 构造函数
+    public TaskServiceImpl(StudentSubmissionMapper studentSubmissionMapper,
+                           StudentAnswerMapper studentAnswerMapper,
+                           TaskMapper taskMapper,
+                           StudentCourseProgressMapper studentCourseProgressMapper,
+                           TaskAiService taskAiService,
+                           StringRedisTemplate stringRedisTemplate,
+                           UserMapper userMapper,
+                           QuestionMapper questionMapper,
+                           TaskQuestionRelMapper taskQuestionRelMapper,
+                           AnswerCorrectionModel answerCorrectionModel) {
+        this.studentSubmissionMapper = studentSubmissionMapper;
+        this.studentAnswerMapper = studentAnswerMapper;
+        this.taskMapper = taskMapper;
+        this.studentCourseProgressMapper = studentCourseProgressMapper;
+        this.taskAiService = taskAiService;
+        this.stringRedisTemplate = stringRedisTemplate;
+        this.userMapper = userMapper;
+        this.questionMapper = questionMapper;
+        this.taskQuestionRelMapper = taskQuestionRelMapper;
+
+        // 初始化客观题策略
+        this.objectiveStrategy = (question, correctAnswer, studentAnswer, questionScore) -> {
+            if (correctAnswer instanceof Question.ChoiceAnswer correct &&
+                    studentAnswer instanceof StudentAnswer.ChoiceAnswer student) {
+
+                int correctCount = AnswerValidator.validateChoiceAnswer(correct, student);
+                return AnswerValidator.calcStudentAnswerScore(questionScore, correct, correctCount);
+
+            } else if (correctAnswer instanceof Question.TrueFalseAnswer correct &&
+                    studentAnswer instanceof StudentAnswer.TrueFalseAnswer student) {
+
+                boolean isCorrect = AnswerValidator.validateTrueFalseAnswer(correct, student);
+                return isCorrect ? questionScore : 0;
+            }
+            throw new IllegalArgumentException("不支持的客观题类型");
+        };
+
+        // 初始化主观题策略
+        this.subjectiveStrategy = (question, correctAnswer, studentAnswer, questionScore) -> {
+            if (correctAnswer instanceof Question.FillAnswer correct &&
+                    studentAnswer instanceof StudentAnswer.FillAnswer student) {
+
+                return AnswerValidator.validateFillAnswer(answerCorrectionModel, question.getContent(),
+                        questionScore, correct, student);
+
+            } else if (correctAnswer instanceof Question.SubjectiveAnswer correct &&
+                    studentAnswer instanceof StudentAnswer.SubjectiveAnswer student) {
+
+                return AnswerValidator.validateSubjectiveAnswer(answerCorrectionModel, question.getContent(),
+                        questionScore, correct.getAnswer(), student.getContent());
+            }
+            throw new IllegalArgumentException("不支持的主观题类型");
+        };
+    }
 
     /**
      * 更新任务信息
@@ -84,9 +147,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     /**
-     * 提交任务
-     *
-     * @return
+     * 提交任务并尝试自动评分
      */
     @Override
     public Long addOrUpdateStudentSubmission(StudentSubmission submission) {
@@ -239,6 +300,7 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public void executeSubmissionCorrection(StudentSubmission submission) {
         Assert.notNull(submission, "提交记录不能为空");
+        Assert.notNull(submission.getId(), "提交记录ID不能为空");
         Assert.notNull(submission.getTaskId(), "任务ID不能为空");
 
         // 获取任务信息
@@ -262,16 +324,22 @@ public class TaskServiceImpl implements TaskService {
             studentAnswerQuestionMap.put(studentAnswer, answerQuestion);
         }
 
-
         switch (afterSubmitStrategy) {
-            case Task.SUBMIT_STRATEGY_AUTO_OBJECTIVE -> {
-                // 自动批改客观题
-                correctObjectiveQuestions(task.getId(), studentAnswerQuestionMap);
-            }
+            case Task.SUBMIT_STRATEGY_AUTO_OBJECTIVE ->
+                    correctObjectiveQuestions(task.getId(), studentAnswerQuestionMap);  // 自动批改客观题
             case Task.SUBMIT_STRATEGY_AUTO_ALL -> {
                 // 批改全部题目
+                correctObjectiveQuestions(task.getId(), studentAnswerQuestionMap);
+                correctSubjectiveQuestions(task.getId(), studentAnswerQuestionMap);
             }
         }
+
+        // 计算总分
+        Integer totalSubmissionScore = studentAnswerMapper.sumScoreBySubmissionId(submission.getId());
+        submission.setStatus("passed");
+        submission.setTotalScore(totalSubmissionScore);
+        submission.setSubmittedTime(LocalDateTime.now());
+        studentSubmissionMapper.update(submission);
     }
 
     /**
@@ -280,50 +348,54 @@ public class TaskServiceImpl implements TaskService {
      * @param taskId            任务ID
      * @param answerQuestionMap 学生答案与题目
      */
-    public void correctObjectiveQuestions(Long taskId, Map<StudentAnswer, Question> answerQuestionMap) {
-        Map<StudentAnswer, Question> objectiveQuestionsMap = answerQuestionMap.entrySet().stream()
-                // 过滤出客观题
-                .filter(entry ->
-                        entry.getValue().getType().equals("choice") ||
-                                entry.getValue().getType().equals("true_false")
-                ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    private void correctObjectiveQuestions(Long taskId, Map<StudentAnswer, Question> answerQuestionMap) {
+        correctQuestions(taskId, answerQuestionMap,
+                q -> q.getType().equals("choice") || q.getType().equals("true_false"),
+                objectiveStrategy);
+    }
 
-        for (Map.Entry<StudentAnswer, Question> answerQuestionEntry : objectiveQuestionsMap.entrySet()) {
-            StudentAnswer answer = answerQuestionEntry.getKey();
-            Question question = answerQuestionEntry.getValue();
+    /**
+     * 批改主观题
+     *
+     * @param taskId            任务ID
+     * @param answerQuestionMap 学生答案与题目
+     */
+    private void correctSubjectiveQuestions(Long taskId, Map<StudentAnswer, Question> answerQuestionMap) {
+        correctQuestions(taskId, answerQuestionMap,
+                q -> q.getType().equals("fill") || q.getType().equals("subjective"),
+                subjectiveStrategy);
+    }
+
+    /**
+     * 批改题目，执行过滤并应用评分策略，评分完毕后，更新studentAnswer
+     *
+     * @param taskId            任务ID
+     * @param answerQuestionMap 未过滤的学生答案与题目
+     * @param filter            过滤器
+     * @param strategy          评分策略
+     */
+    private void correctQuestions(Long taskId, Map<StudentAnswer, Question> answerQuestionMap,
+                                  Predicate<Question> filter, AnswerValidator.CorrectionStrategy strategy) {
+        Map<StudentAnswer, Question> filteredMap = answerQuestionMap.entrySet().stream()
+                .filter(entry -> filter.test(entry.getValue()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        for (Map.Entry<StudentAnswer, Question> entry : filteredMap.entrySet()) {
+            StudentAnswer answer = entry.getKey();
+            Question question = entry.getValue();
 
             Object correctAnswer = convertQuestionAnswerJson(question.getType(), question.getAnswer());
             Object studentAnswer = convertStudentAnswerJson(question.getType(), answer.getAnswer());
 
             int questionScore = taskQuestionRelMapper.findByTaskIdAndQuestionId(taskId, question.getId()).getScore();
 
-            // 选择题
-            if (correctAnswer instanceof Question.ChoiceAnswer correct &&
-                    studentAnswer instanceof StudentAnswer.ChoiceAnswer student) {
-                int correctAnswerCount = AnswerValidator.validateChoiceAnswer(correct, student);
-
-                // 计算学生得分
-                int finalScore = AnswerValidator.calcStudentAnswerScore(questionScore, correct, correctAnswerCount);
-
-                // 更新学生答案记录
-                answer.setScore(finalScore);
-            }
-            // 填空题
-            else if (correctAnswer instanceof Question.TrueFalseAnswer correct &&
-                    studentAnswer instanceof StudentAnswer.TrueFalseAnswer student) {
-                int score = AnswerValidator.validateTrueFalseAnswer(correct, student) ? 1 : 0;
-                int finalScore = score * questionScore;
-                answer.setScore(finalScore);
-            }
+            int finalScore = strategy.calcScore(question, correctAnswer, studentAnswer, questionScore);
+            answer.setScore(finalScore);
             studentAnswerMapper.update(answer);
         }
     }
 
-    public void correctSubjectiveQuestions(Map<StudentAnswer, Question> answerQuestionMap) {
-
-    }
-
-    public Object convertQuestionAnswerJson(String type, String json) {
+    private Object convertQuestionAnswerJson(String type, String json) {
 
         try {
             return switch (type) {
@@ -341,7 +413,7 @@ public class TaskServiceImpl implements TaskService {
 
     }
 
-    public Object convertStudentAnswerJson(String type, String json) {
+    private Object convertStudentAnswerJson(String type, String json) {
         try {
             return switch (type) {
                 case "choice" -> objectMapper.readValue(json, StudentAnswer.ChoiceAnswer.class);

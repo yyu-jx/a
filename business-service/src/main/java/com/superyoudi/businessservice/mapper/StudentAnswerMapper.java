@@ -48,6 +48,15 @@ public interface StudentAnswerMapper {
     @Select("select * from student_answers")
     List<StudentAnswer> selectAll();
 
+    /**
+     * 计算提交的总得分（单题得分之和）
+     *
+     * @param submissionId 提交ID
+     * @return 总得分，如果没有记录则返回0
+     */
+    @Select("SELECT COALESCE(SUM(score), 0) FROM student_answers WHERE submission_id = #{submissionId}")
+    Integer sumScoreBySubmissionId(Long submissionId);
+
     @Update("update student_answers set answer = #{answer}, score = #{score}, comment = #{comment}, " +
             "time_spent = #{timeSpent}, attempt_count = #{attemptCount}, " +
             "help_request_count = #{helpRequestCount}, error_type = #{errorType} " +
