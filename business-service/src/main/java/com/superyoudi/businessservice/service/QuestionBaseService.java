@@ -14,6 +14,8 @@ public interface QuestionBaseService {
 
     List<Question> getQuestions(Long teacherId, Long courseId, String questionType);
 
+    List<Question> getQuestionsByKnowledge(String knowledge);
+
     void addQuestion(Question question, QuestionProperty questionProperty);
 
     void updateQuestion(Question question);

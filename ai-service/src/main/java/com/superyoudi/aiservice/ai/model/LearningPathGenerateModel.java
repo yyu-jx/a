@@ -1,4 +1,4 @@
-package com.superyoudi.aiservice.ai.agent;
+package com.superyoudi.aiservice.ai.model;
 
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import lombok.RequiredArgsConstructor;

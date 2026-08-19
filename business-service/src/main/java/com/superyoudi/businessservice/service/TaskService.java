@@ -95,4 +95,10 @@ public interface TaskService {
      * @return 提交记录列表
      */
     List<StudentSubmission> getSubmissions(Long taskId);
+
+    public void addPathNodeTaskRel(Long taskId, Long pathNodeId, Long studentId);
+
+    void removePathNodeTaskRel(Long taskId, Long pathNodeId);
+
+    public StudentSubmission tryGetTaskSubmissionByPathNodeId(Long pathNodeId, Long studentId);
 }

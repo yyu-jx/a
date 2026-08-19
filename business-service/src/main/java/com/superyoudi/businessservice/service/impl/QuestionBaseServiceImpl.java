@@ -26,6 +26,10 @@ public class QuestionBaseServiceImpl implements QuestionBaseService {
         this.questionPropertyMapper = questionPropertyMapper;
     }
 
+    public List<Question> generateQuestions(Long teacherId, Long courseId, List<String> knowledge, String questionType, int count) {
+
+    }
+
     /**
      * 获取题库列表
      *
@@ -48,6 +52,11 @@ public class QuestionBaseServiceImpl implements QuestionBaseService {
 
         return questions;
 
+    }
+
+    @Override
+    public List<Question> getQuestionsByKnowledge(String knowledge) {
+        return questionMapper.findQuestionsByKnowledge(knowledge);
     }
 
     /**

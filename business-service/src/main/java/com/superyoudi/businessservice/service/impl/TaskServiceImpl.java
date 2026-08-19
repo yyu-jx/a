@@ -6,22 +6,9 @@ import cn.hutool.json.JSONUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.superyoudi.aiservice.service.TaskAiService;
 import com.superyoudi.businessservice.mapper.*;
-import com.superyoudi.businessservice.mapper.StudentAnswerMapper;
-import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
-import com.superyoudi.businessservice.mapper.StudentSubmissionMapper;
-import com.superyoudi.businessservice.mapper.TaskMapper;
-import com.superyoudi.businessservice.mapper.TaskQuestionRelMapper;
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
 import com.superyoudi.businessservice.pojo.entity.*;
-import com.superyoudi.businessservice.pojo.vo.QuestionItemVO;
-import com.superyoudi.businessservice.pojo.vo.QuestionOptionVO;
-import com.superyoudi.businessservice.pojo.entity.StudentAnswer;
-import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
-import com.superyoudi.businessservice.pojo.entity.Task;
-import com.superyoudi.businessservice.pojo.entity.TaskQuestionRel;
-import com.superyoudi.businessservice.pojo.vo.StudentAnswerVO;
-import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
-import com.superyoudi.businessservice.pojo.vo.TaskQuestionVO;
+import com.superyoudi.businessservice.pojo.vo.*;
 import com.superyoudi.businessservice.service.TaskService;
 import com.superyoudi.common.dto.ErrorQuestionVO;
 import com.superyoudi.common.exception.BusinessException;
@@ -63,6 +50,7 @@ public class TaskServiceImpl implements TaskService {
     private final QuestionMapper questionMapper;
     private final TaskQuestionRelMapper taskQuestionRelMapper;
     private final ObjectMapper objectMapper;
+    private final PathNodeTaskRelMapper pathNodeTaskRelMapper;
 
     /**
      * 更新任务信息
@@ -335,7 +323,37 @@ public class TaskServiceImpl implements TaskService {
         return studentSubmissionMapper.selectAll();
     }
 
-    /** 实体转VO：answer 字符串解析为 JSON 对象 */
+    @Override
+    public void addPathNodeTaskRel(Long taskId, Long pathNodeId, Long studentId) {
+        if (taskId == null || pathNodeId == null)
+            throw new ParamInvalidException("参数不能为空");
+
+        PathNodeTaskRel taskQuestionRel = new PathNodeTaskRel(null, studentId, taskId, pathNodeId, null);
+        pathNodeTaskRelMapper.insert(taskQuestionRel);
+    }
+
+    @Override
+    public void removePathNodeTaskRel(Long taskId, Long pathNodeId) {
+        if (taskId == null || pathNodeId == null)
+            throw new ParamInvalidException("参数不能为空");
+
+        pathNodeTaskRelMapper.deleteByPathNodeAndTask(pathNodeId, taskId);
+    }
+
+    @Override
+    public StudentSubmission tryGetTaskSubmissionByPathNodeId(Long pathNodeId, Long studentId) {
+        PathNodeTaskRel taskQuestionRel = pathNodeTaskRelMapper.findByPathNodeId(pathNodeId);
+        if (taskQuestionRel == null)
+            return null;
+
+        Long taskId = taskQuestionRel.getTaskId();
+        return studentSubmissionMapper.selectByTaskAndStudentId(taskId, studentId);
+
+    }
+
+    /**
+     * 实体转VO：answer 字符串解析为 JSON 对象
+     */
     private StudentAnswerVO toAnswerVO(StudentAnswer e) {
         StudentAnswerVO vo = new StudentAnswerVO();
         BeanUtils.copyProperties(e, vo);
@@ -349,5 +367,4 @@ public class TaskServiceImpl implements TaskService {
         }
         return vo;
     }
-
 }

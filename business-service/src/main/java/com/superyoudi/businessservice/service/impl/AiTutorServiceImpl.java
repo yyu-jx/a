@@ -19,20 +19,27 @@ import com.superyoudi.aiservice.service.LearningPathService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.businessservice.mapper.UserMapper;
+import com.superyoudi.businessservice.pojo.dto.TaskDTO;
 import com.superyoudi.businessservice.pojo.entity.Course;
+import com.superyoudi.businessservice.pojo.entity.Question;
+import com.superyoudi.businessservice.pojo.entity.Task;
 import com.superyoudi.businessservice.pojo.entity.User;
+import com.superyoudi.businessservice.service.QuestionBaseService;
+import com.superyoudi.businessservice.service.TaskService;
 import com.superyoudi.common.dto.ChatHistoryDTO;
 import com.superyoudi.common.exception.LearningPathFinishedException;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
-import com.superyoudi.kdbservice.service.KnowledgeGraphService;
 import com.superyoudi.kdbservice.service.KnowledgePointService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
 
-import java.util.HashMap;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * @author Sijayyx
@@ -47,22 +54,25 @@ public class AiTutorServiceImpl implements AiTutorService {
     private final LearningPathService learningPathService;
     private final KnowledgePointService knowledgePointService;
     private final UserMapper userMapper;
-    private final KnowledgeGraphService knowledgeGraphService;
     private final ChatPersistenceService chatPersistenceService;
+    private final QuestionBaseService questionBaseService;
+    private final TaskService taskService;
 
 
     public AiTutorServiceImpl(@Lazy AiTutorAgent aiTutorAgent, // 延迟注入ai tutor agent，否则会造成循环依赖
                               CourseMapper courseMapper,
                               LearningPathService learningPathService,
                               KnowledgePointService knowledgePointService,
-                              UserMapper userMapper, KnowledgeGraphService knowledgeGraphService, ChatPersistenceService chatPersistenceService) {
+                              UserMapper userMapper,
+                              ChatPersistenceService chatPersistenceService, QuestionBaseService questionBaseService, TaskService taskService) {
         this.courseMapper = courseMapper;
         this.learningPathService = learningPathService;
         this.knowledgePointService = knowledgePointService;
         this.userMapper = userMapper;
         this.aiTutorAgent = aiTutorAgent;
-        this.knowledgeGraphService = knowledgeGraphService;
         this.chatPersistenceService = chatPersistenceService;
+        this.questionBaseService = questionBaseService;
+        this.taskService = taskService;
     }
 
     @Override
@@ -205,17 +215,70 @@ public class AiTutorServiceImpl implements AiTutorService {
     }
 
     @Override
-    public String queryKnowledgePoint(String kpName) {
-        return knowledgeGraphService.retrieveKnowledgePoint(kpName);
+    public void composePathNodeHomework(long pathNodeId,
+                                        long studentId,
+                                        List<String> knowledgePoints,
+                                        String title,
+                                        Map<String, Integer> questionConfig,
+                                        int totalScore) {
+        /*
+            组题步骤:
+            1. 根据知识点查question set
+            2. 根据题型分组成question lists
+            3. 检查每个题型是否有足够的题目，如果没有，调用AI生成。
+            4. 组装题目，生成任务，进行知识节点的关联，向前端推送。
+         */
+
+        Set<Question> candidateQs = new HashSet<>();
+        for (String knowledgePoint : knowledgePoints) {
+            candidateQs.addAll(questionBaseService.getQuestionsByKnowledge(knowledgePoint));
+        }
+
+        Map<String, List<Question>> grouped = candidateQs.stream().collect(Collectors.groupingBy(Question::getType));
+
+        Map<String, List<Question>> questions = new HashMap<>();
+        Random random = new Random();
+        for (Map.Entry<String, List<Question>> typedQuestions : grouped.entrySet()) {
+            if (questionConfig.get(typedQuestions.getKey()) < typedQuestions.getValue().size()) {
+                // TODO 生成题型，存数据库，并放进候选
+
+            }
+
+            // 每个题型随机选几个题目
+            List<Question> randomSelection = random.ints(0, typedQuestions.getValue().size()) // 生成无限流
+                    .distinct()
+                    .limit(questionConfig.get(typedQuestions.getKey()))
+                    .mapToObj(typedQuestions.getValue()::get)
+                    .toList();
+
+            questions.put(typedQuestions.getKey(), randomSelection);
+        }
+
+
+        int totalQuestionCount = questions.values().stream().mapToInt(List::size).sum();
+        int scoreEach = totalScore / totalQuestionCount;
+
+        // 题号计数
+        AtomicInteger index = new AtomicInteger(0);
+
+        List<TaskDTO.QuestionRelInfo> result = questions.values().stream()
+                .flatMap(List::stream)
+                .map(q -> {
+                    Assert.notNull(q.getId(), "题目ID不能为空");
+                    return new TaskDTO.QuestionRelInfo(null, q.getId(), index.getAndIncrement(), scoreEach);
+                })
+                .toList();
+
+        // 存表，构造关联
+        TaskDTO build = TaskDTO.builder().id(null).courseId(null).assignerId(null).title(title).description(null).type("homework")
+                .totalScore(totalScore).startTime(LocalDateTime.now()).deadline(LocalDateTime.MAX)
+                .status("published").afterSubmitStrategy(Task.SUBMIT_STRATEGY_AUTO_ALL)
+                .questionRelInfos(result).build();
+
+        Long taskId = taskService.saveTaskData(build);
+        Assert.notNull(taskId, "任务ID不能为空");
+
+        taskService.addPathNodeTaskRel(taskId, pathNodeId, studentId);
     }
 
-    @Override
-    public String retriveKnowledgeGraph(String query) {
-        return knowledgeGraphService.retrieveKnowledgeGraph(query);
-    }
-
-    @Override
-    public String retrieveDocuments(String query) {
-        return knowledgeGraphService.retrieveDocuments(query);
-    }
 }

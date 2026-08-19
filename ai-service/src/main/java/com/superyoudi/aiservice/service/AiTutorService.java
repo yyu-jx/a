@@ -8,6 +8,9 @@ import com.superyoudi.common.exception.LearningPathFinishedException;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * @author Sijayyx
  */
@@ -28,9 +31,10 @@ public interface AiTutorService {
 
     void updateLearningPathStage(Long pathId, String stage);
 
-    String queryKnowledgePoint(String kpName);
-
-    String retriveKnowledgeGraph(String query);
-
-    String retrieveDocuments(String query);
+    void composePathNodeHomework(long pathNodeId,
+                                 long studentId,
+                                 List<String> knowledgePoints,
+                                 String title,
+                                 Map<String, Integer> questionConfig,
+                                 int totalScore);
 }

@@ -10,7 +10,7 @@ import java.util.List;
 public interface StudentSubmissionMapper {
 
     @Select("select * from student_submissions where task_id = #{taskId} and student_id = #{student_id} limit 1")
-    StudentSubmission selectByTaskAndStudentId(Long taskId, Long student_id);
+    StudentSubmission selectByTaskAndStudentId(Long taskId, Long studentId);
 
     /* ── 批改用 ── */
 

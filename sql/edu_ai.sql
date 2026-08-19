@@ -156,8 +156,8 @@ DROP TABLE IF EXISTS `tasks`;
 CREATE TABLE `tasks`
 (
     `id`                    BIGINT AUTO_INCREMENT PRIMARY KEY,
-    `course_id`             BIGINT                                      NOT NULL,
-    `assigner_id`           BIGINT                                      NOT NULL COMMENT '布置人ID',
+    `course_id`             BIGINT COMMENT '关联课程ID',
+    `assigner_id`           BIGINT COMMENT '布置人ID',
     `title`                 VARCHAR(256)                                NOT NULL COMMENT '标题',
     `description`           TEXT COMMENT '说明',
     `type`                  ENUM ('homework','exam','qna')              NOT NULL COMMENT '作业/考试/问答',
@@ -586,3 +586,18 @@ CREATE TABLE IF NOT EXISTS `course_data`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='课程数据表';
+
+-- 38. 学习路径节点 任务 关联表 path_node_task_rel
+DROP TABLE IF EXISTS path_node_task_rel;
+CREATE TABLE `path_node_task_rel`
+(
+    `id`           BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+    `student_id`   BIGINT NOT NULL COMMENT '学生ID',
+    `path_node_id` BIGINT NOT NULL COMMENT '路径节点ID',
+    `task_id`      BIGINT NOT NULL COMMENT '任务ID',
+    `create_at`    DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    KEY idx_path_node (`path_node_id`),
+    KEY idx_task (`task_id`),
+    UNIQUE KEY uk_path_node_task (`path_node_id`, `task_id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='路径节点任务关联表';
