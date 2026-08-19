@@ -1,11 +1,15 @@
-package com.superyoudi.businessservice.pojo.entity;
+package com.superyoudi.businessservice.pojo.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
 @Data
-public class TaskQuestion {
+@AllArgsConstructor
+@NoArgsConstructor
+public class TaskQuestionDTO {
     private Long id;
     private Long teacherId;
     private BigDecimal score;
