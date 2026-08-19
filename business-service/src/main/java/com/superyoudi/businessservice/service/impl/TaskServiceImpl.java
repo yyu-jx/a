@@ -5,15 +5,15 @@ import com.superyoudi.aiservice.ai.AnswerCorrectionModel;
 import com.superyoudi.aiservice.service.TaskAiService;
 import com.superyoudi.businessservice.mapper.*;
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
-import com.superyoudi.businessservice.pojo.dto.TaskQuestionDTO;
+import com.superyoudi.businessservice.pojo.dto.TaskQuestion;
 import com.superyoudi.businessservice.pojo.entity.*;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
-import com.superyoudi.businessservice.pojo.vo.*;
 import com.superyoudi.businessservice.service.TaskService;
 import com.superyoudi.businessservice.utils.AnswerValidator;
 import com.superyoudi.common.dto.ErrorQuestionVO;
 import com.superyoudi.common.exception.BusinessException;
 import com.superyoudi.common.exception.ErrorQuestionNotFoundException;
+import com.superyoudi.common.exception.ParamInvalidException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
@@ -56,6 +56,7 @@ public class TaskServiceImpl implements TaskService {
     // 策略字段
     private final AnswerValidator.CorrectionStrategy objectiveStrategy;
     private final AnswerValidator.CorrectionStrategy subjectiveStrategy;
+    private final PathNodeTaskRelMapper pathNodeTaskRelMapper;
 
     // 构造函数
     public TaskServiceImpl(StudentSubmissionMapper studentSubmissionMapper,
@@ -67,7 +68,7 @@ public class TaskServiceImpl implements TaskService {
                            UserMapper userMapper,
                            QuestionMapper questionMapper,
                            TaskQuestionRelMapper taskQuestionRelMapper,
-                           AnswerCorrectionModel answerCorrectionModel) {
+                           AnswerCorrectionModel answerCorrectionModel, PathNodeTaskRelMapper pathNodeTaskRelMapper) {
         this.studentSubmissionMapper = studentSubmissionMapper;
         this.studentAnswerMapper = studentAnswerMapper;
         this.taskMapper = taskMapper;
@@ -77,6 +78,7 @@ public class TaskServiceImpl implements TaskService {
         this.userMapper = userMapper;
         this.questionMapper = questionMapper;
         this.taskQuestionRelMapper = taskQuestionRelMapper;
+        this.pathNodeTaskRelMapper = pathNodeTaskRelMapper;
 
         // 初始化客观题策略
         this.objectiveStrategy = (question, correctAnswer, studentAnswer, questionScore) -> {
@@ -112,8 +114,6 @@ public class TaskServiceImpl implements TaskService {
             throw new IllegalArgumentException("不支持的主观题类型");
         };
     }
-    private final ObjectMapper objectMapper;
-    private final PathNodeTaskRelMapper pathNodeTaskRelMapper;
 
     /**
      * 更新任务信息
@@ -254,7 +254,7 @@ public class TaskServiceImpl implements TaskService {
      * @return 任务问题列表
      */
     @Override
-    public List<TaskQuestionDTO> getTaskQuestionList(Long taskId) {
+    public List<TaskQuestion> getTaskQuestionList(Long taskId) {
         //  校验参数
         if (taskId == null) {
             throw new BusinessException("任务ID不能为空");
@@ -408,6 +408,14 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    public PathNodeTaskRel getPathNodeTaskRel(Long pathNodeId) {
+        if (pathNodeId == null)
+            throw new ParamInvalidException("参数不能为空");
+
+        return pathNodeTaskRelMapper.findByPathNodeId(pathNodeId);
+    }
+
+    @Override
     public void removePathNodeTaskRel(Long taskId, Long pathNodeId) {
         if (taskId == null || pathNodeId == null)
             throw new ParamInvalidException("参数不能为空");
@@ -426,19 +434,6 @@ public class TaskServiceImpl implements TaskService {
 
     }
 
-    /**
-     * 实体转VO：answer 字符串解析为 JSON 对象
-     */
-    private StudentAnswerVO toAnswerVO(StudentAnswer e) {
-        StudentAnswerVO vo = new StudentAnswerVO();
-        BeanUtils.copyProperties(e, vo);
-        if (e.getAnswer() != null && !e.getAnswer().isBlank()) {
-            try {
-                vo.setAnswer(objectMapper.readTree(e.getAnswer()));
-            } catch (Exception ex) {
-                log.warn("答题答案JSON解析失败, id={}", e.getId(), ex);
-                vo.setAnswer(null);
-            }
     private Object convertQuestionAnswerJson(String type, String json) {
 
         try {

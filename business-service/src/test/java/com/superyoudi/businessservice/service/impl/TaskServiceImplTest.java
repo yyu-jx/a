@@ -4,7 +4,7 @@ import com.superyoudi.aiservice.service.TaskAiService;
 import com.superyoudi.businessservice.mapper.QuestionMapper;
 import com.superyoudi.businessservice.mapper.StudentSubmissionMapper;
 import com.superyoudi.businessservice.mapper.TaskMapper;
-import com.superyoudi.businessservice.pojo.dto.TaskQuestionDTO;
+import com.superyoudi.businessservice.pojo.dto.TaskQuestion;
 import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
 import com.superyoudi.businessservice.pojo.entity.Task;
 import com.superyoudi.common.dto.ErrorQuestionVO;
@@ -234,8 +234,8 @@ class TaskServiceImplTest {
         return task;
     }
 
-    private TaskQuestionDTO buildMockQuestion(Long id, String type, String answerJson) {
-        TaskQuestionDTO question = new TaskQuestionDTO();
+    private TaskQuestion buildMockQuestion(Long id, String type, String answerJson) {
+        TaskQuestion question = new TaskQuestion();
         question.setId(id);
         question.setTeacherId(100L);
         question.setScore(new BigDecimal("10"));

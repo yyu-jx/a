@@ -50,7 +50,7 @@ class CoursePreparingController {
 
     }
 
-    /// 添加题目
+    /// TODO 添加题目，包含属性与知识点关联
     @PostMapping("/questions")
     public Result<Void> addQuestion(@RequestBody Question question) {
         questionBaseService.addQuestion(question, null);

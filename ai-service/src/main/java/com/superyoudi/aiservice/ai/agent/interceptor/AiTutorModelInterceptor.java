@@ -81,7 +81,6 @@ public class AiTutorModelInterceptor extends ModelInterceptor {
                 2. 根据学生能力水平调整讲解深度
                 3. 每次回复后等待学生回应，不要一次说太多
                 4. 你的输出必须为Markdown格式
-                
                 """;
 
         StudentCourseInfoDTO studentInfo = aiTutorService.getStudentInfo(studentId);
@@ -99,7 +98,7 @@ public class AiTutorModelInterceptor extends ModelInterceptor {
                 stagePrompt = "所有学习路径的节点已全部完成。";
             }
         } else {
-            stagePrompt = buildStagePrompt(learningPathInfo);
+            stagePrompt = buildStagePrompt(learningPathInfo, studentId);
         }
 
         // 拼接字符串
@@ -129,7 +128,8 @@ public class AiTutorModelInterceptor extends ModelInterceptor {
         return prompt;
     }
 
-    public String buildStagePrompt(LearningPathDTO learningPathDTO) {
+    public String buildStagePrompt(LearningPathDTO learningPathDTO, Long studentId) {
+
 
         return switch (learningPathDTO.getCurrentStage()) {
             case LearningPath.STAGE_INTRODUCING -> """
@@ -160,9 +160,36 @@ public class AiTutorModelInterceptor extends ModelInterceptor {
                     4. 每讲解1-2个要点后，提出一个确认性问题（"这里理解了吗？"）
                     
                     ## 完成后
-                    将当前阶段设置为 finished
+                    将当前阶段设置为 testing
                     """;
-            // TODO 生成测验
+            case LearningPath.STAGE_TESTING -> {
+                if (!aiTutorService.checkPathNodeHomeWorkExists(learningPathDTO.getCurrentPathNodeId(), learningPathDTO.getCourseId(), studentId)) {
+                    yield """
+                            ## 当前阶段：知识测试
+                            
+                            ## 任务
+                            请调用 compose_path_node_homework 工具，生成一个包含多个问题的测验。
+                            
+                            可选题目类型有:
+                            - choice 单选或多选题
+                            - fill 填空题
+                            - subjective 主观题
+                            - true_false 判断题
+                            
+                            题目数量: 总题量不超过10道。
+                            """;
+                } else {
+                    if (aiTutorService.checkPathNodeHomeworkFinished(learningPathDTO.getCurrentPathNodeId(), studentId)) {
+                        yield """
+                                当前节点已完成，请将当前阶段设置为 finished
+                                """;
+                    } else {
+                        yield """
+                                学生未完成节点测验，请不要继续讲解，请等待学生完成测验后再继续讲解。
+                                """;
+                    }
+                }
+            }
             default -> {
                 log.error("知识路径节点状态错误。");
                 yield "知识路径节点状态错误。";

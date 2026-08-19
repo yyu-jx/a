@@ -32,9 +32,14 @@ public interface AiTutorService {
     void updateLearningPathStage(Long pathId, String stage);
 
     void composePathNodeHomework(long pathNodeId,
+                                 long courseId,
                                  long studentId,
                                  List<String> knowledgePoints,
                                  String title,
                                  Map<String, Integer> questionConfig,
                                  int totalScore);
+
+    boolean checkPathNodeHomeWorkExists(long pathNodeId, long courseId, long studentId);
+
+    boolean checkPathNodeHomeworkFinished(long pathNodeId, long studentId);
 }

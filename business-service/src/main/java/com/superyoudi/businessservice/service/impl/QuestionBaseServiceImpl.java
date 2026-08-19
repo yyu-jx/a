@@ -1,5 +1,6 @@
 package com.superyoudi.businessservice.service.impl;
 
+import com.superyoudi.aiservice.ai.model.QuestionGenerateModel;
 import com.superyoudi.businessservice.mapper.QuestionMapper;
 import com.superyoudi.businessservice.mapper.QuestionPropertyMapper;
 import com.superyoudi.businessservice.pojo.entity.Question;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -20,14 +22,39 @@ import java.util.List;
 public class QuestionBaseServiceImpl implements QuestionBaseService {
     private final QuestionMapper questionMapper;
     private final QuestionPropertyMapper questionPropertyMapper;
+    private final QuestionGenerateModel questionGenerateModel;
 
-    public QuestionBaseServiceImpl(QuestionMapper questionMapper, QuestionPropertyMapper questionPropertyMapper) {
+    public QuestionBaseServiceImpl(QuestionMapper questionMapper, QuestionPropertyMapper questionPropertyMapper, QuestionGenerateModel questionGenerateModel) {
         this.questionMapper = questionMapper;
         this.questionPropertyMapper = questionPropertyMapper;
+        this.questionGenerateModel = questionGenerateModel;
     }
 
-    public List<Question> generateQuestions(Long teacherId, Long courseId, List<String> knowledge, String questionType, int count) {
+    /**
+     * 调用大模型生成题目
+     *
+     * @param assignerId   教师ID
+     * @param courseId     课程ID
+     * @param knowledge    知识点列表
+     * @param questionType 问题类型
+     * @param count        题目数量
+     * @return 插入后的题目列表
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public List<Question> generateQuestions(Long assignerId, Long courseId, List<String> knowledge, String questionType, int count) {
+        QuestionGenerateModel.QuestionGenerateResult result = questionGenerateModel.call(knowledge, questionType, count);
 
+        List<Question> questions = new ArrayList<>();
+
+        for (QuestionGenerateModel.QuestionGenerateResult.QuestionData questionDatum : result.getQuestionData()) {
+            Question question = new Question(null, courseId, assignerId, questionType,
+                    questionDatum.getContent(), questionDatum.getAnswer().toString(), null, null);
+            questionMapper.insert(question);
+            questions.add(question);
+        }
+
+        return questions;
     }
 
     /**

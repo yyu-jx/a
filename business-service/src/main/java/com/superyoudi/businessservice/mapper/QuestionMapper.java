@@ -1,6 +1,6 @@
 package com.superyoudi.businessservice.mapper;
 
-import com.superyoudi.businessservice.pojo.dto.TaskQuestionDTO;
+import com.superyoudi.businessservice.pojo.dto.TaskQuestion;
 import com.superyoudi.businessservice.pojo.entity.Question;
 import org.apache.ibatis.annotations.*;
 
@@ -131,7 +131,6 @@ public interface QuestionMapper {
     /**
      * 根据任务ID查询题目
      */
-    List<TaskQuestionDTO> selectByTaskId(Long taskId);
     List<TaskQuestion> selectByTaskId(Long taskId);
 
     /**

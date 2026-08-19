@@ -3,7 +3,7 @@
 <mapper namespace="com.superyoudi.businessservice.mapper.QuestionMapper">
 
 
-    <select id="selectByTaskId" resultType="com.superyoudi.businessservice.pojo.dto.TaskQuestionDTO">
+    <select id="selectByTaskId" resultType="com.superyoudi.businessservice.pojo.dto.TaskQuestion">
         SELECT q.id,
                q.teacher_id,
                q.type,

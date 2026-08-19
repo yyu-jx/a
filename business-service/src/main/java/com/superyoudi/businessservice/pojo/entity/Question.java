@@ -64,7 +64,21 @@ public class Question {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class ChoiceAnswer  {
+    public static class ChoiceAnswer {
+
+        public static final String SCHEMA_SINGLE = """
+                {
+                    "select":"A",
+                    "options": [
+                        {"key": "A", "text": "内容1"},
+                        {"key": "B", "text": "内容2"}
+                    ]
+                }
+                """;
+
+        public static final String SCHEMA_MULTI = """
+                //多选
+                """;
 
         /**
          * 选项列表
@@ -110,6 +124,14 @@ public class Question {
     @AllArgsConstructor
     public static class FillAnswer {
 
+        public static final String SCHEMA = """
+                {
+                    "blanks": [
+                        {"index": "1", "answer": "答案"},
+                        {"index": "2", "answer": "答案"}
+                    ]
+                }
+                """;
         /**
          * 填空列表
          */
@@ -144,6 +166,13 @@ public class Question {
     @AllArgsConstructor
     public static class SubjectiveAnswer {
 
+        public static final String SCHEMA = """
+                {
+                    "answer": "先求一阶导找驻点，二阶导判别极值",
+                    "score_key": ["求驻点得3分", "二阶导数判断得2分"]
+                }
+                """;
+
         /**
          * 参考答案
          */
@@ -160,6 +189,12 @@ public class Question {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class TrueFalseAnswer {
+
+        public static final String SCHEMA = """
+                {
+                    "result": "true"
+                }
+                """;
 
         /**
          * 判断结果：true 正确，false 错误

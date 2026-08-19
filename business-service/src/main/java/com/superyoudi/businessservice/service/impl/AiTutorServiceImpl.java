@@ -20,10 +20,7 @@ import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.businessservice.mapper.UserMapper;
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
-import com.superyoudi.businessservice.pojo.entity.Course;
-import com.superyoudi.businessservice.pojo.entity.Question;
-import com.superyoudi.businessservice.pojo.entity.Task;
-import com.superyoudi.businessservice.pojo.entity.User;
+import com.superyoudi.businessservice.pojo.entity.*;
 import com.superyoudi.businessservice.service.QuestionBaseService;
 import com.superyoudi.businessservice.service.TaskService;
 import com.superyoudi.common.dto.ChatHistoryDTO;
@@ -216,6 +213,7 @@ public class AiTutorServiceImpl implements AiTutorService {
 
     @Override
     public void composePathNodeHomework(long pathNodeId,
+                                        long courseId,
                                         long studentId,
                                         List<String> knowledgePoints,
                                         String title,
@@ -239,9 +237,13 @@ public class AiTutorServiceImpl implements AiTutorService {
         Map<String, List<Question>> questions = new HashMap<>();
         Random random = new Random();
         for (Map.Entry<String, List<Question>> typedQuestions : grouped.entrySet()) {
-            if (questionConfig.get(typedQuestions.getKey()) < typedQuestions.getValue().size()) {
-                // TODO 生成题型，存数据库，并放进候选
+            int diff = questionConfig.get(typedQuestions.getKey()) - typedQuestions.getValue().size();
+            // 如果题型数量不足，调用AI生成题目
+            if (diff > 0) {
+                List<Question> generated = questionBaseService.generateQuestions(1L, courseId, knowledgePoints,
+                        typedQuestions.getKey(), diff);
 
+                typedQuestions.getValue().addAll(generated);
             }
 
             // 每个题型随机选几个题目
@@ -281,4 +283,18 @@ public class AiTutorServiceImpl implements AiTutorService {
         taskService.addPathNodeTaskRel(taskId, pathNodeId, studentId);
     }
 
+    @Override
+    public boolean checkPathNodeHomeWorkExists(long pathNodeId, long courseId, long studentId) {
+        PathNodeTaskRel pathNodeTaskRel = taskService.getPathNodeTaskRel(pathNodeId);
+        return pathNodeTaskRel != null;
+    }
+
+    @Override
+    public boolean checkPathNodeHomeworkFinished(long pathNodeId, long studentId) {
+        StudentSubmission studentSubmission = taskService.tryGetTaskSubmissionByPathNodeId(pathNodeId, studentId);
+
+        if (studentSubmission == null) return false;
+
+        return studentSubmission.getStatus().equals("submitted") || studentSubmission.getStatus().equals("passed");
+    }
 }
