@@ -69,7 +69,7 @@ public class LearningPathServiceImpl implements LearningPathService {
     /// @author Sijayyx
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long createLearningPath(@NonNull Long studentId, @NonNull Long courseId) {
+    public Long createLearningPath(@NonNull Long studentId, @NonNull Long courseId) throws AllCourseKnowledgeMasteredException {
 
         Assert.notNull(studentId, "createLearningPath: studentId不能为null");
         Assert.notNull(courseId, "createLearningPath: courseId不能为null");

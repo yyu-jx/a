@@ -190,7 +190,10 @@ public class TaskServiceImpl implements TaskService {
         vo.setTodoTaskCount(todo);
 
         Double taskScore = studentCourseProgressMapper.getAvgTaskScore(userId);
-        vo.setAverageAccuracy(taskScore / 100);
+        if (taskScore == null) {
+            vo.setAverageAccuracy(0.0);
+        } else
+            vo.setAverageAccuracy(taskScore / 100);
 
         return vo;
     }

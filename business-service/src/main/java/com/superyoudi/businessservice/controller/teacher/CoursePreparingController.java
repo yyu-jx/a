@@ -15,7 +15,7 @@ import java.util.List;
  *
  * @author Sijayyx
  */
-@Controller
+@RestController
 @RequestMapping("/course/preparing")
 class CoursePreparingController {
 

@@ -29,6 +29,7 @@ import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.service.KnowledgePointService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
@@ -144,8 +145,13 @@ public class AiTutorServiceImpl implements AiTutorService {
     }
 
     @Override
-    public LearningPathDTO getLearningPathInfo(Long studentId, Long courseId) {
+    public LearningPathDTO getLearningPathInfo(@NonNull Long studentId, @NonNull Long courseId) {
+
         LearningPath learningPath = learningPathService.getLearningPathByStudentAndCourse(studentId, courseId);
+        if (learningPath == null) {
+            learningPathService.createLearningPath(studentId, courseId);
+        }
+
         Long currentNodeId = learningPath.getCurrentNodeId();
         LearningPathNode learningPathNode = learningPathService.getLearningPathNodeById(currentNodeId);
         Course course = courseMapper.selectById(courseId);
