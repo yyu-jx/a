@@ -1,8 +1,8 @@
 package com.superyoudi.businessservice.controller.student;
 
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
+import com.superyoudi.businessservice.pojo.entity.StudentAnswer;
 import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
-import com.superyoudi.businessservice.pojo.vo.StudentAnswerVO;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
 import com.superyoudi.businessservice.service.TaskService;
 import com.superyoudi.common.dto.ErrorQuestionVO;
@@ -31,16 +31,14 @@ public class TaskController {
     }
 
     /**
-     * PUT /task/submit 学生提交作业
+     * PUT /task/submissions 学生提交作业
      *
-     * @param userId 学生id
-     * @param taskId 任务id
      * @return Result
      */
-    @PutMapping("/task/submit")
-    public Result<String> submitTask(Long userId, Long taskId) {
-        taskService.submitTask(userId, taskId);
-        return Result.success("提交成功");
+    @PutMapping("/task/submissions")
+    public Result<Long> submitTask(@RequestBody StudentSubmission submission) {
+        Long id = taskService.addOrUpdateStudentSubmission(submission);
+        return Result.success(id);
     }
 
     /**
@@ -88,32 +86,30 @@ public class TaskController {
      * @return 答题记录列表
      */
     @GetMapping("/task/answers")
-    public Result<List<StudentAnswerVO>> getStudentAnswers(
-            @RequestParam(required = false) Long studentId,
-            @RequestParam(required = false) Long submissionId) {
+    public Result<List<StudentAnswer>> getStudentAnswers(Long studentId, Long submissionId) {
         return Result.success(taskService.getStudentAnswers(studentId, submissionId));
     }
 
     /**
-     * PUT /task/answers 修改学生单题答题记录（批改打分）
+     * PUT /task/answers 修改或新增学生单题答题记录
      *
      * @param dto 答题记录
      * @return Result
      */
     @PutMapping("/task/answers")
-    public Result<Void> updateStudentAnswer(@RequestBody StudentAnswerVO dto) {
-        taskService.updateStudentAnswer(dto);
-        return Result.success();
+    public Result<Long> updateStudentAnswer(@RequestBody StudentAnswer dto) {
+        Long id = taskService.addOrUpdateStudentAnswer(dto);
+        return Result.success(id);
     }
 
     /**
      * GET /task/submissions 获取所有学生的提交表（批改）
      *
-     * @param taskId 任务ID（可选）
+     * @param taskId 任务ID
      * @return 提交记录列表
      */
     @GetMapping("/task/submissions")
-    public Result<List<StudentSubmission>> getSubmissions(@RequestParam(required = false) Long taskId) {
+    public Result<List<StudentSubmission>> getSubmissions(Long taskId) {
         return Result.success(taskService.getSubmissions(taskId));
     }
 

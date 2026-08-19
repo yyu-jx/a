@@ -1,34 +1,18 @@
 package com.superyoudi.businessservice.service.impl;
 
-import cn.hutool.core.util.StrUtil;
-import cn.hutool.json.JSONObject;
-import cn.hutool.json.JSONUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.superyoudi.aiservice.ai.AnswerCorrectionModel;
 import com.superyoudi.aiservice.service.TaskAiService;
 import com.superyoudi.businessservice.mapper.*;
-import com.superyoudi.businessservice.mapper.StudentAnswerMapper;
-import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
-import com.superyoudi.businessservice.mapper.StudentSubmissionMapper;
-import com.superyoudi.businessservice.mapper.TaskMapper;
-import com.superyoudi.businessservice.mapper.TaskQuestionRelMapper;
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
+import com.superyoudi.businessservice.pojo.dto.TaskQuestionDTO;
 import com.superyoudi.businessservice.pojo.entity.*;
-import com.superyoudi.businessservice.pojo.vo.QuestionItemVO;
-import com.superyoudi.businessservice.pojo.vo.QuestionOptionVO;
-import com.superyoudi.businessservice.pojo.entity.StudentAnswer;
-import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
-import com.superyoudi.businessservice.pojo.entity.Task;
-import com.superyoudi.businessservice.pojo.entity.TaskQuestionRel;
-import com.superyoudi.businessservice.pojo.vo.StudentAnswerVO;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
-import com.superyoudi.businessservice.pojo.vo.TaskQuestionVO;
 import com.superyoudi.businessservice.service.TaskService;
+import com.superyoudi.businessservice.utils.AnswerValidator;
 import com.superyoudi.common.dto.ErrorQuestionVO;
 import com.superyoudi.common.exception.BusinessException;
 import com.superyoudi.common.exception.ErrorQuestionNotFoundException;
-import com.superyoudi.common.exception.ParamInvalidException;
-import com.superyoudi.common.exception.StudentRepeatJoinCourseException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
@@ -37,12 +21,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.superyoudi.common.constants.RedisConstants.AI_DIAGNOSE_CACHE_HOUR;
@@ -50,8 +37,9 @@ import static com.superyoudi.common.constants.RedisConstants.AI_DIAGNOSE_CACHE_K
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
+// 不要使用RequiredArgsConstructor!!!! CorrectionStrategy需要已经初始化的AnswerCorrectionModel
 public class TaskServiceImpl implements TaskService {
+
 
     private final StudentSubmissionMapper studentSubmissionMapper;
     private final StudentAnswerMapper studentAnswerMapper;
@@ -62,7 +50,67 @@ public class TaskServiceImpl implements TaskService {
     private final UserMapper userMapper;
     private final QuestionMapper questionMapper;
     private final TaskQuestionRelMapper taskQuestionRelMapper;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    // 策略字段
+    private final AnswerValidator.CorrectionStrategy objectiveStrategy;
+    private final AnswerValidator.CorrectionStrategy subjectiveStrategy;
+
+    // 构造函数
+    public TaskServiceImpl(StudentSubmissionMapper studentSubmissionMapper,
+                           StudentAnswerMapper studentAnswerMapper,
+                           TaskMapper taskMapper,
+                           StudentCourseProgressMapper studentCourseProgressMapper,
+                           TaskAiService taskAiService,
+                           StringRedisTemplate stringRedisTemplate,
+                           UserMapper userMapper,
+                           QuestionMapper questionMapper,
+                           TaskQuestionRelMapper taskQuestionRelMapper,
+                           AnswerCorrectionModel answerCorrectionModel) {
+        this.studentSubmissionMapper = studentSubmissionMapper;
+        this.studentAnswerMapper = studentAnswerMapper;
+        this.taskMapper = taskMapper;
+        this.studentCourseProgressMapper = studentCourseProgressMapper;
+        this.taskAiService = taskAiService;
+        this.stringRedisTemplate = stringRedisTemplate;
+        this.userMapper = userMapper;
+        this.questionMapper = questionMapper;
+        this.taskQuestionRelMapper = taskQuestionRelMapper;
+
+        // 初始化客观题策略
+        this.objectiveStrategy = (question, correctAnswer, studentAnswer, questionScore) -> {
+            if (correctAnswer instanceof Question.ChoiceAnswer correct &&
+                    studentAnswer instanceof StudentAnswer.ChoiceAnswer student) {
+
+                int correctCount = AnswerValidator.validateChoiceAnswer(correct, student);
+                return AnswerValidator.calcStudentAnswerScore(questionScore, correct, correctCount);
+
+            } else if (correctAnswer instanceof Question.TrueFalseAnswer correct &&
+                    studentAnswer instanceof StudentAnswer.TrueFalseAnswer student) {
+
+                boolean isCorrect = AnswerValidator.validateTrueFalseAnswer(correct, student);
+                return isCorrect ? questionScore : 0;
+            }
+            throw new IllegalArgumentException("不支持的客观题类型");
+        };
+
+        // 初始化主观题策略
+        this.subjectiveStrategy = (question, correctAnswer, studentAnswer, questionScore) -> {
+            if (correctAnswer instanceof Question.FillAnswer correct &&
+                    studentAnswer instanceof StudentAnswer.FillAnswer student) {
+
+                return AnswerValidator.validateFillAnswer(answerCorrectionModel, question.getContent(),
+                        questionScore, correct, student);
+
+            } else if (correctAnswer instanceof Question.SubjectiveAnswer correct &&
+                    studentAnswer instanceof StudentAnswer.SubjectiveAnswer student) {
+
+                return AnswerValidator.validateSubjectiveAnswer(answerCorrectionModel, question.getContent(),
+                        questionScore, correct.getAnswer(), student.getContent());
+            }
+            throw new IllegalArgumentException("不支持的主观题类型");
+        };
+    }
 
     /**
      * 更新任务信息
@@ -98,43 +146,25 @@ public class TaskServiceImpl implements TaskService {
         return task.getId();
     }
 
-
     /**
-     * 提交任务
-     *
-     * @param userId 用户ID
-     * @param taskId 任务ID
+     * 提交任务并尝试自动评分
      */
     @Override
-    public void submitTask(Long userId, Long taskId) {
-        //1.参数校验
-        if (userId == null || taskId == null) {
-            throw new ParamInvalidException("参数不能为空");
-        }
+    public Long addOrUpdateStudentSubmission(StudentSubmission submission) {
+        // 参数校验
+        Assert.notNull(submission, "提交记录不能为空");
 
-        //2.查询该学生该任务的提交记录
-        StudentSubmission existRecord = studentSubmissionMapper.selectByTaskAndStudentId(taskId, userId);
-
-        LocalDateTime now = LocalDateTime.now();
-
-        if (existRecord != null) {
-            //记录已存在
-            // 已经批改完毕，禁止提交
-            if ("passed".equals(existRecord.getStatus())) {
-                throw new StudentRepeatJoinCourseException("已提交，不可重复提交");
-            }
-            //更新状态为已提交，更新提交时间；分数、评语、批改时间保留原值
-            studentSubmissionMapper.updateById(existRecord);
+        if (submission.getId() != null) {
+            studentSubmissionMapper.update(submission);
         } else {
-            //3.不存在记录：新增提交记录
-            StudentSubmission newRecord = new StudentSubmission();
-            newRecord.setTaskId(taskId);
-            newRecord.setStudentId(userId);
-            newRecord.setStatus("submitted");
-            newRecord.setSubmittedTime(now);
-            newRecord.setCreatedAt(now);
-            studentSubmissionMapper.insert(newRecord);
+            studentSubmissionMapper.insert(submission);
         }
+
+        if (submission.getStatus().equals("submitted")) {
+            executeSubmissionCorrection(submission);
+        }
+
+        return submission.getId();
     }
 
     /**
@@ -221,133 +251,180 @@ public class TaskServiceImpl implements TaskService {
      * @return 任务问题列表
      */
     @Override
-    public TaskQuestionVO getTaskQuestionList(Long taskId) {
-        // 1. 校验参数
+    public List<TaskQuestionDTO> getTaskQuestionList(Long taskId) {
+        //  校验参数
         if (taskId == null) {
             throw new BusinessException("任务ID不能为空");
         }
 
-        // 2. 查询任务基本信息
+        //  查询任务基本信息
         Task task = taskMapper.selectById(taskId);
         if (task == null) {
             throw new BusinessException("任务不存在");
         }
 
-        // 3. 查询任务关联的所有题目（按题号排序）
-        List<TaskQuestion> questionList = questionMapper.selectByTaskId(taskId);
-
-        // 4. 组装题目VO，解析JSON提取选项
-        List<QuestionItemVO> itemVOList = questionList.stream()
-                .map(q -> {
-                    QuestionItemVO vo = new QuestionItemVO();
-                    vo.setId(q.getId());
-                    vo.setTeacherId(q.getTeacherId());
-                    vo.setScore(q.getScore());
-                    vo.setType(q.getType());
-                    vo.setContent(q.getContent());
-                    // 解析answer JSON，提取options作为选项返回
-                    vo.setAnswer(parseOptionsFromAnswerJson(q.getAnswer()));
-                    return vo;
-                })
-                .collect(Collectors.toList());
-
-        // 5. 组装外层返回
-        TaskQuestionVO result = new TaskQuestionVO();
-        result.setCourseId(task.getCourseId());
-        result.setTaskType(task.getType());
-        result.setTaskTitle(task.getTitle());
-        result.setQuestionList(itemVOList);
-        return result;
-
-    }
-
-    /**
-     * 从题目answer JSON中提取选项列表
-     * 选择题/判断题返回options；填空、主观题返回空数组
-     */
-    private List<QuestionOptionVO> parseOptionsFromAnswerJson(String answerJson) {
-        if (StrUtil.isBlank(answerJson)) {
-            return Collections.emptyList();
-        }
-
-        try {
-            JSONObject answerObj = JSONUtil.parseObj(answerJson);
-            // 没有options字段（填空、主观题）直接返回空
-            if (!answerObj.containsKey("options")) {
-                return Collections.emptyList();
-            }
-
-            // 流式遍历选项，转成VO列表
-            return answerObj.getJSONArray("options")
-                    .stream()
-                    .map(item -> {
-                        JSONObject opt = (JSONObject) item;
-                        QuestionOptionVO vo = new QuestionOptionVO();
-                        vo.setKey(opt.getStr("key"));
-                        vo.setText(opt.getStr("text"));
-                        return vo;
-                    })
-                    .collect(Collectors.toList());
-
-        } catch (Exception e) {
-            return Collections.emptyList();
-        }
+        //  查询任务关联的所有题目（按题号排序）
+        return questionMapper.selectByTaskId(taskId);
     }
 
     @Override
-    public List<StudentAnswerVO> getStudentAnswers(Long studentId, Long submissionId) {
-        List<StudentAnswer> list;
-        if (submissionId != null) {
-            list = studentAnswerMapper.selectBySubmissionId(submissionId);
-        } else if (studentId != null) {
-            list = studentAnswerMapper.selectByStudentId(studentId);
-        } else {
-            list = studentAnswerMapper.selectAll();
-        }
-        return list.stream().map(this::toAnswerVO).toList();
+    public List<StudentAnswer> getStudentAnswers(Long studentId, Long submissionId) {
+        return studentAnswerMapper.selectByStudentIdAndSubmissionId(studentId, submissionId);
     }
 
     @Override
-    public void updateStudentAnswer(StudentAnswerVO dto) {
-        if (dto == null || dto.getId() == null) {
-            throw new ParamInvalidException("答题记录ID不能为空");
+    @Transactional(rollbackFor = Exception.class)
+    public Long addOrUpdateStudentAnswer(StudentAnswer answer) {
+        Assert.notNull(answer, "答题记录ID不能为空");
+
+        // id为null，新增
+        if (answer.getId() == null) {
+            Long rows = studentAnswerMapper.insert(answer);
+
+            if (rows == null || rows == 0)
+                throw new RuntimeException("StudentAnswer插入失败");
+            return answer.getId();
         }
-        StudentAnswer entity = studentAnswerMapper.selectById(dto.getId());
-        if (entity == null) {
-            throw new ParamInvalidException("答题记录不存在");
-        }
-        // 只更新可批改字段，createdAt 保持答题时间不变
-        if (dto.getAnswer() != null) entity.setAnswer(dto.getAnswer().toString());
-        if (dto.getScore() != null) entity.setScore(dto.getScore());
-        if (dto.getComment() != null) entity.setComment(dto.getComment());
-        if (dto.getTimeSpent() != null) entity.setTimeSpent(dto.getTimeSpent());
-        if (dto.getAttemptCount() != null) entity.setAttemptCount(dto.getAttemptCount());
-        if (dto.getHelpRequestCount() != null) entity.setHelpRequestCount(dto.getHelpRequestCount());
-        if (dto.getErrorType() != null) entity.setErrorType(dto.getErrorType());
-        studentAnswerMapper.updateById(entity);
+        studentAnswerMapper.update(answer);
+        return answer.getId();
     }
 
     @Override
     public List<StudentSubmission> getSubmissions(Long taskId) {
-        if (taskId != null) {
-            return studentSubmissionMapper.selectByTaskId(taskId);
-        }
-        return studentSubmissionMapper.selectAll();
+        return studentSubmissionMapper.selectByTaskId(taskId);
     }
 
-    /** 实体转VO：answer 字符串解析为 JSON 对象 */
-    private StudentAnswerVO toAnswerVO(StudentAnswer e) {
-        StudentAnswerVO vo = new StudentAnswerVO();
-        BeanUtils.copyProperties(e, vo);
-        if (e.getAnswer() != null && !e.getAnswer().isBlank()) {
-            try {
-                vo.setAnswer(objectMapper.readTree(e.getAnswer()));
-            } catch (Exception ex) {
-                log.warn("答题答案JSON解析失败, id={}", e.getId(), ex);
-                vo.setAnswer(null);
+    /**
+     * 执行任务批改
+     */
+    @Override
+    public void executeSubmissionCorrection(StudentSubmission submission) {
+        Assert.notNull(submission, "提交记录不能为空");
+        Assert.notNull(submission.getId(), "提交记录ID不能为空");
+        Assert.notNull(submission.getTaskId(), "任务ID不能为空");
+
+        // 获取任务信息
+        Task task = taskMapper.selectById(submission.getTaskId());
+        if (task == null)
+            throw new BusinessException("任务不存在");
+
+        if (task.getAfterSubmitStrategy().equals(Task.SUBMIT_STRATEGY_MANUAL))
+            return;
+
+        String afterSubmitStrategy = task.getAfterSubmitStrategy();
+
+        List<StudentAnswer> studentAnswers = getStudentAnswers(submission.getStudentId(), submission.getId());
+
+        Map<StudentAnswer, Question> studentAnswerQuestionMap = new HashMap<>();
+        for (StudentAnswer studentAnswer : studentAnswers) {
+            Question answerQuestion = questionMapper.findById(studentAnswer.getQuestionId());
+            if (answerQuestion == null)
+                throw new BusinessException("题目不存在");
+
+            studentAnswerQuestionMap.put(studentAnswer, answerQuestion);
+        }
+
+        switch (afterSubmitStrategy) {
+            case Task.SUBMIT_STRATEGY_AUTO_OBJECTIVE ->
+                    correctObjectiveQuestions(task.getId(), studentAnswerQuestionMap);  // 自动批改客观题
+            case Task.SUBMIT_STRATEGY_AUTO_ALL -> {
+                // 批改全部题目
+                correctObjectiveQuestions(task.getId(), studentAnswerQuestionMap);
+                correctSubjectiveQuestions(task.getId(), studentAnswerQuestionMap);
             }
         }
-        return vo;
+
+        // 计算总分
+        Integer totalSubmissionScore = studentAnswerMapper.sumScoreBySubmissionId(submission.getId());
+        submission.setStatus("passed");
+        submission.setTotalScore(totalSubmissionScore);
+        submission.setSubmittedTime(LocalDateTime.now());
+        studentSubmissionMapper.update(submission);
     }
 
+    /**
+     * 批改客观题
+     *
+     * @param taskId            任务ID
+     * @param answerQuestionMap 学生答案与题目
+     */
+    private void correctObjectiveQuestions(Long taskId, Map<StudentAnswer, Question> answerQuestionMap) {
+        correctQuestions(taskId, answerQuestionMap,
+                q -> q.getType().equals("choice") || q.getType().equals("true_false"),
+                objectiveStrategy);
+    }
+
+    /**
+     * 批改主观题
+     *
+     * @param taskId            任务ID
+     * @param answerQuestionMap 学生答案与题目
+     */
+    private void correctSubjectiveQuestions(Long taskId, Map<StudentAnswer, Question> answerQuestionMap) {
+        correctQuestions(taskId, answerQuestionMap,
+                q -> q.getType().equals("fill") || q.getType().equals("subjective"),
+                subjectiveStrategy);
+    }
+
+    /**
+     * 批改题目，执行过滤并应用评分策略，评分完毕后，更新studentAnswer
+     *
+     * @param taskId            任务ID
+     * @param answerQuestionMap 未过滤的学生答案与题目
+     * @param filter            过滤器
+     * @param strategy          评分策略
+     */
+    private void correctQuestions(Long taskId, Map<StudentAnswer, Question> answerQuestionMap,
+                                  Predicate<Question> filter, AnswerValidator.CorrectionStrategy strategy) {
+        Map<StudentAnswer, Question> filteredMap = answerQuestionMap.entrySet().stream()
+                .filter(entry -> filter.test(entry.getValue()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        for (Map.Entry<StudentAnswer, Question> entry : filteredMap.entrySet()) {
+            StudentAnswer answer = entry.getKey();
+            Question question = entry.getValue();
+
+            Object correctAnswer = convertQuestionAnswerJson(question.getType(), question.getAnswer());
+            Object studentAnswer = convertStudentAnswerJson(question.getType(), answer.getAnswer());
+
+            int questionScore = taskQuestionRelMapper.findByTaskIdAndQuestionId(taskId, question.getId()).getScore();
+
+            int finalScore = strategy.calcScore(question, correctAnswer, studentAnswer, questionScore);
+            answer.setScore(finalScore);
+            studentAnswerMapper.update(answer);
+        }
+    }
+
+    private Object convertQuestionAnswerJson(String type, String json) {
+
+        try {
+            return switch (type) {
+                case "choice" -> objectMapper.readValue(json, Question.ChoiceAnswer.class);
+                case "fill" -> objectMapper.readValue(json, Question.FillAnswer.class);
+                case "subjective" -> objectMapper.readValue(json, Question.SubjectiveAnswer.class);
+                case "true_false" -> objectMapper.readValue(json, Question.TrueFalseAnswer.class);
+                default -> null;
+            };
+
+        } catch (Exception e) {
+            log.error("JSON转换失败", e);
+            return null;
+        }
+
+    }
+
+    private Object convertStudentAnswerJson(String type, String json) {
+        try {
+            return switch (type) {
+                case "choice" -> objectMapper.readValue(json, StudentAnswer.ChoiceAnswer.class);
+                case "fill" -> objectMapper.readValue(json, StudentAnswer.FillAnswer.class);
+                case "subjective" -> objectMapper.readValue(json, StudentAnswer.SubjectiveAnswer.class);
+                case "true_false" -> objectMapper.readValue(json, StudentAnswer.TrueFalseAnswer.class);
+                default -> null;
+            };
+        } catch (Exception e) {
+            log.error("JSON转换失败", e);
+            return null;
+        }
+    }
 }
