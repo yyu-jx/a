@@ -1,7 +1,7 @@
 package com.superyoudi.businessservice.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.superyoudi.aiservice.ai.AnswerCorrectionModel;
+import com.superyoudi.aiservice.ai.model.AnswerCorrectionModel;
 import com.superyoudi.aiservice.service.TaskAiService;
 import com.superyoudi.businessservice.mapper.*;
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
@@ -86,13 +86,15 @@ public class TaskServiceImpl implements TaskService {
                     studentAnswer instanceof StudentAnswer.ChoiceAnswer student) {
 
                 int correctCount = AnswerValidator.validateChoiceAnswer(correct, student);
-                return AnswerValidator.calcStudentAnswerScore(questionScore, correct, correctCount);
+                int score = AnswerValidator.calcStudentAnswerScore(questionScore, correct, correctCount);
+                return new AnswerCorrectionModel.CorrectionResult(score, null, null);
 
             } else if (correctAnswer instanceof Question.TrueFalseAnswer correct &&
                     studentAnswer instanceof StudentAnswer.TrueFalseAnswer student) {
 
                 boolean isCorrect = AnswerValidator.validateTrueFalseAnswer(correct, student);
-                return isCorrect ? questionScore : 0;
+                int score = isCorrect ? questionScore : 0;
+                return new AnswerCorrectionModel.CorrectionResult(score, null, null);
             }
             throw new IllegalArgumentException("不支持的客观题类型");
         };
@@ -395,8 +397,10 @@ public class TaskServiceImpl implements TaskService {
 
             int questionScore = taskQuestionRelMapper.findByTaskIdAndQuestionId(taskId, question.getId()).getScore();
 
-            int finalScore = strategy.calcScore(question, correctAnswer, studentAnswer, questionScore);
-            answer.setScore(finalScore);
+            AnswerCorrectionModel.CorrectionResult result = strategy.getCorrectionResult(question, correctAnswer, studentAnswer, questionScore);
+            answer.setComment(result.getComment());
+            answer.setErrorType(result.getErrorType());
+            answer.setScore(result.getScore());
             studentAnswerMapper.update(answer);
         }
     }

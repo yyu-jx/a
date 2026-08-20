@@ -74,8 +74,8 @@ public class AiTutorServiceImpl implements AiTutorService {
     }
 
     @Override
-    public Flux<String> callAiTutor(UserChatMessage userChatMessage) {
-        Long courseId = (Long) userChatMessage.getAdditionalData();
+    public Flux<String> callAiTutor(UserChatMessage<Long> userChatMessage) {
+        Long courseId = userChatMessage.getAdditionalData();
 
         // 设置config的metadata以进行context engineering
         RunnableConfig runnableConfig = RunnableConfig.builder()
