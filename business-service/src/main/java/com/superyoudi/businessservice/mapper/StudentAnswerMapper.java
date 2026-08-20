@@ -21,6 +21,10 @@ public interface StudentAnswerMapper {
             "where submission_id = #{submissionId} and question_id = #{questionId} limit 1")
     StudentAnswer selectAnswerBySubQid(Long submissionId, Long questionId);
 
+    @Select("select answer from student_answers " +
+            "where submission_id = #{submissionId} and question_id = #{questionId} limit 1")
+    StudentAnswer getAnswerBySubQid(Long submissionId, Long questionId);
+
     @Update("update student_answers set help_request_count = help_request_count + 1 where id = #{id}")
     void incrementHelpCount(Long id);
 

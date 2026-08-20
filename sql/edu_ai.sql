@@ -380,7 +380,8 @@ DROP TABLE IF EXISTS `teacher_course_analysises`;
 CREATE TABLE `teacher_course_analysises`
 (
     `id`                  BIGINT AUTO_INCREMENT PRIMARY KEY,
-    `course_id`           BIGINT NOT NULL,
+    `course_id`             BIGINT NOT NULL,
+    `teacher_id`          BIGINT NOT NULL,
     `total_students`      INT    NOT NULL DEFAULT 0 COMMENT '总学生数',
     `avg_score_rate`      DECIMAL(5, 2)   DEFAULT 0.00 COMMENT '平均得分率',
     `avg_progress`        DECIMAL(5, 2)   DEFAULT 0.00 COMMENT '平均学习进度',

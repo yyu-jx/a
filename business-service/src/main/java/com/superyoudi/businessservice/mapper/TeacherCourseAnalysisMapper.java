@@ -1,6 +1,7 @@
 package com.superyoudi.businessservice.mapper;
 
 import com.superyoudi.businessservice.pojo.entity.TeacherCourseAnalysis;
+import com.superyoudi.common.dto.TeacherHomeAnalysisDTO;
 import org.apache.ibatis.annotations.*;
 
 import java.math.BigDecimal;
@@ -99,5 +100,16 @@ public interface TeacherCourseAnalysisMapper {
     long count();
 
 
-
+    @Select("SELECT " +
+            "  tca.course_id, c.name AS course_name, " +
+            "  tca.total_students, tca.avg_score_rate, tca.avg_progress, " +
+            "  tca.task_count, tca.submission_rate, " +
+            "  tca.alert_student_count, tca.weakest_knowledge " +
+            "FROM teacher_course_analysises tca " +
+            "INNER JOIN courses c ON tca.course_id = c.id " +
+            "WHERE c.teacher_id = #{teacherId} " +
+            "  AND c.status = 'opening' " +
+            "ORDER BY tca.avg_score_rate ASC " +
+            "LIMIT #{limit}")
+    TeacherHomeAnalysisDTO listWeakestCoursesByTeacherId(Long teacherId, Long limit);
 }

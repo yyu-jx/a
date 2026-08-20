@@ -31,5 +31,21 @@ public interface HomeService {
      */
     List<WeakKnowledgeVO> getTop5WeakKnowledge(Long userId);
 
+    /**
+     * 学生端获取ai建议
+     *
+     * @param userId
+     * @return 建议
+     * @author gaoyuxin
+     */
     String getAiSuggestions(Long userId);
+
+    /**
+     * 教师端获取ai建议
+     *
+     * @param teacherId
+     * @return 建议
+     * @author gaoyuxin
+     */
+    String generateSuggestions(Long teacherId);
 }

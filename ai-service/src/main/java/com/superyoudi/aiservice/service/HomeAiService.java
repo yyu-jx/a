@@ -2,6 +2,7 @@ package com.superyoudi.aiservice.service;
 
 import com.superyoudi.common.dto.StudentCourseProgress;
 import com.superyoudi.common.dto.StudentKnowledgeMastery;
+import com.superyoudi.common.dto.TeacherHomeAnalysisDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
@@ -90,5 +91,42 @@ public class HomeAiService {
 
         sb.append("\n请基于以上数据生成学生个性化学习建议。");
         return sb.toString();
+    }
+
+    /**
+     * 生成教师教学建议
+     *
+     * @param weakCourse 薄弱课程列表
+     * @return 教师教学建议
+     */
+    public String generateTeacherSuggest(TeacherHomeAnalysisDTO weakCourse) {
+        String prompt = buildAiPrompt(List.of(weakCourse));
+
+        return chatClient.prompt()
+                .user(prompt)
+                .call()
+                .content();
+
+    }
+
+    private String buildAiPrompt(List<TeacherHomeAnalysisDTO> weakCourses) {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("你是资深教学分析师，请根据以下得分率最低的课程学情数据，为教师生成Markdown格式的教学优化建议,20字左右。\n");
+        prompt.append("要求：逐门指出核心问题、薄弱知识点，给出可落地的教学改进方案；预警学生数大于10的课程需提醒出来。\n\n");
+        prompt.append("课程学情数据：\n\n");
+
+        for (int i = 0; i < weakCourses.size(); i++) {
+            TeacherHomeAnalysisDTO item = weakCourses.get(i);
+            prompt.append(String.format("### 薄弱课程：《%s》\n", item.getCourseName()));
+            prompt.append("- 总学生数：").append(item.getTotalStudents()).append("\n");
+            prompt.append("- 平均得分率：").append(item.getAvgScoreRate()).append("%\n");
+            prompt.append("- 平均学习进度：").append(item.getAvgProgress()).append("%\n");
+            prompt.append("- 作业提交率：").append(item.getSubmissionRate()).append("%\n");
+            prompt.append("- 预警学生数：").append(item.getAlertStudentCount()).append("\n");
+            prompt.append("- 最薄弱知识点：").append(item.getWeakestKnowledgeName()).append("\n\n");
+        }
+
+        prompt.append("请直接输出Markdown正文，不要多余解释。");
+        return prompt.toString();
     }
 }
