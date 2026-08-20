@@ -1,7 +1,8 @@
 package com.superyoudi.businessservice.service;
 
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
-import com.superyoudi.businessservice.pojo.dto.TaskQuestionDTO;
+import com.superyoudi.businessservice.pojo.dto.TaskQuestion;
+import com.superyoudi.businessservice.pojo.entity.PathNodeTaskRel;
 import com.superyoudi.businessservice.pojo.entity.StudentAnswer;
 import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
 import com.superyoudi.businessservice.pojo.entity.TaskList;
@@ -68,7 +69,7 @@ public interface TaskService {
      * @param taskId 任务id
      * @return 任务问题列表
      */
-    List<TaskQuestionDTO> getTaskQuestionList(Long taskId);
+    List<TaskQuestion> getTaskQuestionList(Long taskId);
 
 
     /**
@@ -96,4 +97,12 @@ public interface TaskService {
     List<StudentSubmission> getSubmissions(Long taskId);
 
     void executeSubmissionCorrection(StudentSubmission submission);
+
+    void addPathNodeTaskRel(Long taskId, Long pathNodeId, Long studentId);
+
+    PathNodeTaskRel getPathNodeTaskRel( Long pathNodeId);
+
+    void removePathNodeTaskRel(Long taskId, Long pathNodeId);
+
+    StudentSubmission tryGetTaskSubmissionByPathNodeId(Long pathNodeId, Long studentId);
 }

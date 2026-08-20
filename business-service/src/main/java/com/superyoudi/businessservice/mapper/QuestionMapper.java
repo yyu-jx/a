@@ -1,6 +1,6 @@
 package com.superyoudi.businessservice.mapper;
 
-import com.superyoudi.businessservice.pojo.dto.TaskQuestionDTO;
+import com.superyoudi.businessservice.pojo.dto.TaskQuestion;
 import com.superyoudi.businessservice.pojo.entity.Question;
 import org.apache.ibatis.annotations.*;
 
@@ -131,5 +131,19 @@ public interface QuestionMapper {
     /**
      * 根据任务ID查询题目
      */
-    List<TaskQuestionDTO> selectByTaskId(Long taskId);
+    List<TaskQuestion> selectByTaskId(Long taskId);
+
+    /**
+     * 根据知识点ID查找所有关联的题目
+     *
+     * @param knowledge 知识点ID
+     * @return 关联的题目列表
+     */
+    @Select("""
+            SELECT q.* FROM questions q \
+            INNER JOIN question_knowledge_rel rel ON q.id = rel.question_id \
+            WHERE rel.knowledge_node = #{knowledge} \
+            ORDER BY rel.sort
+            """)
+    List<Question> findQuestionsByKnowledge(String knowledge);
 }

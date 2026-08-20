@@ -1,7 +1,7 @@
 package com.superyoudi.kdbservice.service;
 
 import com.alibaba.cloud.ai.transformer.splitter.SentenceSplitter;
-import com.superyoudi.aiservice.ai.agent.KnowledgeGraphExtractionModel;
+import com.superyoudi.aiservice.ai.model.KnowledgeGraphExtractionModel;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.kdbservice.dto.KnowledgeExtractionResult;
 import com.superyoudi.kdbservice.graph.KnowledgePointNode;

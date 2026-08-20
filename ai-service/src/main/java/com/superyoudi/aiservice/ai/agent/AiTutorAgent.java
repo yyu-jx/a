@@ -35,10 +35,9 @@ public class AiTutorAgent {
         this.agent = ReactAgent.builder()
                 .name("ai-tutor")
                 .model(chatModel)
-//                .saver(new MemorySaver())
-//                .interceptors(aiTutorModelInterceptor) // 提示词在这里设置
+                .interceptors(aiTutorModelInterceptor) // 提示词在这里设置
                 .hooks(aiTutorMessageAgentHook)
-                .methodTools(ragTools)
+                .methodTools(ragTools, aiTutorTools)
                 .build();
     }
 
@@ -46,12 +45,11 @@ public class AiTutorAgent {
      * 调用AI导师
      *
      * @param userInput 用户输入
-     * @param config    运行配置，它的Metadata需要student_id和course_id两个值。
-     * @return 节点六十输出
+     * @param config    运行配置，它的Metadata需要 student_id, course_id, custom_metadata 三个值。
+     * @return 节点流式输出
      */
     public Flux<NodeOutput> callAgent(String userInput, RunnableConfig config) throws GraphRunnerException {
         return agent.stream(userInput, config);
     }
-
 
 }

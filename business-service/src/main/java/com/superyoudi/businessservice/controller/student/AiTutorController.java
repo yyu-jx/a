@@ -12,7 +12,8 @@ import reactor.core.publisher.Flux;
  * @author Sijayyx
  */
 @RequiredArgsConstructor
-@RestController("/ai/student")
+@RestController
+@RequestMapping("/ai/student")
 public class AiTutorController {
 
     private final AiTutorService aiTutorService;
@@ -24,7 +25,7 @@ public class AiTutorController {
     }
 
     @PostMapping("/chat")
-    public Flux<String> chat(@RequestBody UserChatMessage message) {
+    public Flux<String> chat(@RequestBody UserChatMessage<Long> message) {
         return aiTutorService.callAiTutor(message);
     }
 }

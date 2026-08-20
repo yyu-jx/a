@@ -8,13 +8,16 @@ import com.superyoudi.common.exception.LearningPathFinishedException;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * @author Sijayyx
  */
 @Service
 public interface AiTutorService {
 
-    Flux<String> callAiTutor(UserChatMessage userChatMessage);
+    Flux<String> callAiTutor(UserChatMessage<Long> userChatMessage);
 
     ChatHistoryDTO getChatHistory(Long studentId, Long courseId);
 
@@ -28,9 +31,15 @@ public interface AiTutorService {
 
     void updateLearningPathStage(Long pathId, String stage);
 
-    String queryKnowledgePoint(String kpName);
+    void composePathNodeHomework(long pathNodeId,
+                                 long courseId,
+                                 long studentId,
+                                 List<String> knowledgePoints,
+                                 String title,
+                                 Map<String, Integer> questionConfig,
+                                 int totalScore);
 
-    String retriveKnowledgeGraph(String query);
+    boolean checkPathNodeHomeWorkExists(long pathNodeId, long courseId, long studentId);
 
-    String retrieveDocuments(String query);
+    boolean checkPathNodeHomeworkFinished(long pathNodeId, long studentId);
 }

@@ -5,7 +5,7 @@ import com.superyoudi.aiservice.ai.AnswerCorrectionModel;
 import com.superyoudi.aiservice.service.TaskAiService;
 import com.superyoudi.businessservice.mapper.*;
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
-import com.superyoudi.businessservice.pojo.dto.TaskQuestionDTO;
+import com.superyoudi.businessservice.pojo.dto.TaskQuestion;
 import com.superyoudi.businessservice.pojo.entity.*;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
 import com.superyoudi.businessservice.service.TaskService;
@@ -13,6 +13,7 @@ import com.superyoudi.businessservice.utils.AnswerValidator;
 import com.superyoudi.common.dto.ErrorQuestionVO;
 import com.superyoudi.common.exception.BusinessException;
 import com.superyoudi.common.exception.ErrorQuestionNotFoundException;
+import com.superyoudi.common.exception.ParamInvalidException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
@@ -55,6 +56,7 @@ public class TaskServiceImpl implements TaskService {
     // 策略字段
     private final AnswerValidator.CorrectionStrategy objectiveStrategy;
     private final AnswerValidator.CorrectionStrategy subjectiveStrategy;
+    private final PathNodeTaskRelMapper pathNodeTaskRelMapper;
 
     // 构造函数
     public TaskServiceImpl(StudentSubmissionMapper studentSubmissionMapper,
@@ -66,7 +68,7 @@ public class TaskServiceImpl implements TaskService {
                            UserMapper userMapper,
                            QuestionMapper questionMapper,
                            TaskQuestionRelMapper taskQuestionRelMapper,
-                           AnswerCorrectionModel answerCorrectionModel) {
+                           AnswerCorrectionModel answerCorrectionModel, PathNodeTaskRelMapper pathNodeTaskRelMapper) {
         this.studentSubmissionMapper = studentSubmissionMapper;
         this.studentAnswerMapper = studentAnswerMapper;
         this.taskMapper = taskMapper;
@@ -76,6 +78,7 @@ public class TaskServiceImpl implements TaskService {
         this.userMapper = userMapper;
         this.questionMapper = questionMapper;
         this.taskQuestionRelMapper = taskQuestionRelMapper;
+        this.pathNodeTaskRelMapper = pathNodeTaskRelMapper;
 
         // 初始化客观题策略
         this.objectiveStrategy = (question, correctAnswer, studentAnswer, questionScore) -> {
@@ -187,7 +190,10 @@ public class TaskServiceImpl implements TaskService {
         vo.setTodoTaskCount(todo);
 
         Double taskScore = studentCourseProgressMapper.getAvgTaskScore(userId);
-        vo.setAverageAccuracy(taskScore / 100);
+        if (taskScore == null) {
+            vo.setAverageAccuracy(0.0);
+        } else
+            vo.setAverageAccuracy(taskScore / 100);
 
         return vo;
     }
@@ -251,7 +257,7 @@ public class TaskServiceImpl implements TaskService {
      * @return 任务问题列表
      */
     @Override
-    public List<TaskQuestionDTO> getTaskQuestionList(Long taskId) {
+    public List<TaskQuestion> getTaskQuestionList(Long taskId) {
         //  校验参数
         if (taskId == null) {
             throw new BusinessException("任务ID不能为空");
@@ -393,6 +399,42 @@ public class TaskServiceImpl implements TaskService {
             answer.setScore(finalScore);
             studentAnswerMapper.update(answer);
         }
+    }
+
+    @Override
+    public void addPathNodeTaskRel(Long taskId, Long pathNodeId, Long studentId) {
+        if (taskId == null || pathNodeId == null)
+            throw new ParamInvalidException("参数不能为空");
+
+        PathNodeTaskRel taskQuestionRel = new PathNodeTaskRel(null, studentId, taskId, pathNodeId, null);
+        pathNodeTaskRelMapper.insert(taskQuestionRel);
+    }
+
+    @Override
+    public PathNodeTaskRel getPathNodeTaskRel(Long pathNodeId) {
+        if (pathNodeId == null)
+            throw new ParamInvalidException("参数不能为空");
+
+        return pathNodeTaskRelMapper.findByPathNodeId(pathNodeId);
+    }
+
+    @Override
+    public void removePathNodeTaskRel(Long taskId, Long pathNodeId) {
+        if (taskId == null || pathNodeId == null)
+            throw new ParamInvalidException("参数不能为空");
+
+        pathNodeTaskRelMapper.deleteByPathNodeAndTask(pathNodeId, taskId);
+    }
+
+    @Override
+    public StudentSubmission tryGetTaskSubmissionByPathNodeId(Long pathNodeId, Long studentId) {
+        PathNodeTaskRel taskQuestionRel = pathNodeTaskRelMapper.findByPathNodeId(pathNodeId);
+        if (taskQuestionRel == null)
+            return null;
+
+        Long taskId = taskQuestionRel.getTaskId();
+        return studentSubmissionMapper.selectByTaskAndStudentId(taskId, studentId);
+
     }
 
     private Object convertQuestionAnswerJson(String type, String json) {

@@ -1,6 +1,6 @@
 package com.superyoudi.businessservice.controller.common;
 
-import com.superyoudi.businessservice.pojo.dto.TaskQuestionDTO;
+import com.superyoudi.businessservice.pojo.dto.TaskQuestion;
 import com.superyoudi.businessservice.pojo.entity.TaskList;
 import com.superyoudi.businessservice.pojo.vo.CourseVO;
 import com.superyoudi.businessservice.service.CourseService;
@@ -63,8 +63,8 @@ public class CommonController {
      * @return 任务问题列表
      */
     @GetMapping("/task/question")
-    public Result<List<TaskQuestionDTO>> getTaskQuestion(@RequestParam Long taskId) {
-        List<TaskQuestionDTO> list = taskService.getTaskQuestionList(taskId);
+    public Result<List<TaskQuestion>> getTaskQuestion(@RequestParam Long taskId) {
+        List<TaskQuestion> list = taskService.getTaskQuestionList(taskId);
         return Result.success(list);
     }
 }

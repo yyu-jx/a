@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserChatMessage {
+public class UserChatMessage<T> {
 
     /// 用户ID
     private Long userId;
@@ -21,5 +21,5 @@ public class UserChatMessage {
     private String message;
 
     /// 附加的结构化数据
-    private Object additionalData;
+    private T additionalData;
 }
