@@ -12,4 +12,12 @@ public interface AnswerService {
      * @return
      */
     Flux<String> getQuestionHelpStream(Long questionId, Long taskId, Long studentId);
+
+    /**
+     * AI 助手生成题目批改建议
+     * @param questionId
+     * @param taskId
+     * @return
+     */
+    Flux<String> getCorrectionSuggestions(Long questionId, Long taskId,Long studentId);
 }

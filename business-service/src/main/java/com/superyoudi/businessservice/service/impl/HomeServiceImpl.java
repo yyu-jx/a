@@ -4,20 +4,23 @@ import com.superyoudi.aiservice.mapper.LearningPathMapper;
 import com.superyoudi.aiservice.mapper.LearningPathNodeMapper;
 import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.aiservice.service.HomeAiService;
-import com.superyoudi.businessservice.mapper.CourseMapper;
-import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
-import com.superyoudi.businessservice.mapper.StudentKnowledgeMasteryMapper;
+import com.superyoudi.businessservice.mapper.*;
 import com.superyoudi.businessservice.pojo.dto.StudentStudyOverview;
+import com.superyoudi.businessservice.pojo.entity.Course;
+import com.superyoudi.businessservice.pojo.entity.User;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
 import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;
 import com.superyoudi.businessservice.service.HomeService;
 import com.superyoudi.common.dto.StudentCourseProgress;
 import com.superyoudi.common.dto.StudentKnowledgeMastery;
+import com.superyoudi.common.dto.TeacherHomeAnalysisDTO;
+import com.superyoudi.common.exception.BusinessException;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.service.KnowledgePointService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -26,8 +29,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static com.superyoudi.common.constants.RedisConstants.AI_SUGGEST_CACHE_HOUR;
-import static com.superyoudi.common.constants.RedisConstants.AI_SUGGEST_CACHE_KEY;
+import static com.superyoudi.common.constants.RedisConstants.*;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +44,8 @@ public class HomeServiceImpl implements HomeService {
     private final StudentKnowledgeMasteryMapper studentKnowledgeMasteryMapper;
     private final StringRedisTemplate stringRedisTemplate;
     private final HomeAiService homeAIService;
+    private final TeacherCourseAnalysisMapper teacherCourseAnalysisMapper;
+    private final UserMapper userMapper;
 
 
     /**
@@ -163,7 +167,7 @@ public class HomeServiceImpl implements HomeService {
 
 
     /**
-     * 获取AI学习建议
+     * 学生端获取AI学习建议
      *
      * @param userId 用户ID
      * @return AI学习建议
@@ -171,7 +175,7 @@ public class HomeServiceImpl implements HomeService {
     @Override
     public String getAiSuggestions(Long userId) {
         // 1. 先查Redis缓存
-        String cacheKey = AI_SUGGEST_CACHE_KEY + userId;
+        String cacheKey = AI_SUGGEST_CACHE_KEY_STUDENT + (userId);
         String cacheText = stringRedisTemplate.opsForValue().get(cacheKey);
         if (cacheText != null) {
             return cacheText;
@@ -223,6 +227,46 @@ public class HomeServiceImpl implements HomeService {
         String suggestion = homeAIService.generateStudentSuggest(progressList, weakKnowledgeList);
 
         // 8. 写入Redis缓存
+        stringRedisTemplate.opsForValue().set(cacheKey, suggestion, AI_SUGGEST_CACHE_HOUR, TimeUnit.HOURS);
+
+        return suggestion;
+    }
+
+    /**
+     * 教师端获取ai建议
+     *
+     * @param teacherId
+     * @return 建议
+     * @author gaoyuxin
+     */
+    @Override
+    public String generateSuggestions(Long teacherId) {
+
+        // 1. 先查Redis缓存
+        String cacheKey = AI_SUGGEST_CACHE_KEY_TEACHER + teacherId;
+        String cacheText = stringRedisTemplate.opsForValue().get(cacheKey);
+        if (cacheText != null) {
+            return cacheText;
+        }
+        // 校验用户是否存在
+        User user = userMapper.selectById(teacherId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        // 一次SQL直接拿到最薄弱课程列表（含课程名称）
+        TeacherHomeAnalysisDTO weakCourse =
+                teacherCourseAnalysisMapper.listWeakestCoursesByTeacherId(teacherId, 1L);
+
+        if (weakCourse == null) {
+            return "> 暂无开课或学情数据，无法生成教学建议";
+        }
+
+        List<String> knowledgeIds = List.of(weakCourse.getWeakestKnowledge());
+        List<KnowledgePointDTO> dtoList = knowledgePointService.batchGetKnowledgePoints(knowledgeIds);
+        weakCourse.setWeakestKnowledgeName(dtoList.get(0).getKnowledgeTitle());
+
+        String suggestion =homeAIService.generateTeacherSuggest(weakCourse);
+        // 2. 写入Redis缓存
         stringRedisTemplate.opsForValue().set(cacheKey, suggestion, AI_SUGGEST_CACHE_HOUR, TimeUnit.HOURS);
 
         return suggestion;

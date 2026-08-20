@@ -2,7 +2,8 @@ package com.superyoudi.common.constants;
 
 public final class RedisConstants {
 
-    public static final String AI_SUGGEST_CACHE_KEY = "student:home:ai:suggest:";
+    public static final String AI_SUGGEST_CACHE_KEY_STUDENT = "student:home:ai:suggest:";
+    public static final String AI_SUGGEST_CACHE_KEY_TEACHER = "teacher:home:ai:suggest:";
     public static final String AI_DIAGNOSE_CACHE_KEY = "student:task:ai:diagnose:";
 
     /**
