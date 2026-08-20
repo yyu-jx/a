@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@RestController
+@RestController("studentHome")
 @RequestMapping
 @RequiredArgsConstructor
 public class HomeController {
