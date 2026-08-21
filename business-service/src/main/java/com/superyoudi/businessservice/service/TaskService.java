@@ -2,10 +2,7 @@ package com.superyoudi.businessservice.service;
 
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
 import com.superyoudi.businessservice.pojo.dto.TaskQuestion;
-import com.superyoudi.businessservice.pojo.entity.PathNodeTaskRel;
-import com.superyoudi.businessservice.pojo.entity.StudentAnswer;
-import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
-import com.superyoudi.businessservice.pojo.entity.TaskList;
+import com.superyoudi.businessservice.pojo.entity.*;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
 import com.superyoudi.common.dto.ErrorQuestionVO;
 import org.springframework.data.domain.Page;
@@ -15,6 +12,10 @@ import java.util.List;
 import java.util.Map;
 
 public interface TaskService {
+
+    TaskAnalysis getTaskAnalysis(Long taskId);
+
+    List<Task> getCourseRelatedTasks(Long courseId);
 
     Long saveTaskData(TaskDTO taskDTO);
 

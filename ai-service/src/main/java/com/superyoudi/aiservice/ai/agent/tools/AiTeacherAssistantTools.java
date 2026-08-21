@@ -85,6 +85,43 @@ public class AiTeacherAssistantTools {
         return "成功";
     }
 
-    // TODO 各种数据表的查询工具，用于生成教学建议等
+    /*
+        课程表 courses
+        学生表 students
+        任务表 tasks
+        教师-课程分析表 teacher_course_analysises
+        学生-课程学习进度表 student_course_progresses
+        任务-分析表 mission_analysises
+     */
 
+    @Tool(name = "get_course_list", description = "获取课程列表")
+    @SuppressWarnings("unused")
+    public String getCourseList(ToolContext context) {
+        Long userId = (Long) context.getContext().get(AgentConstants.METADATA_USER_ID);
+        return aiTeacherAssistantService.getCourseList(userId);
+    }
+
+    @SuppressWarnings("unused")
+    @Tool(name = "get_course_info", description = "获取单个课程分析数据")
+    public String getCourseInfo(@ToolParam(description = "课程ID") Long courseId) {
+        return aiTeacherAssistantService.getCourseInfo(courseId);
+    }
+
+    @SuppressWarnings("unused")
+    @Tool(name = "get_student_analysis", description = "获取单个学生分析数据，两个参数选择其一即可")
+    public String getStudentAnalysis(@ToolParam(description = "学生ID") Long studentId, @ToolParam(description = "学生姓名") String studentName) {
+        return aiTeacherAssistantService.getStudentAnalysis(studentId, studentName);
+    }
+
+    @SuppressWarnings("unused")
+    @Tool(name = "get_course_task_list", description = "获取单个课程下的任务列表")
+    public String getCourseTaskList(@ToolParam(description = "课程ID") Long courseId) {
+        return aiTeacherAssistantService.getCourseTaskList(courseId);
+    }
+
+    @SuppressWarnings("unused")
+    @Tool(name = "get_task_analysis", description = "获取单个任务分析数据")
+    public String getTaskAnalysis(@ToolParam(description = "任务ID") Long taskId) {
+        return aiTeacherAssistantService.getTaskAnalysis(taskId);
+    }
 }

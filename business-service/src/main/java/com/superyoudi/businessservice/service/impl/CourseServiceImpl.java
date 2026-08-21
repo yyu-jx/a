@@ -54,6 +54,7 @@ public class CourseServiceImpl implements CourseService {
     private final LearningPathService learningPathService;
     private final TeacherCourseAnalysisMapper teacherCourseAnalysisMapper;
     private final CourseDataMapper courseDataMapper;
+    private final UserMapper userMapper;
 
     /**
      * 获取全部课程数据表
@@ -83,7 +84,6 @@ public class CourseServiceImpl implements CourseService {
 
         return course.getId();
     }
-    private final UserMapper userMapper;
 
     /**
      * 获取单门课程详情
@@ -103,6 +103,16 @@ public class CourseServiceImpl implements CourseService {
         BeanUtils.copyProperties(course, vo);
 
         return vo;
+    }
+
+    @Override
+    public Course getCourseById(Long courseId) {
+        return courseMapper.selectById(courseId);
+    }
+
+    @Override
+    public TeacherCourseAnalysis getTeacherCourseAnalysis(Long courseId) {
+        return teacherCourseAnalysisMapper.selectByCourseId(courseId);
     }
 
     @Override

@@ -33,7 +33,7 @@ public interface UserMapper {
      * 根据真实姓名模糊查询
      */
     @Select("SELECT * FROM users WHERE realname LIKE CONCAT('%', #{realname}, '%')")
-    List<User> selectByRealname(String realname);
+    List<User> selectByRealName(String realname);
 
     /**
      * 查询所有用户

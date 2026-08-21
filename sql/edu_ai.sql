@@ -500,9 +500,9 @@ CREATE TABLE `student_interaction_styles`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='学生交互风格画像';
 
--- 32. 任务分析表 mission_analysises
-DROP TABLE IF EXISTS `mission_analysises`;
-CREATE TABLE `mission_analysises`
+-- 32. 任务分析表 task_analysises
+DROP TABLE IF EXISTS `task_analysises`;
+CREATE TABLE `task_analysises`
 (
     `id`              BIGINT AUTO_INCREMENT PRIMARY KEY,
     `task_id`         BIGINT NOT NULL,

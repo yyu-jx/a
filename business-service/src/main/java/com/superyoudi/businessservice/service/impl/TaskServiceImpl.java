@@ -58,6 +58,7 @@ public class TaskServiceImpl implements TaskService {
     private final AnswerValidator.CorrectionStrategy subjectiveStrategy;
     private final PathNodeTaskRelMapper pathNodeTaskRelMapper;
     private final QuestionBaseService questionBaseService;
+    private final TaskAnalysisMapper taskAnalysisMapper;
 
     // 构造函数
     public TaskServiceImpl(StudentSubmissionMapper studentSubmissionMapper,
@@ -69,7 +70,7 @@ public class TaskServiceImpl implements TaskService {
                            UserMapper userMapper,
                            QuestionMapper questionMapper,
                            TaskQuestionRelMapper taskQuestionRelMapper,
-                           AnswerCorrectionModel answerCorrectionModel, PathNodeTaskRelMapper pathNodeTaskRelMapper, QuestionBaseService questionBaseService) {
+                           AnswerCorrectionModel answerCorrectionModel, PathNodeTaskRelMapper pathNodeTaskRelMapper, QuestionBaseService questionBaseService, TaskAnalysisMapper taskAnalysisMapper) {
         this.studentSubmissionMapper = studentSubmissionMapper;
         this.studentAnswerMapper = studentAnswerMapper;
         this.taskMapper = taskMapper;
@@ -117,6 +118,20 @@ public class TaskServiceImpl implements TaskService {
             throw new IllegalArgumentException("不支持的主观题类型");
         };
         this.questionBaseService = questionBaseService;
+        this.taskAnalysisMapper = taskAnalysisMapper;
+    }
+
+    @Override
+    public TaskAnalysis getTaskAnalysis(Long taskId) {
+        return taskAnalysisMapper.findByTaskId(taskId);
+    }
+
+    // TODO TaskAnalysis增删改方法
+
+    /// 根据课程ID查询任务
+    @Override
+    public List<Task> getCourseRelatedTasks(Long courseId) {
+        return taskMapper.selectByCourseId(courseId);
     }
 
     /**
@@ -422,6 +437,42 @@ public class TaskServiceImpl implements TaskService {
         studentSubmissionMapper.update(submission);
     }
 
+    @Override
+    public void addPathNodeTaskRel(Long taskId, Long pathNodeId, Long studentId) {
+        if (taskId == null || pathNodeId == null)
+            throw new ParamInvalidException("参数不能为空");
+
+        PathNodeTaskRel taskQuestionRel = new PathNodeTaskRel(null, studentId, taskId, pathNodeId, null);
+        pathNodeTaskRelMapper.insert(taskQuestionRel);
+    }
+
+    @Override
+    public PathNodeTaskRel getPathNodeTaskRel(Long pathNodeId) {
+        if (pathNodeId == null)
+            throw new ParamInvalidException("参数不能为空");
+
+        return pathNodeTaskRelMapper.findByPathNodeId(pathNodeId);
+    }
+
+    @Override
+    public void removePathNodeTaskRel(Long taskId, Long pathNodeId) {
+        if (taskId == null || pathNodeId == null)
+            throw new ParamInvalidException("参数不能为空");
+
+        pathNodeTaskRelMapper.deleteByPathNodeAndTask(pathNodeId, taskId);
+    }
+
+    @Override
+    public StudentSubmission tryGetTaskSubmissionByPathNodeId(Long pathNodeId, Long studentId) {
+        PathNodeTaskRel taskQuestionRel = pathNodeTaskRelMapper.findByPathNodeId(pathNodeId);
+        if (taskQuestionRel == null)
+            return null;
+
+        Long taskId = taskQuestionRel.getTaskId();
+        return studentSubmissionMapper.selectByTaskAndStudentId(taskId, studentId);
+
+    }
+
     /**
      * 批改客观题
      *
@@ -475,42 +526,6 @@ public class TaskServiceImpl implements TaskService {
             answer.setScore(result.getScore());
             studentAnswerMapper.update(answer);
         }
-    }
-
-    @Override
-    public void addPathNodeTaskRel(Long taskId, Long pathNodeId, Long studentId) {
-        if (taskId == null || pathNodeId == null)
-            throw new ParamInvalidException("参数不能为空");
-
-        PathNodeTaskRel taskQuestionRel = new PathNodeTaskRel(null, studentId, taskId, pathNodeId, null);
-        pathNodeTaskRelMapper.insert(taskQuestionRel);
-    }
-
-    @Override
-    public PathNodeTaskRel getPathNodeTaskRel(Long pathNodeId) {
-        if (pathNodeId == null)
-            throw new ParamInvalidException("参数不能为空");
-
-        return pathNodeTaskRelMapper.findByPathNodeId(pathNodeId);
-    }
-
-    @Override
-    public void removePathNodeTaskRel(Long taskId, Long pathNodeId) {
-        if (taskId == null || pathNodeId == null)
-            throw new ParamInvalidException("参数不能为空");
-
-        pathNodeTaskRelMapper.deleteByPathNodeAndTask(pathNodeId, taskId);
-    }
-
-    @Override
-    public StudentSubmission tryGetTaskSubmissionByPathNodeId(Long pathNodeId, Long studentId) {
-        PathNodeTaskRel taskQuestionRel = pathNodeTaskRelMapper.findByPathNodeId(pathNodeId);
-        if (taskQuestionRel == null)
-            return null;
-
-        Long taskId = taskQuestionRel.getTaskId();
-        return studentSubmissionMapper.selectByTaskAndStudentId(taskId, studentId);
-
     }
 
     private Object convertQuestionAnswerJson(String type, String json) {
