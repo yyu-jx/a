@@ -18,7 +18,6 @@ import com.superyoudi.coursewareservice.service.CoursewareGenerationService;
 import com.superyoudi.coursewareservice.service.CoursewareRecordService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -46,12 +45,6 @@ public class GraphConfig {
         this.coursewareGenerationService = coursewareGenerationService;
         this.htmlPptTools = htmlPptTools;
         this.htmlWordTools = htmlWordTools;
-    }
-
-    @Bean
-    public MessageWindowChatMemory chatMemory() {
-        // 默认存储最近的 30 条消息
-        return MessageWindowChatMemory.builder().maxMessages(30).build();
     }
 
     /// 注册并配置工作流图的Bean
@@ -86,7 +79,8 @@ public class GraphConfig {
                 Map.entry(KEY_USER_ID, KeyStrategy.REPLACE),
                 Map.entry(KEY_COURSEWARE_REC_ID, KeyStrategy.REPLACE),
                 Map.entry(KEY_INPUT, KeyStrategy.REPLACE),
-                Map.entry(KEY_RESPONSE, KeyStrategy.APPEND),
+                Map.entry(KEY_IS_SKIP_SUPERVISOR, KeyStrategy.REPLACE),
+                Map.entry(KEY_STREAMING_RESPONSE, KeyStrategy.APPEND),
                 Map.entry(KEY_USER_ADDITIONAL_DATA, KeyStrategy.REPLACE),
                 Map.entry(KEY_GENERATION_INFO, KeyStrategy.REPLACE),
                 Map.entry(KEY_SHOULD_GENERATE, KeyStrategy.REPLACE),
@@ -116,7 +110,8 @@ public class GraphConfig {
                     KEY_INPUT, ""
             ));
 
-            String generationInfo = state.value(KEY_GENERATION_INFO, "错误");
+            // 保证生成信息不为空
+            String generationInfo = state.value(KEY_GENERATION_INFO, String.class).orElseThrow();
             return Map.of(KEY_GENERATION_INFO, generationInfo);
         });
 
@@ -125,7 +120,8 @@ public class GraphConfig {
                     log.info("子Agents出口节点执行");
 
                     // 生成完成，将HTML发送到前端
-                    Long coursewareId = state.value(KEY_COURSEWARE_REC_ID, Long.class).orElse(null);
+                    Long coursewareId = state.value(KEY_COURSEWARE_REC_ID, Long.class).orElseThrow();
+
                     String pptHtml = coursewareGenerationService.getPptHtml(coursewareId);
                     String wordHtml = coursewareGenerationService.getWordHtml(coursewareId);
                     coursewareGenerationService
@@ -164,6 +160,13 @@ public class GraphConfig {
                 .addNode(NODE_SUB_AGENTS_ENTRY, subAgentsEntryNode)
                 .addNode(NODE_SUB_AGENTS_EXIT, subAgentsExitNode)
                 // 开始执行
+                // 是否跳过监督者节点？
+                .addConditionalEdges(StateGraph.START, AsyncEdgeAction.edge_async(state ->
+                                state.value(KEY_IS_SKIP_SUPERVISOR, "FALSE")),
+                        Map.of(
+                                "TRUE", NODE_SUB_AGENTS_ENTRY,
+                                "FALSE", NODE_SUPERVISOR
+                        ))
                 .addEdge(StateGraph.START, NODE_SUPERVISOR)   // 监督者节点是否控制子节点执行？
                 .addConditionalEdges(NODE_SUPERVISOR,
                         AsyncEdgeAction.edge_async(

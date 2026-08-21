@@ -9,12 +9,19 @@ import com.superyoudi.businessservice.pojo.entity.TaskList;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
 import com.superyoudi.common.dto.ErrorQuestionVO;
 import org.springframework.data.domain.Page;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 public interface TaskService {
 
     Long saveTaskData(TaskDTO taskDTO);
+
+    @Transactional(rollbackFor = Exception.class)
+    Long composeTask(long assignerId, long courseId, List<String> knowledgePoints,
+                     String title, String description, String type,
+                     Map<String, Integer> questionConfig, int totalScore);
 
     /**
      * 学生提交作业
@@ -96,7 +103,8 @@ public interface TaskService {
      */
     List<StudentSubmission> getSubmissions(Long taskId);
 
-    void executeSubmissionCorrection(StudentSubmission submission);
+
+    void executeSubmissionCorrection(StudentSubmission submission, boolean isIgnoreSubmitStrategy);
 
     void addPathNodeTaskRel(Long taskId, Long pathNodeId, Long studentId);
 

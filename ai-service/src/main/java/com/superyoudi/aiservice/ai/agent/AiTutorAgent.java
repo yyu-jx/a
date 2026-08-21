@@ -20,12 +20,6 @@ import reactor.core.publisher.Flux;
 @Component
 public class AiTutorAgent {
 
-    public static final String METADATA_STUDENT_ID = "student_id";
-    public static final String METADATA_COURSE_ID = "course_id";
-
-    /// 自定义Metadata
-    public static final String METADATA_CUSTOM_METADATA = "custom_metadata";
-
     private final ReactAgent agent;
 
     public AiTutorAgent(AiTutorModelInterceptor aiTutorModelInterceptor,

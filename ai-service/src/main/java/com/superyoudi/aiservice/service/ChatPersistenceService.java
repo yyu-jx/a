@@ -184,7 +184,9 @@ public class ChatPersistenceService {
      */
     public Long createChatSessionAndCourseRel(Long userId, Long courseId) {
         ChatSession chatSession = createChatSession(userId);
-        return createChatCourseRel(chatSession.getId(), courseId, userId);
+        ChatCourseRel chatCourseRel = new ChatCourseRel(null, chatSession.getId(), courseId, userId);
+        chatCourseRelMapper.insert(chatCourseRel);
+        return chatCourseRel.getId();
     }
 
     private ChatSession createChatSession(Long userId) {
@@ -193,24 +195,15 @@ public class ChatPersistenceService {
         return chatSession;
     }
 
-    public Long createChatCourseRel(Long chatId, Long courseId, Long userId) {
-        ChatCourseRel chatCourseRel = new ChatCourseRel(null, chatId, courseId, userId);
-        chatCourseRelMapper.insert(chatCourseRel);
-        return chatCourseRel.getId();
-    }
 
     /**
      * 创建会话与课程关联关系
      */
     public Long createChatCoursewareRecRel(Long userId, Long coursewareRecId) {
         ChatSession chatSession = createChatSession(userId);
-
-        return createChatCoursewareRecRel(chatSession.getId(), coursewareRecId, userId);
-    }
-
-    public Long createChatCoursewareRecRel(Long chatId, Long coursewareRecId, Long userId) {
-        ChatCoursewareRecRel chatCoursewareRecRel = new ChatCoursewareRecRel(null, chatId, coursewareRecId, userId);
+        ChatCoursewareRecRel chatCoursewareRecRel = new ChatCoursewareRecRel(null, chatSession.getId(), coursewareRecId, userId);
         chatCoursewareRecRelMapper.insert(chatCoursewareRecRel);
         return chatCoursewareRecRel.getId();
     }
+
 }

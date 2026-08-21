@@ -19,10 +19,13 @@ import com.superyoudi.aiservice.service.LearningPathService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.businessservice.mapper.UserMapper;
-import com.superyoudi.businessservice.pojo.dto.TaskDTO;
-import com.superyoudi.businessservice.pojo.entity.*;
+import com.superyoudi.businessservice.pojo.entity.Course;
+import com.superyoudi.businessservice.pojo.entity.PathNodeTaskRel;
+import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
+import com.superyoudi.businessservice.pojo.entity.User;
 import com.superyoudi.businessservice.service.QuestionBaseService;
 import com.superyoudi.businessservice.service.TaskService;
+import com.superyoudi.common.constants.AgentConstants;
 import com.superyoudi.common.dto.ChatHistoryDTO;
 import com.superyoudi.common.exception.LearningPathFinishedException;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
@@ -31,13 +34,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
-import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
 
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Sijayyx
@@ -80,9 +81,9 @@ public class AiTutorServiceImpl implements AiTutorService {
         // 设置config的metadata以进行context engineering
         RunnableConfig runnableConfig = RunnableConfig.builder()
                 .threadId("ai_tutor_thread_" + userChatMessage.getUserId() + "_" + courseId)
-                .addMetadata(AiTutorAgent.METADATA_STUDENT_ID, userChatMessage.getUserId())
-                .addMetadata(AiTutorAgent.METADATA_COURSE_ID, courseId)
-                .addMetadata(AiTutorAgent.METADATA_CUSTOM_METADATA, new HashMap<String, Object>())
+                .addMetadata(AgentConstants.METADATA_USER_ID, userChatMessage.getUserId())
+                .addMetadata(AgentConstants.METADATA_COURSE_ID, courseId)
+                .addMetadata(AgentConstants.METADATA_CUSTOM_METADATA, new HashMap<String, Object>())
                 .build();
 
         try {
@@ -225,66 +226,9 @@ public class AiTutorServiceImpl implements AiTutorService {
                                         String title,
                                         Map<String, Integer> questionConfig,
                                         int totalScore) {
-        /*
-            组题步骤:
-            1. 根据知识点查question set
-            2. 根据题型分组成question lists
-            3. 检查每个题型是否有足够的题目，如果没有，调用AI生成。
-            4. 组装题目，生成任务，进行知识节点的关联，向前端推送。
-         */
 
-        Set<Question> candidateQs = new HashSet<>();
-        for (String knowledgePoint : knowledgePoints) {
-            candidateQs.addAll(questionBaseService.getQuestionsByKnowledge(knowledgePoint));
-        }
-
-        Map<String, List<Question>> grouped = candidateQs.stream().collect(Collectors.groupingBy(Question::getType));
-
-        Map<String, List<Question>> questions = new HashMap<>();
-        Random random = new Random();
-        for (Map.Entry<String, List<Question>> typedQuestions : grouped.entrySet()) {
-            int diff = questionConfig.get(typedQuestions.getKey()) - typedQuestions.getValue().size();
-            // 如果题型数量不足，调用AI生成题目
-            if (diff > 0) {
-                List<Question> generated = questionBaseService.generateQuestions(1L, courseId, knowledgePoints,
-                        typedQuestions.getKey(), diff);
-
-                typedQuestions.getValue().addAll(generated);
-            }
-
-            // 每个题型随机选几个题目
-            List<Question> randomSelection = random.ints(0, typedQuestions.getValue().size()) // 生成无限流
-                    .distinct()
-                    .limit(questionConfig.get(typedQuestions.getKey()))
-                    .mapToObj(typedQuestions.getValue()::get)
-                    .toList();
-
-            questions.put(typedQuestions.getKey(), randomSelection);
-        }
-
-
-        int totalQuestionCount = questions.values().stream().mapToInt(List::size).sum();
-        int scoreEach = totalScore / totalQuestionCount;
-
-        // 题号计数
-        AtomicInteger index = new AtomicInteger(0);
-
-        List<TaskDTO.QuestionRelInfo> result = questions.values().stream()
-                .flatMap(List::stream)
-                .map(q -> {
-                    Assert.notNull(q.getId(), "题目ID不能为空");
-                    return new TaskDTO.QuestionRelInfo(null, q.getId(), index.getAndIncrement(), scoreEach);
-                })
-                .toList();
-
-        // 存表，构造关联
-        TaskDTO build = TaskDTO.builder().id(null).courseId(null).assignerId(null).title(title).description(null).type("homework")
-                .totalScore(totalScore).startTime(LocalDateTime.now()).deadline(LocalDateTime.MAX)
-                .status("published").afterSubmitStrategy(Task.SUBMIT_STRATEGY_AUTO_ALL)
-                .questionRelInfos(result).build();
-
-        Long taskId = taskService.saveTaskData(build);
-        Assert.notNull(taskId, "任务ID不能为空");
+        Long taskId = taskService.composeTask(0, courseId, knowledgePoints, title, null,
+                "homework", questionConfig, totalScore);
 
         taskService.addPathNodeTaskRel(taskId, pathNodeId, studentId);
     }

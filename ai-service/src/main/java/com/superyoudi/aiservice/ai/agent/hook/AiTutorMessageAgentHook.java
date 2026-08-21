@@ -7,11 +7,11 @@ import com.alibaba.cloud.ai.graph.agent.hook.HookPositions;
 import com.alibaba.cloud.ai.graph.agent.hook.messages.AgentCommand;
 import com.alibaba.cloud.ai.graph.agent.hook.messages.MessagesAgentHook;
 import com.alibaba.cloud.ai.graph.utils.TypeRef;
-import com.superyoudi.aiservice.ai.agent.AiTutorAgent;
 import com.superyoudi.aiservice.pojo.dto.AiCitation;
 import com.superyoudi.aiservice.pojo.entity.ChatMessage;
 import com.superyoudi.aiservice.service.ChatPersistenceService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
+import com.superyoudi.common.constants.AgentConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.Message;
@@ -36,8 +36,8 @@ public class AiTutorMessageAgentHook extends MessagesAgentHook {
     public AgentCommand beforeAgent(List<Message> previousMessages, RunnableConfig config) {
 
         // 这里能拿到用户发来的消息，在其之前恢复消息历史
-        Long courseId = (Long) config.metadata(AiTutorAgent.METADATA_COURSE_ID).orElseThrow();
-        Long studentId = (Long) config.metadata(AiTutorAgent.METADATA_STUDENT_ID).orElseThrow();
+        Long courseId = (Long) config.metadata(AgentConstants.METADATA_COURSE_ID).orElseThrow();
+        Long studentId = (Long) config.metadata(AgentConstants.METADATA_USER_ID).orElseThrow();
 
         List<Message> msgHistory = AiMessageUtils.recoverChatHistory(() ->
                         chatPersistenceService.getOrCreateCourseRelChatMessages(studentId, courseId),
@@ -54,10 +54,10 @@ public class AiTutorMessageAgentHook extends MessagesAgentHook {
     @Override
     public AgentCommand afterAgent(List<Message> previousMessages, RunnableConfig config) {
         // 这里能拿到用户消息、工具调用消息、AI回复的消息
-        Long courseId = (Long) config.metadata(AiTutorAgent.METADATA_COURSE_ID).orElseThrow();
-        Long studentId = (Long) config.metadata(AiTutorAgent.METADATA_STUDENT_ID).orElseThrow();
+        Long courseId = (Long) config.metadata(AgentConstants.METADATA_COURSE_ID).orElseThrow();
+        Long studentId = (Long) config.metadata(AgentConstants.METADATA_USER_ID).orElseThrow();
         Map<String, Object> metadata = config
-                .metadata(AiTutorAgent.METADATA_CUSTOM_METADATA, new TypeRef<Map<String, Object>>() {
+                .metadata(AgentConstants.METADATA_CUSTOM_METADATA, new TypeRef<Map<String, Object>>() {
                 }).orElse(null);
 
 
