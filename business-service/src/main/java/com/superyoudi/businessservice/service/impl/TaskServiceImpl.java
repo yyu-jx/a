@@ -58,7 +58,6 @@ public class TaskServiceImpl implements TaskService {
     private final AnswerValidator.CorrectionStrategy subjectiveStrategy;
     private final PathNodeTaskRelMapper pathNodeTaskRelMapper;
     private final QuestionBaseService questionBaseService;
-    private final TaskAnalysisMapper taskAnalysisMapper;
 
     // 构造函数
     public TaskServiceImpl(StudentSubmissionMapper studentSubmissionMapper,
@@ -118,15 +117,7 @@ public class TaskServiceImpl implements TaskService {
             throw new IllegalArgumentException("不支持的主观题类型");
         };
         this.questionBaseService = questionBaseService;
-        this.taskAnalysisMapper = taskAnalysisMapper;
     }
-
-    @Override
-    public TaskAnalysis getTaskAnalysis(Long taskId) {
-        return taskAnalysisMapper.findByTaskId(taskId);
-    }
-
-    // TODO TaskAnalysis增删改方法
 
     /// 根据课程ID查询任务
     @Override

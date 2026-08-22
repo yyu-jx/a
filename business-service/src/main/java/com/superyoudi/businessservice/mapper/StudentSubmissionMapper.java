@@ -1,6 +1,6 @@
 package com.superyoudi.businessservice.mapper;
 
-import com.superyoudi.businessservice.pojo.entity.MissionScoreStats;
+import com.superyoudi.businessservice.pojo.entity.TaskScoreStats;
 import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
 import org.apache.ibatis.annotations.*;
 
@@ -52,7 +52,7 @@ public interface StudentSubmissionMapper {
             FROM student_submissions
             WHERE task_id = #{taskId} AND status IN ('submitted','passed','returned')
             """)
-    Long countSubmittedByTaskId(@Param("taskId") Long taskId);
+    Integer countSubmittedByTaskId(@Param("taskId") Long taskId);
 
     @Select("""
             SELECT COALESCE(AVG(total_score), 0) AS avgScore,
@@ -61,7 +61,7 @@ public interface StudentSubmissionMapper {
             FROM student_submissions
             WHERE task_id = #{taskId} AND status IN ('passed','returned')
             """)
-    MissionScoreStats selectScoreStatsByTaskId(@Param("taskId") Long taskId);
+    TaskScoreStats selectScoreStatsByTaskId(@Param("taskId") Long taskId);
 
     @Select("select * from student_submissions where task_id = #{taskId} and student_id = #{student_id} limit 1")
     StudentSubmission selectByTaskAndStudentId(Long taskId, Long studentId);

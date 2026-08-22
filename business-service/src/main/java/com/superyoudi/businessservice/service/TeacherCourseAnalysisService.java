@@ -24,7 +24,9 @@ public class TeacherCourseAnalysisService {
     private final StudentKnowledgeMasteryMapper studentKnowledgeMasteryMapper;
     private final TeacherCourseAnalysisMapper teacherCourseAnalysisMapper;
 
-
+    public TeacherCourseAnalysis getTeacherCourseAnalysis(Long courseId) {
+        return teacherCourseAnalysisMapper.selectByCourseId(courseId);
+    }
 
     public int syncAll() {
         List<Long> courseIds = courseMapper.selectActiveCourseIds();

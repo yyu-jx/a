@@ -18,7 +18,8 @@ public interface StudentAnswerMapper {
               GROUP BY ss.id
             ) spent
             """)
-    Double selectAvgTimeSpentByTaskId(@Param("taskId") Long taskId);
+    Integer selectAvgTimeSpentByTaskId(@Param("taskId") Long taskId);
+
     /**
      * 插入学生答案
      */

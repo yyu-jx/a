@@ -13,7 +13,6 @@ import java.util.Map;
 
 public interface TaskService {
 
-    TaskAnalysis getTaskAnalysis(Long taskId);
 
     List<Task> getCourseRelatedTasks(Long courseId);
 

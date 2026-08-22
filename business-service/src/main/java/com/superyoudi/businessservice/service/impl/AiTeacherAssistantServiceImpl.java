@@ -17,7 +17,9 @@ import com.superyoudi.businessservice.mapper.UserMapper;
 import com.superyoudi.businessservice.pojo.dto.StudentStudyOverview;
 import com.superyoudi.businessservice.pojo.entity.*;
 import com.superyoudi.businessservice.service.CourseService;
+import com.superyoudi.businessservice.service.TaskAnalysisService;
 import com.superyoudi.businessservice.service.TaskService;
+import com.superyoudi.businessservice.service.TeacherCourseAnalysisService;
 import com.superyoudi.common.constants.AgentConstants;
 import com.superyoudi.common.dto.ChatHistoryDTO;
 import com.superyoudi.common.dto.CoursewareGenerationRequest;
@@ -52,6 +54,8 @@ public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService 
     private final StudentCourseProgressMapper studentCourseProgressMapper;
     private final AiTeacherAssistantAgent aiTeacherAssistantAgent;
     private final ChatPersistenceService chatPersistenceService;
+    private final TaskAnalysisService taskAnalysisService;
+    private final TeacherCourseAnalysisService teacherCourseAnalysisService;
 
     public AiTeacherAssistantServiceImpl(CoursewareInteractionService coursewareInteractionService,
                                          CoursewareRecordService coursewareRecordService,
@@ -60,7 +64,7 @@ public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService 
                                          UserMapper userMapper,
                                          StudentCourseProgressMapper studentCourseProgressMapper,
                                          @Lazy AiTeacherAssistantAgent aiTeacherAssistantAgent,
-                                         ChatPersistenceService chatPersistenceService) {
+                                         ChatPersistenceService chatPersistenceService, TaskAnalysisService taskAnalysisService, TeacherCourseAnalysisService teacherCourseAnalysisService) {
         this.coursewareInteractionService = coursewareInteractionService;
         this.coursewareRecordService = coursewareRecordService;
         this.taskService = taskService;
@@ -69,6 +73,8 @@ public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService 
         this.studentCourseProgressMapper = studentCourseProgressMapper;
         this.aiTeacherAssistantAgent = aiTeacherAssistantAgent;
         this.chatPersistenceService = chatPersistenceService;
+        this.taskAnalysisService = taskAnalysisService;
+        this.teacherCourseAnalysisService = teacherCourseAnalysisService;
     }
 
     @Override
@@ -167,7 +173,7 @@ public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService 
     @Override
     public String getCourseInfo(@NonNull Long courseId) {
         Course course = courseService.getCourseById(courseId);
-        TeacherCourseAnalysis analysis = courseService.getTeacherCourseAnalysis(courseId);
+        TeacherCourseAnalysis analysis = teacherCourseAnalysisService.getTeacherCourseAnalysis(courseId);
 
         if (course == null || analysis == null) {
             return "课程不存在或暂无分析数据";
@@ -232,7 +238,7 @@ public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService 
     @Override
     public String getTaskAnalysis(@NonNull Long taskId) {
         Task task = taskService.getCourseRelatedTasks(taskId).get(0);
-        TaskAnalysis taskAnalysis = taskService.getTaskAnalysis(taskId);
+        TaskAnalysis taskAnalysis = taskAnalysisService.getTaskAnalysis(taskId);
         if (task == null || taskAnalysis == null)
             return "任务数据不存在";
 

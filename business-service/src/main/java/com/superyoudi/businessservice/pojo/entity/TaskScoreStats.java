@@ -3,11 +3,8 @@ package com.superyoudi.businessservice.pojo.entity;
 import lombok.Data;
 
 @Data
-public class MissionScoreStats {
-
+public class TaskScoreStats {
     private Double avgScore;
-    private Double maxScore;
-    private Double minScore;
-
-
+    private Integer maxScore;
+    private Integer minScore;
 }

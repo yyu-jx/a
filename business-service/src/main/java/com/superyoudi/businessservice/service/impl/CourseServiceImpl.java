@@ -110,10 +110,7 @@ public class CourseServiceImpl implements CourseService {
         return courseMapper.selectById(courseId);
     }
 
-    @Override
-    public TeacherCourseAnalysis getTeacherCourseAnalysis(Long courseId) {
-        return teacherCourseAnalysisMapper.selectByCourseId(courseId);
-    }
+
 
     @Override
     public CourseStatisticsVO getCourseStatistics(Long teacherId) {
