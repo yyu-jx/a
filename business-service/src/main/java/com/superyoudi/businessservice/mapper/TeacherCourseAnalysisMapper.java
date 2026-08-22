@@ -12,6 +12,24 @@ import java.util.List;
 @Mapper
 public interface TeacherCourseAnalysisMapper {
 
+    @Insert("""
+            INSERT INTO teacher_course_analysises
+              (course_id, total_students, avg_score_rate, avg_progress, task_count,
+               submission_rate, alert_student_count, weakest_knowledge, updated_at)
+            VALUES (#{courseId}, #{totalStudents}, #{avgScoreRate}, #{avgProgress}, #{taskCount},
+                    #{submissionRate}, #{alertStudentCount}, #{weakestKnowledge}, NOW())
+            ON DUPLICATE KEY UPDATE
+              total_students = #{totalStudents},
+              avg_score_rate = #{avgScoreRate},
+              avg_progress = #{avgProgress},
+              task_count = #{taskCount},
+              submission_rate = #{submissionRate},
+              alert_student_count = #{alertStudentCount},
+              weakest_knowledge = #{weakestKnowledge},
+              updated_at = NOW()
+            """)
+    int upsert(TeacherCourseAnalysis analysis);
+
     /**
      * 插入一条记录
      */

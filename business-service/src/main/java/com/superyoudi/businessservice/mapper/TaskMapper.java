@@ -11,6 +11,12 @@ import java.util.List;
 
 @Mapper
 public interface TaskMapper {
+
+    @Select("SELECT id FROM tasks WHERE status IN ('published','closed')")
+    List<Long> selectActiveTaskIds();
+
+    @Select("SELECT COUNT(*) FROM tasks WHERE course_id = #{courseId} AND status IN ('published','closed')")
+    Long countPublishedTasksByCourseId(@Param("courseId") Long courseId);
     /**
      * 插入任务
      */

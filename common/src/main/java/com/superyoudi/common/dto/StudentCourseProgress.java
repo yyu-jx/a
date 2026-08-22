@@ -10,6 +10,8 @@ import java.math.BigDecimal;
 @Data
 public class StudentCourseProgress {
 
+    private Long id;
+
     /**
      * 学生ID
      */
@@ -23,25 +25,25 @@ public class StudentCourseProgress {
     /**
      * 课程总学习进度
      */
-    private BigDecimal totalProgress;
+    private double totalProgress;
 
     /**
      * 互动参与次数
      */
-    private Integer interactionCount;
+    private Long interactionCount;
 
     /**
      * 平均作业均分
      */
-    private BigDecimal avgTaskScore;
+    private double avgTaskScore;
 
     /**
      * 知识点覆盖度
      */
-    private BigDecimal knowledgeCoverRate;
+    private double knowledgeCoverRate;
 
     /**
      * 任务完成度
      */
-    private BigDecimal taskCompletionRate;
+    private double taskCompletionRate;
 }

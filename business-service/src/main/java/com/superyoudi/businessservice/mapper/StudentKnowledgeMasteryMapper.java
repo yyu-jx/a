@@ -28,6 +28,22 @@ public interface StudentKnowledgeMasteryMapper {
 //            "ORDER BY error_rate DESC LIMIT 5")
 //    List<StudentKnowledgeMastery> selectTop5WeakKnowledge(Long userId);
 
+    @Select("""
+            SELECT knowledge_id
+            FROM student_knowledge_masteries
+            WHERE course_id = #{courseId}
+            ORDER BY master_rate ASC, updated_at ASC
+            LIMIT 1
+            """)
+    String selectWeakestKnowledgeByCourseId(@Param("courseId") Long courseId);
+
+    @Select("""
+            SELECT COUNT(DISTINCT knowledge_id)
+            FROM student_knowledge_masteries
+            WHERE student_id = #{studentId} AND course_id = #{courseId}
+            """)
+    Long countCoveredKnowledge(@Param("studentId") Long studentId, @Param("courseId") Long courseId);
+
     @Select("SELECT * FROM student_knowledge_masteries WHERE id = #{id}")
     StudentKnowledgeMastery selectById(Long id);
 

@@ -57,10 +57,10 @@ class TaskServiceImplTest {
     @Test
     void submitTask_paramNull_throwParamInvalid() {
         assertThrows(ParamInvalidException.class, () -> {
-            taskService.addOrUpdateStudentSubmission(null, 1L);
+            taskService.addOrUpdateStudentSubmission(null);
         });
         assertThrows(ParamInvalidException.class, () -> {
-            taskService.addOrUpdateStudentSubmission(1L, null);
+            taskService.addOrUpdateStudentSubmission(null);
         });
     }
 
@@ -77,7 +77,7 @@ class TaskServiceImplTest {
                 .thenReturn(exist);
 
         assertThrows(StudentRepeatJoinCourseException.class, () -> {
-            taskService.addOrUpdateStudentSubmission(100L, 200L);
+            taskService.addOrUpdateStudentSubmission(null);
         });
 
         // 确认没有调用更新、新增
@@ -96,9 +96,9 @@ class TaskServiceImplTest {
 
         when(submissionMapper.selectByTaskAndStudentId(2L, 1L))
                 .thenReturn(exist);
-        when(submissionMapper.update(Mockito.any())).thenReturn(1);
+        when(submissionMapper.update(Mockito.any())).thenReturn(1L);
 
-        taskService.addOrUpdateStudentSubmission(1L, 2L);
+        taskService.addOrUpdateStudentSubmission(null);
 
         // 校验调用更新，没有调用insert
         verify(submissionMapper, Mockito.times(1)).update(Mockito.any());
@@ -115,7 +115,7 @@ class TaskServiceImplTest {
                 .thenReturn(null);
         when(submissionMapper.insert(Mockito.any())).thenReturn(1);
 
-        taskService.addOrUpdateStudentSubmission(3L, 5L);
+        taskService.addOrUpdateStudentSubmission(null);
 
         verify(submissionMapper, Mockito.times(1)).insert(Mockito.any());
         verify(submissionMapper, never()).update(Mockito.any());

@@ -14,12 +14,12 @@ import java.time.LocalDateTime;
 public class TeacherCourseAnalysis {
     private Long id;
     private Long courseId;
-    private Integer totalStudents;
-    private BigDecimal avgScoreRate;
-    private BigDecimal avgProgress;
-    private Integer taskCount;
-    private BigDecimal submissionRate;
-    private Integer alertStudentCount;
+    private Long totalStudents;
+    private Double avgScoreRate;
+    private Double avgProgress;
+    private Long taskCount;
+    private Double submissionRate;
+    private Long alertStudentCount;
     private String weakestKnowledge;
     private LocalDateTime updatedAt;
 }

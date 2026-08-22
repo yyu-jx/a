@@ -2,13 +2,42 @@ package com.superyoudi.businessservice.mapper;
 
 import com.superyoudi.businessservice.pojo.dto.StudentStudyOverview;
 import com.superyoudi.common.dto.StudentCourseProgress;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
 @Mapper
 public interface StudentCourseProgressMapper {
+
+    @Select("SELECT COALESCE(AVG(total_progress), 0) FROM student_course_progresses WHERE course_id = #{courseId}")
+    Double selectAvgProgressByCourseId(@Param("courseId") Long courseId);
+
+    @Select("""
+            SELECT COUNT(*)
+            FROM student_course_progresses
+            WHERE course_id = #{courseId}
+              AND (total_progress < 60 OR task_completion_rate < 60)
+            """)
+    Long countAlertStudentsByCourseId(@Param("courseId") Long courseId);
+
+    @Insert("""
+            INSERT INTO student_course_progresses
+              (student_id, course_id, total_progress, interaction_count, avg_task_score,
+               knowledge_cover_rate, task_completion_rate, updated_at)
+            VALUES (#{studentId}, #{courseId}, #{totalProgress}, #{interactionCount}, #{avgTaskScore},
+                    #{knowledgeCoverRate}, #{taskCompletionRate}, NOW())
+            ON DUPLICATE KEY UPDATE
+              total_progress = #{totalProgress},
+              interaction_count = #{interactionCount},
+              avg_task_score = #{avgTaskScore},
+              knowledge_cover_rate = #{knowledgeCoverRate},
+              task_completion_rate = #{taskCompletionRate},
+              updated_at = NOW()
+            """)
+    int upsert(StudentCourseProgress progress);
 
     /**
      * 获取学习概览

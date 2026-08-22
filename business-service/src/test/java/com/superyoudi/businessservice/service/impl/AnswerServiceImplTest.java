@@ -43,7 +43,7 @@ public class AnswerServiceImplTest {
         Long qId = 1L;
         Long tId = 2L;
         Long sId = 3L;
-        when(questionMapper.selectById(qId)).thenReturn(null);
+        when(questionMapper.findById(qId)).thenReturn(null);
 
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> questionHelpService.getQuestionHelpStream(qId, tId, sId));
@@ -64,7 +64,7 @@ public class AnswerServiceImplTest {
         dto.setContent("题目内容");
         dto.setAnswer("参考答案");
 
-        when(questionMapper.selectById(qId)).thenReturn(dto);
+        when(questionMapper.findById(qId)).thenReturn(null);
         Flux<String> mockAiFlux = Flux.just("片段1", "片段2", "片段3");
         when(answerAiService.streamQuestionSuggest(dto.getContent(), dto.getAnswer())).thenReturn(mockAiFlux);
 
@@ -89,7 +89,7 @@ public class AnswerServiceImplTest {
         dto.setContent("题目");
         dto.setAnswer("答案");
 
-        when(questionMapper.selectById(qId)).thenReturn(dto);
+        when(questionMapper.findById(qId)).thenReturn(null);
         Flux<String> errorFlux = Flux.error(new RuntimeException("大模型调用失败"));
         when(answerAiService.streamQuestionSuggest(any(), any())).thenReturn(errorFlux);
 
