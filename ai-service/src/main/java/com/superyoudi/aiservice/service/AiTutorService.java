@@ -17,7 +17,7 @@ import java.util.Map;
 @Service
 public interface AiTutorService {
 
-    Flux<String> callAiTutor(UserChatMessage<Long> userChatMessage);
+    Flux<String> call(UserChatMessage<Long> userChatMessage);
 
     ChatHistoryDTO getChatHistory(Long studentId, Long courseId);
 

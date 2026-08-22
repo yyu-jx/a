@@ -9,6 +9,8 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+
 /**
  * @author Sijayyx
  */
@@ -19,6 +21,13 @@ public class AiTeacherAssistantTools {
 
     public AiTeacherAssistantTools(AiTeacherAssistantService aiTeacherAssistantService) {
         this.aiTeacherAssistantService = aiTeacherAssistantService;
+    }
+
+    @Tool(name = "test")
+    public void test(ToolContext context) {
+        Map<String, Object> metadata = (Map<String, Object>) context.getContext().get(AgentConstants.METADATA_CUSTOM_METADATA);
+
+        metadata.put("test", "hahaha");
     }
 
     // 课件生成工具

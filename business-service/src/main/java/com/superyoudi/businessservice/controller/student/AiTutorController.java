@@ -5,6 +5,7 @@ import com.superyoudi.aiservice.service.AiTutorService;
 import com.superyoudi.common.dto.ChatHistoryDTO;
 import com.superyoudi.common.entity.Result;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
@@ -24,8 +25,8 @@ public class AiTutorController {
         return Result.success(aiTutorService.getChatHistory(studentId, courseId));
     }
 
-    @PostMapping("/chat")
+    @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> chat(@RequestBody UserChatMessage<Long> message) {
-        return aiTutorService.callAiTutor(message);
+        return aiTutorService.call(message);
     }
 }

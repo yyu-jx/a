@@ -12,4 +12,6 @@ public final class AgentConstants {
     public static final String METADATA_COURSE_ID = "course_id";
     /// 自定义Metadata
     public static final String METADATA_CUSTOM_METADATA = "custom_metadata";
+
+    public static final String CUSTOM_METADATA_CITATIONS = "citations";
 }

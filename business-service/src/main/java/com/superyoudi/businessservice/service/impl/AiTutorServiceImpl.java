@@ -2,10 +2,12 @@ package com.superyoudi.businessservice.service.impl;
 
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
+import com.alibaba.cloud.ai.graph.utils.TypeRef;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.superyoudi.aiservice.ai.agent.AiTutorAgent;
+import com.superyoudi.aiservice.pojo.dto.AiCitation;
 import com.superyoudi.aiservice.pojo.dto.LearningPathDTO;
 import com.superyoudi.aiservice.pojo.dto.StudentCourseInfoDTO;
 import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
@@ -75,7 +77,7 @@ public class AiTutorServiceImpl implements AiTutorService {
     }
 
     @Override
-    public Flux<String> callAiTutor(UserChatMessage<Long> userChatMessage) {
+    public Flux<String> call(UserChatMessage<Long> userChatMessage) {
         Long courseId = userChatMessage.getAdditionalData();
 
         // 设置config的metadata以进行context engineering
@@ -87,27 +89,27 @@ public class AiTutorServiceImpl implements AiTutorService {
                 .build();
 
         try {
-            Flux<String> result = aiTutorAgent.callAgent(userChatMessage.getMessage(), runnableConfig)
+            return aiTutorAgent.callAgent(userChatMessage.getMessage(), runnableConfig)
                     .map(nodeOutput ->
                             AiMessageUtils.handleStreamingOutput(
                                     nodeOutput,
                                     null,
                                     message -> log.info("AI Tutor回复: {}", message), // 打日志
                                     () -> {
-                                        ChatSession chatSession = chatPersistenceService.getOrCreateChatSession(userChatMessage.getUserId(), courseId);
-                                        if (chatSession == null)
-                                            return null; // 如果聊天会话不存在，返回null
+                                        // 添加引用消息
+                                        Map<String, Object> customMetadata = runnableConfig.metadata(AgentConstants.METADATA_CUSTOM_METADATA, new TypeRef<Map<String, Object>>() {
+                                        }).orElse(null);
 
-                                        ChatMessage latestMsg = chatPersistenceService.getLatestAiMessageByChatId(chatSession.getId());
-
-                                        if (latestMsg == null)
-                                            return null;
-
-                                        return latestMsg.getId().toString(); // 附加AI对话的消息ID
+                                        if (customMetadata != null) {
+                                            List<AiCitation> citations = (List<AiCitation>) customMetadata.getOrDefault(AgentConstants.CUSTOM_METADATA_CITATIONS, List.of());
+                                            try {
+                                                return AiMessageUtils.LENIENT_MAPPER.writeValueAsString(citations);
+                                            } catch (JsonProcessingException e) {
+                                                return null;
+                                            }
+                                        }
+                                        return null;
                                     }));
-
-
-            return result;
         } catch (GraphRunnerException e) {
             log.error("调用AI Tutor失败", e);
             throw new RuntimeException("调用AI Tutor失败", e);
@@ -116,7 +118,7 @@ public class AiTutorServiceImpl implements AiTutorService {
 
     @Override
     public ChatHistoryDTO getChatHistory(Long studentId, Long courseId) {
-        ChatSession session = chatPersistenceService.getOrCreateChatSession(studentId, courseId);
+        ChatSession session = chatPersistenceService.getOrCreateChatSessionByCourseRel(studentId, courseId);
         List<ChatMessage> chatMessages = chatPersistenceService.getChatMessages(session.getId());
         return chatPersistenceService.constructChatHistory(session.getId(), studentId, chatMessages);
     }

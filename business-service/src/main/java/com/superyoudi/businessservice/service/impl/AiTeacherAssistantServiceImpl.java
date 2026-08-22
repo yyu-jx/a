@@ -1,30 +1,47 @@
 package com.superyoudi.businessservice.service.impl;
 
+import com.alibaba.cloud.ai.graph.RunnableConfig;
+import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
+import com.alibaba.cloud.ai.graph.utils.TypeRef;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.superyoudi.aiservice.ai.agent.AiTeacherAssistantAgent;
+import com.superyoudi.aiservice.pojo.dto.AiCitation;
+import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
+import com.superyoudi.aiservice.pojo.entity.ChatMessage;
+import com.superyoudi.aiservice.pojo.entity.ChatSession;
 import com.superyoudi.aiservice.service.AiTeacherAssistantService;
+import com.superyoudi.aiservice.service.ChatPersistenceService;
+import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
 import com.superyoudi.businessservice.mapper.UserMapper;
 import com.superyoudi.businessservice.pojo.dto.StudentStudyOverview;
 import com.superyoudi.businessservice.pojo.entity.*;
 import com.superyoudi.businessservice.service.CourseService;
 import com.superyoudi.businessservice.service.TaskService;
+import com.superyoudi.common.constants.AgentConstants;
+import com.superyoudi.common.dto.ChatHistoryDTO;
 import com.superyoudi.common.dto.CoursewareGenerationRequest;
 import com.superyoudi.common.dto.TaskArrangementRequest;
 import com.superyoudi.coursewareservice.pojo.entity.CoursewareRecord;
 import com.superyoudi.coursewareservice.service.CoursewareInteractionService;
 import com.superyoudi.coursewareservice.service.CoursewareRecordService;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
+import reactor.core.publisher.Flux;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Sijayyx
  */
 @Service
-@RequiredArgsConstructor
+@Slf4j
 public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService {
 
     private final CoursewareInteractionService coursewareInteractionService;
@@ -33,6 +50,74 @@ public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService 
     private final CourseService courseService;
     private final UserMapper userMapper;
     private final StudentCourseProgressMapper studentCourseProgressMapper;
+    private final AiTeacherAssistantAgent aiTeacherAssistantAgent;
+    private final ChatPersistenceService chatPersistenceService;
+
+    public AiTeacherAssistantServiceImpl(CoursewareInteractionService coursewareInteractionService,
+                                         CoursewareRecordService coursewareRecordService,
+                                         TaskService taskService,
+                                         CourseService courseService,
+                                         UserMapper userMapper,
+                                         StudentCourseProgressMapper studentCourseProgressMapper,
+                                         @Lazy AiTeacherAssistantAgent aiTeacherAssistantAgent,
+                                         ChatPersistenceService chatPersistenceService) {
+        this.coursewareInteractionService = coursewareInteractionService;
+        this.coursewareRecordService = coursewareRecordService;
+        this.taskService = taskService;
+        this.courseService = courseService;
+        this.userMapper = userMapper;
+        this.studentCourseProgressMapper = studentCourseProgressMapper;
+        this.aiTeacherAssistantAgent = aiTeacherAssistantAgent;
+        this.chatPersistenceService = chatPersistenceService;
+    }
+
+    @Override
+    public Flux<String> call(UserChatMessage<Void> userChatMessage) {
+        if (userChatMessage == null) {
+            throw new IllegalArgumentException("UserChatMessage 不能为null");
+        }
+
+        // 设置config的metadata以进行context engineering
+        RunnableConfig runnableConfig = RunnableConfig.builder()
+                .threadId("ai_teacher_assistant_thread_" + userChatMessage.getUserId())
+                .addMetadata(AgentConstants.METADATA_USER_ID, userChatMessage.getUserId())
+                .addMetadata(AgentConstants.METADATA_CUSTOM_METADATA, new HashMap<String, Object>())
+                .build();
+
+        try {
+            return aiTeacherAssistantAgent.callAgent(userChatMessage.getMessage(), runnableConfig)
+                    .map(nodeOutput ->
+                            AiMessageUtils.handleStreamingOutput(
+                                    nodeOutput,
+                                    null,
+                                    message -> log.info("AI Teacher Assistant回复: {}", message), // 打日志
+                                    () -> {
+                                        // 获取引用信息
+                                        Map<String, Object> customMetadata = runnableConfig.metadata(AgentConstants.METADATA_CUSTOM_METADATA, new TypeRef<Map<String, Object>>() {
+                                        }).orElse(null);
+
+                                        if (customMetadata != null) {
+                                            List<AiCitation> citations = (List<AiCitation>) customMetadata.getOrDefault(AgentConstants.CUSTOM_METADATA_CITATIONS, List.of());
+                                            try {
+                                                return AiMessageUtils.LENIENT_MAPPER.writeValueAsString(citations);
+                                            } catch (JsonProcessingException e) {
+                                                return null;
+                                            }
+                                        }
+                                        return null;
+                                    }));
+        } catch (GraphRunnerException e) {
+            log.error("调用AI Teacher Assistant失败", e);
+            throw new RuntimeException("调用AI Teacher Assistant失败", e);
+        }
+    }
+
+    @Override
+    public ChatHistoryDTO getChatHistory(Long teacherId) {
+        ChatSession session = chatPersistenceService.getOrCreateChatSessionByUserId(teacherId);
+        List<ChatMessage> chatMessages = chatPersistenceService.getChatMessages(session.getId());
+        return chatPersistenceService.constructChatHistory(session.getId(), teacherId, chatMessages);
+    }
 
     @Override
     public Long callCoursewareGeneration(long userId, CoursewareGenerationRequest request) {

@@ -167,7 +167,7 @@ public class GraphConfig {
                                 "TRUE", NODE_SUB_AGENTS_ENTRY,
                                 "FALSE", NODE_SUPERVISOR
                         ))
-                .addEdge(StateGraph.START, NODE_SUPERVISOR)   // 监督者节点是否控制子节点执行？
+                // 监督者节点是否允许生成任务？
                 .addConditionalEdges(NODE_SUPERVISOR,
                         AsyncEdgeAction.edge_async(
                                 state -> state.value(KEY_SHOULD_GENERATE, "FALSE")
