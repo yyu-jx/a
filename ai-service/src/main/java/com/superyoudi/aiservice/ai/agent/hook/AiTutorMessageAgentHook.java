@@ -54,7 +54,6 @@ public class AiTutorMessageAgentHook extends MessagesAgentHook {
 
     @Override
     public AgentCommand afterAgent(List<Message> previousMessages, RunnableConfig config) {
-        // 这里能拿到用户消息、工具调用消息、AI回复的消息
         Long courseId = (Long) config.metadata(AgentConstants.METADATA_COURSE_ID).orElseThrow();
         Long studentId = (Long) config.metadata(AgentConstants.METADATA_USER_ID).orElseThrow();
         Map<String, Object> metadata = config

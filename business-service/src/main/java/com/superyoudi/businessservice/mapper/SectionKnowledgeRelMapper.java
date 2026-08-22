@@ -12,6 +12,15 @@ import java.util.List;
 @Mapper
 public interface SectionKnowledgeRelMapper {
 
+    @Select("""
+            SELECT COUNT(DISTINCT r.neo4j_kp_id)
+            FROM section_knowledge_rel r
+            JOIN sections s ON s.id = r.section_id
+            JOIN chapters c ON c.id = s.chapter_id
+            WHERE c.course_data_id = #{courseId}
+            """)
+    Long countCourseKnowledge(@Param("courseId") Long courseId);
+
     @Select("SELECT * FROM section_knowledge_rel WHERE id = #{id}")
     SectionKnowledgeRel selectById(Long id);
 

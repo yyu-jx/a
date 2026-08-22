@@ -11,6 +11,23 @@ import java.util.List;
 @Mapper
 public interface LearningPathNodeMapper {
 
+    @Select("""
+            SELECT COUNT(*)
+            FROM learning_path_nodes n
+            JOIN learning_paths p ON p.id = n.path_id
+            WHERE p.student_id = #{studentId} AND p.course_id = #{courseId}
+            """)
+    Long countNodes(@Param("studentId") Long studentId, @Param("courseId") Long courseId);
+
+    @Select("""
+            SELECT COUNT(*)
+            FROM learning_path_nodes n
+            JOIN learning_paths p ON p.id = n.path_id
+            WHERE p.student_id = #{studentId} AND p.course_id = #{courseId}
+              AND n.status = 'completed'
+            """)
+    Long countCompletedNodes(@Param("studentId") Long studentId, @Param("courseId") Long courseId);
+
     @Select("SELECT * FROM learning_path_nodes WHERE id = #{id}")
     LearningPathNode selectById(Long id);
 

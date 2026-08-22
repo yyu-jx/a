@@ -47,4 +47,14 @@ app:
     # 用户上传的文件
     uploads: 'D:/Desktop/file/uploads'
 
+analysis:
+  schedule-zone: Asia/Shanghai
+  cron:
+    teacher-course: "0 0/30 7-23 * * *"
+    student-course: "0 0/15 7-23 * * *"
+    mission: "0 0/10 * * * *"
 
+logging:
+  level:
+    com.example.analysis.job: INFO
+    com.example.analysis.service: INFO

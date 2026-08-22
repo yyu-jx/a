@@ -24,8 +24,6 @@ public interface CourseService {
 
     Course getCourseById(Long courseId);
 
-    TeacherCourseAnalysis getTeacherCourseAnalysis(Long courseId);
-
     CourseStatisticsVO getCourseStatistics(Long teacherId);
 
 

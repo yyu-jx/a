@@ -10,6 +10,24 @@ import java.util.List;
  */
 @Mapper
 public interface TaskAnalysisMapper {
+
+
+    @Insert("""
+            INSERT INTO task_analysises
+              (task_id, total_submitted, avg_score, max_score, min_score,
+               avg_time_spent, updated_at)
+            VALUES (#{taskId}, #{totalSubmitted}, #{avgScore}, #{maxScore}, #{minScore},
+                    #{avgTimeSpent}, NOW())
+            ON DUPLICATE KEY UPDATE
+              total_submitted = #{totalSubmitted},
+              avg_score = #{avgScore},
+              max_score = #{maxScore},
+              min_score = #{minScore},
+              avg_time_spent = #{avgTimeSpent},
+              updated_at = NOW()
+            """)
+    int upsert(TaskAnalysis analysis);
+
     /**
      * 插入分析记录
      */

@@ -7,6 +7,19 @@ import java.util.List;
 
 @Mapper
 public interface StudentAnswerMapper {
+
+    @Select("""
+            SELECT COALESCE(AVG(spent.total), 0)
+            FROM (
+              SELECT ss.id AS submission_id, SUM(sa.time_spent) AS total
+              FROM student_submissions ss
+              JOIN student_answers sa ON sa.submission_id = ss.id
+              WHERE ss.task_id = #{taskId} AND ss.status IN ('passed','returned')
+              GROUP BY ss.id
+            ) spent
+            """)
+    Integer selectAvgTimeSpentByTaskId(@Param("taskId") Long taskId);
+
     /**
      * 插入学生答案
      */

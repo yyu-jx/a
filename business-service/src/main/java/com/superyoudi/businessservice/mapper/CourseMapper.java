@@ -9,6 +9,9 @@ import java.util.List;
 @Mapper
 public interface CourseMapper {
 
+    @Select("SELECT id FROM courses WHERE status = 'opening'")
+    List<Long> selectActiveCourseIds();
+
     @Select("SELECT course_data_id FROM courses WHERE id = #{courseId}")
     Long getCourseDataId(Long courseId);
 
