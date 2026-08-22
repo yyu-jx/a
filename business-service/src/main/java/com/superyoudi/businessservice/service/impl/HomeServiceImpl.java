@@ -6,7 +6,6 @@ import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.aiservice.service.HomeAiService;
 import com.superyoudi.businessservice.mapper.*;
 import com.superyoudi.businessservice.pojo.dto.StudentStudyOverview;
-import com.superyoudi.businessservice.pojo.entity.Course;
 import com.superyoudi.businessservice.pojo.entity.User;
 import com.superyoudi.businessservice.pojo.vo.LastStudyRecordVO;
 import com.superyoudi.businessservice.pojo.vo.WeakKnowledgeVO;
@@ -20,7 +19,6 @@ import com.superyoudi.kdbservice.service.KnowledgePointService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -111,7 +109,7 @@ public class HomeServiceImpl implements HomeService {
     @Override
     public StudentStudyOverview getStudyOverview(Long userId) {
         //拿到学习概览数据
-        StudentStudyOverview vo = studentCourseProgressesMapper.getAvgProgresses(userId);
+        StudentStudyOverview vo = studentCourseProgressesMapper.getStudyOverview(userId);
         //如果课程总数为0，则吧其他数据设置为0
         if (vo.getStudyCourseTotal() == 0) {
             vo.setStudyCourseTotal(0);

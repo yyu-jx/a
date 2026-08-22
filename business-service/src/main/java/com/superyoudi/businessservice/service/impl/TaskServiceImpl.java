@@ -1,13 +1,14 @@
 package com.superyoudi.businessservice.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.superyoudi.aiservice.ai.AnswerCorrectionModel;
+import com.superyoudi.aiservice.ai.model.AnswerCorrectionModel;
 import com.superyoudi.aiservice.service.TaskAiService;
 import com.superyoudi.businessservice.mapper.*;
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
 import com.superyoudi.businessservice.pojo.dto.TaskQuestion;
 import com.superyoudi.businessservice.pojo.entity.*;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
+import com.superyoudi.businessservice.service.QuestionBaseService;
 import com.superyoudi.businessservice.service.TaskService;
 import com.superyoudi.businessservice.utils.AnswerValidator;
 import com.superyoudi.common.dto.ErrorQuestionVO;
@@ -26,10 +27,9 @@ import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -57,6 +57,8 @@ public class TaskServiceImpl implements TaskService {
     private final AnswerValidator.CorrectionStrategy objectiveStrategy;
     private final AnswerValidator.CorrectionStrategy subjectiveStrategy;
     private final PathNodeTaskRelMapper pathNodeTaskRelMapper;
+    private final QuestionBaseService questionBaseService;
+    private final TaskAnalysisMapper taskAnalysisMapper;
 
     // 构造函数
     public TaskServiceImpl(StudentSubmissionMapper studentSubmissionMapper,
@@ -68,7 +70,7 @@ public class TaskServiceImpl implements TaskService {
                            UserMapper userMapper,
                            QuestionMapper questionMapper,
                            TaskQuestionRelMapper taskQuestionRelMapper,
-                           AnswerCorrectionModel answerCorrectionModel, PathNodeTaskRelMapper pathNodeTaskRelMapper) {
+                           AnswerCorrectionModel answerCorrectionModel, PathNodeTaskRelMapper pathNodeTaskRelMapper, QuestionBaseService questionBaseService, TaskAnalysisMapper taskAnalysisMapper) {
         this.studentSubmissionMapper = studentSubmissionMapper;
         this.studentAnswerMapper = studentAnswerMapper;
         this.taskMapper = taskMapper;
@@ -86,13 +88,15 @@ public class TaskServiceImpl implements TaskService {
                     studentAnswer instanceof StudentAnswer.ChoiceAnswer student) {
 
                 int correctCount = AnswerValidator.validateChoiceAnswer(correct, student);
-                return AnswerValidator.calcStudentAnswerScore(questionScore, correct, correctCount);
+                int score = AnswerValidator.calcStudentAnswerScore(questionScore, correct, correctCount);
+                return new AnswerCorrectionModel.CorrectionResult(score, null, null);
 
             } else if (correctAnswer instanceof Question.TrueFalseAnswer correct &&
                     studentAnswer instanceof StudentAnswer.TrueFalseAnswer student) {
 
                 boolean isCorrect = AnswerValidator.validateTrueFalseAnswer(correct, student);
-                return isCorrect ? questionScore : 0;
+                int score = isCorrect ? questionScore : 0;
+                return new AnswerCorrectionModel.CorrectionResult(score, null, null);
             }
             throw new IllegalArgumentException("不支持的客观题类型");
         };
@@ -113,6 +117,21 @@ public class TaskServiceImpl implements TaskService {
             }
             throw new IllegalArgumentException("不支持的主观题类型");
         };
+        this.questionBaseService = questionBaseService;
+        this.taskAnalysisMapper = taskAnalysisMapper;
+    }
+
+    @Override
+    public TaskAnalysis getTaskAnalysis(Long taskId) {
+        return taskAnalysisMapper.findByTaskId(taskId);
+    }
+
+    // TODO TaskAnalysis增删改方法
+
+    /// 根据课程ID查询任务
+    @Override
+    public List<Task> getCourseRelatedTasks(Long courseId) {
+        return taskMapper.selectByCourseId(courseId);
     }
 
     /**
@@ -150,6 +169,74 @@ public class TaskServiceImpl implements TaskService {
     }
 
     /**
+     * 组题步骤:
+     * 1. 根据知识点查question set
+     * 2. 根据题型分组成question lists
+     * 3. 检查每个题型是否有足够的题目，如果没有，调用AI生成。
+     * 4. 组装题目，生成任务，进行知识节点的关联，向前端推送。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public Long composeTask(long assignerId, long courseId, List<String> knowledgePoints,
+                            String title, String description, String type,
+                            Map<String, Integer> questionConfig, int totalScore) {
+        Set<Question> candidateQs = new HashSet<>();
+        for (String knowledgePoint : knowledgePoints) {
+            candidateQs.addAll(questionBaseService.getQuestionsByKnowledge(knowledgePoint));
+        }
+
+        Map<String, List<Question>> grouped = candidateQs.stream().collect(Collectors.groupingBy(Question::getType));
+
+        Map<String, List<Question>> questions = new HashMap<>();
+        Random random = new Random();
+        for (Map.Entry<String, List<Question>> typedQuestions : grouped.entrySet()) {
+            int diff = questionConfig.get(typedQuestions.getKey()) - typedQuestions.getValue().size();
+            // 如果题型数量不足，调用AI生成题目
+            if (diff > 0) {
+                List<Question> generated = questionBaseService.generateQuestions(1L, courseId, knowledgePoints,
+                        typedQuestions.getKey(), diff);
+
+                typedQuestions.getValue().addAll(generated);
+            }
+
+            // 每个题型随机选几个题目
+            List<Question> randomSelection = random.ints(0, typedQuestions.getValue().size()) // 生成无限流
+                    .distinct()
+                    .limit(questionConfig.get(typedQuestions.getKey()))
+                    .mapToObj(typedQuestions.getValue()::get)
+                    .toList();
+
+            questions.put(typedQuestions.getKey(), randomSelection);
+        }
+
+
+        int totalQuestionCount = questions.values().stream().mapToInt(List::size).sum();
+        int scoreEach = totalScore / totalQuestionCount;
+
+        // 题号计数
+        AtomicInteger index = new AtomicInteger(0);
+
+        List<TaskDTO.QuestionRelInfo> result = questions.values().stream()
+                .flatMap(List::stream)
+                .map(q -> {
+                    Assert.notNull(q.getId(), "题目ID不能为空");
+                    return new TaskDTO.QuestionRelInfo(null, q.getId(), index.getAndIncrement(), scoreEach);
+                })
+                .toList();
+
+        // 存表，构造关联
+        TaskDTO build = TaskDTO.builder()
+                .courseId(courseId).assignerId(assignerId).title(title).description(description).type(type)
+                .totalScore(totalScore).startTime(LocalDateTime.now()).deadline(LocalDateTime.MAX)
+                .status("published").afterSubmitStrategy(Task.SUBMIT_STRATEGY_AUTO_ALL)
+                .questionRelInfos(result).build();
+
+        Long taskId = saveTaskData(build);
+        Assert.notNull(taskId, "任务ID不能为空");
+        return taskId;
+    }
+
+    /**
      * 提交任务并尝试自动评分
      */
     @Override
@@ -164,7 +251,7 @@ public class TaskServiceImpl implements TaskService {
         }
 
         if (submission.getStatus().equals("submitted")) {
-            executeSubmissionCorrection(submission);
+            executeSubmissionCorrection(submission, false);
         }
 
         return submission.getId();
@@ -304,7 +391,7 @@ public class TaskServiceImpl implements TaskService {
      * 执行任务批改
      */
     @Override
-    public void executeSubmissionCorrection(StudentSubmission submission) {
+    public void executeSubmissionCorrection(StudentSubmission submission, boolean isIgnoreSubmitStrategy) {
         Assert.notNull(submission, "提交记录不能为空");
         Assert.notNull(submission.getId(), "提交记录ID不能为空");
         Assert.notNull(submission.getTaskId(), "任务ID不能为空");
@@ -314,10 +401,12 @@ public class TaskServiceImpl implements TaskService {
         if (task == null)
             throw new BusinessException("任务不存在");
 
-        if (task.getAfterSubmitStrategy().equals(Task.SUBMIT_STRATEGY_MANUAL))
+
+        if (task.getAfterSubmitStrategy().equals(Task.SUBMIT_STRATEGY_MANUAL) && !isIgnoreSubmitStrategy)
             return;
 
-        String afterSubmitStrategy = task.getAfterSubmitStrategy();
+        String afterSubmitStrategy = isIgnoreSubmitStrategy ?
+                Task.SUBMIT_STRATEGY_AUTO_ALL : task.getAfterSubmitStrategy();
 
         List<StudentAnswer> studentAnswers = getStudentAnswers(submission.getStudentId(), submission.getId());
 
@@ -346,6 +435,42 @@ public class TaskServiceImpl implements TaskService {
         submission.setTotalScore(totalSubmissionScore);
         submission.setSubmittedTime(LocalDateTime.now());
         studentSubmissionMapper.update(submission);
+    }
+
+    @Override
+    public void addPathNodeTaskRel(Long taskId, Long pathNodeId, Long studentId) {
+        if (taskId == null || pathNodeId == null)
+            throw new ParamInvalidException("参数不能为空");
+
+        PathNodeTaskRel taskQuestionRel = new PathNodeTaskRel(null, studentId, taskId, pathNodeId, null);
+        pathNodeTaskRelMapper.insert(taskQuestionRel);
+    }
+
+    @Override
+    public PathNodeTaskRel getPathNodeTaskRel(Long pathNodeId) {
+        if (pathNodeId == null)
+            throw new ParamInvalidException("参数不能为空");
+
+        return pathNodeTaskRelMapper.findByPathNodeId(pathNodeId);
+    }
+
+    @Override
+    public void removePathNodeTaskRel(Long taskId, Long pathNodeId) {
+        if (taskId == null || pathNodeId == null)
+            throw new ParamInvalidException("参数不能为空");
+
+        pathNodeTaskRelMapper.deleteByPathNodeAndTask(pathNodeId, taskId);
+    }
+
+    @Override
+    public StudentSubmission tryGetTaskSubmissionByPathNodeId(Long pathNodeId, Long studentId) {
+        PathNodeTaskRel taskQuestionRel = pathNodeTaskRelMapper.findByPathNodeId(pathNodeId);
+        if (taskQuestionRel == null)
+            return null;
+
+        Long taskId = taskQuestionRel.getTaskId();
+        return studentSubmissionMapper.selectByTaskAndStudentId(taskId, studentId);
+
     }
 
     /**
@@ -395,46 +520,12 @@ public class TaskServiceImpl implements TaskService {
 
             int questionScore = taskQuestionRelMapper.findByTaskIdAndQuestionId(taskId, question.getId()).getScore();
 
-            int finalScore = strategy.calcScore(question, correctAnswer, studentAnswer, questionScore);
-            answer.setScore(finalScore);
+            AnswerCorrectionModel.CorrectionResult result = strategy.getCorrectionResult(question, correctAnswer, studentAnswer, questionScore);
+            answer.setComment(result.getComment());
+            answer.setErrorType(result.getErrorType());
+            answer.setScore(result.getScore());
             studentAnswerMapper.update(answer);
         }
-    }
-
-    @Override
-    public void addPathNodeTaskRel(Long taskId, Long pathNodeId, Long studentId) {
-        if (taskId == null || pathNodeId == null)
-            throw new ParamInvalidException("参数不能为空");
-
-        PathNodeTaskRel taskQuestionRel = new PathNodeTaskRel(null, studentId, taskId, pathNodeId, null);
-        pathNodeTaskRelMapper.insert(taskQuestionRel);
-    }
-
-    @Override
-    public PathNodeTaskRel getPathNodeTaskRel(Long pathNodeId) {
-        if (pathNodeId == null)
-            throw new ParamInvalidException("参数不能为空");
-
-        return pathNodeTaskRelMapper.findByPathNodeId(pathNodeId);
-    }
-
-    @Override
-    public void removePathNodeTaskRel(Long taskId, Long pathNodeId) {
-        if (taskId == null || pathNodeId == null)
-            throw new ParamInvalidException("参数不能为空");
-
-        pathNodeTaskRelMapper.deleteByPathNodeAndTask(pathNodeId, taskId);
-    }
-
-    @Override
-    public StudentSubmission tryGetTaskSubmissionByPathNodeId(Long pathNodeId, Long studentId) {
-        PathNodeTaskRel taskQuestionRel = pathNodeTaskRelMapper.findByPathNodeId(pathNodeId);
-        if (taskQuestionRel == null)
-            return null;
-
-        Long taskId = taskQuestionRel.getTaskId();
-        return studentSubmissionMapper.selectByTaskAndStudentId(taskId, studentId);
-
     }
 
     private Object convertQuestionAnswerJson(String type, String json) {

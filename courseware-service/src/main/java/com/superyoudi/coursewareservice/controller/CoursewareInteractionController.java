@@ -124,13 +124,13 @@ class CoursewareInteractionController {
     // 测试接口
     @GetMapping(value = "/tchat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> testChat(@RequestParam String input) {
-        return coursewareInteractionService.executeWorkflowGraph(new UserChatMessage(1L, input, 1L));
+        return coursewareInteractionService.executeWorkflowGraph(new UserChatMessage<>(1L, input, 1L));
     }
 
     // 测试接口
     @GetMapping(value = "/tresume", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> testResme(@RequestParam String approve) { // TODO UserChatMessage
-        return coursewareInteractionService.resumeWorkflowGraph(new UserChatMessage(1L, "", approve));
+        return coursewareInteractionService.resumeWorkflowGraph(new UserChatMessage<>(1L, "", approve));
     }
 
 }

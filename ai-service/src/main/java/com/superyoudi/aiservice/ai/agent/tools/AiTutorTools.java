@@ -1,7 +1,7 @@
 package com.superyoudi.aiservice.ai.agent.tools;
 
-import com.superyoudi.aiservice.ai.agent.AiTutorAgent;
 import com.superyoudi.aiservice.service.AiTutorService;
+import com.superyoudi.common.constants.AgentConstants;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -39,8 +39,8 @@ public class AiTutorTools {
                                           @ToolParam(description = "作业总分") int totalScore,
                                           ToolContext context) {
 
-        Long courseId = (Long) context.getContext().get(AiTutorAgent.METADATA_COURSE_ID);
-        Long studentId = (Long) context.getContext().get(AiTutorAgent.METADATA_STUDENT_ID);
+        Long courseId = (Long) context.getContext().get(AgentConstants.METADATA_COURSE_ID);
+        Long studentId = (Long) context.getContext().get(AgentConstants.METADATA_USER_ID);
 
         // 如果已经生成了作业，就不生成了
         if (aiTutorService.checkPathNodeHomeWorkExists(pathNodeId, courseId, studentId)) {

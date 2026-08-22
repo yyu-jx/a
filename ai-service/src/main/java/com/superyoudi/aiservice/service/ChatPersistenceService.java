@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -51,7 +52,6 @@ public class ChatPersistenceService {
         aiCitationMapper.insert(citation);
     }
 
-
     public List<AiCitation> getCitationsByMessageId(Long chatMessageId) {
         return aiCitationMapper.selectByChatMessageId(chatMessageId);
     }
@@ -60,13 +60,14 @@ public class ChatPersistenceService {
         return aiCitationMapper.selectByChatMessageId(suggestionId);
     }
 
-    public void deleteByMessage(Long chatMessageId) {
+    public void deleteByMessageId(Long chatMessageId) {
         aiCitationMapper.deleteByChatMessageId(chatMessageId);
     }
 
     /**
      * 获取会话消息列表
      */
+    @Transactional
     public List<ChatMessage> getChatMessages(Long chatSessionId) {
         return chatMessageMapper.selectByChatId(chatSessionId);
     }
@@ -74,6 +75,7 @@ public class ChatPersistenceService {
     /**
      * 获取会话消息列表。如果不存在会话元数据，就创建，并返回null。
      */
+    @Transactional
     public List<ChatMessage> getOrCreateCourseRelChatMessages(Long studentId, Long courseId) {
         ChatCourseRel chatCourseRel = chatCourseRelMapper.selectByCourseAndStudentId(courseId, studentId);
         if (chatCourseRel == null) {
@@ -85,6 +87,7 @@ public class ChatPersistenceService {
         return chatMessageMapper.selectByChatId(chatCourseRel.getChatId());
     }
 
+    @Transactional
     public List<ChatMessage> getOrCreateCoursewareRecChatMessages(Long studentId, Long coursewareRecId) {
         ChatCoursewareRecRel chatCoursewareRecRel = chatCoursewareRecRelMapper.selectByCoursewareRecordId(coursewareRecId);
         if (chatCoursewareRecRel == null) {
@@ -96,16 +99,24 @@ public class ChatPersistenceService {
         return chatMessageMapper.selectByChatId(chatCoursewareRecRel.getChatId());
     }
 
-    /**
-     * 向列表追加消息
-     */
-    public Long appendChatMessage(ChatMessage chatMessage) {
-        return chatMessageMapper.insertWithAutoSeq(chatMessage);
+    @Transactional
+    public List<ChatMessage> getOrCreateTeacherIdChatMessages(Long teacherId) {
+        ChatSession chatSession = getOrCreateChatSessionByUserId(teacherId);
+        if (chatSession == null) {
+            log.info("未找到教师与聊天关联，创建新的关联关系。");
+
+            createChatSession(teacherId);
+            return null;
+        }
+
+        return chatMessageMapper.selectByChatId(chatSession.getId());
+
     }
 
     /**
      * 向列表追加消息
      */
+    @Transactional
     public Long appendChatMessage(Long chatId, String message, String role) {
         ChatMessage chatMessage = new ChatMessage(chatId, message, role);
         chatMessageMapper.insertWithAutoSeq(chatMessage);
@@ -114,53 +125,10 @@ public class ChatPersistenceService {
     }
 
     /**
-     * 向列表追加消息
-     */
-    public Long appendChatMessage(Long studentId, Long courseId, String message, String role) {
-        ChatCourseRel chatCourseRel = chatCourseRelMapper.selectByCourseAndStudentId(courseId, studentId);
-        if (chatCourseRel == null) {
-            log.error("保存消息记录失败: 未找到课程与聊天关联。");
-            return null;
-        }
-
-        ChatMessage chatMessage = new ChatMessage(chatCourseRel.getChatId(), message, role);
-        chatMessageMapper.insertWithAutoSeq(chatMessage);
-
-        return chatMessage.getId();
-    }
-
-    /**
-     * 插入消息元数据
-     */
-    public Long insertChatSession(ChatSession chatSession) {
-        return chatSessionMapper.insert(chatSession);
-    }
-
-    /**
-     * 获取会话元数据
-     */
-    public ChatSession getChatSession(Long id) {
-        return chatSessionMapper.selectById(id);
-    }
-
-    /**
-     * 根据用户ID查询会话。用于教师ID
-     */
-    public ChatSession getChatSessionByUserId(Long userId) {
-        return chatSessionMapper.selectSingleByUserId(userId);
-    }
-
-    /**
-     * 获取课件生成记录对应的会话
-     */
-    public ChatSession getChatSessionByCoursewareRecId(@NonNull Long coursewareRecId) {
-        return chatSessionMapper.selectByCoursewareRecordId(coursewareRecId);
-    }
-
-    /**
      * 获取课程对应的会话
      */
-    public ChatSession getOrCreateChatSession(Long studentId, Long courseId) {
+    @Transactional
+    public ChatSession getOrCreateChatSessionByCourseRel(Long studentId, Long courseId) {
         ChatCourseRel chatCourseRel = chatCourseRelMapper.selectByCourseAndStudentId(courseId, studentId);
         if (chatCourseRel == null) {
             log.error("未找到课程与聊天关联。");
@@ -180,11 +148,34 @@ public class ChatPersistenceService {
     }
 
     /**
+     * 根据用户ID查询会话。用于教师ID
+     */
+    @Transactional
+    public ChatSession getOrCreateChatSessionByUserId(Long userId) {
+        ChatSession chatSession = chatSessionMapper.selectSingleByUserId(userId);
+        if (chatSession == null)
+            chatSession = createChatSession(userId);
+
+        return chatSession;
+    }
+
+    /**
+     * 获取课件生成记录对应的会话
+     */
+    @Transactional
+    public ChatSession getChatSessionByCoursewareRecId(@NonNull Long coursewareRecId) {
+        return chatSessionMapper.selectByCoursewareRecordId(coursewareRecId);
+    }
+
+    /**
      * 创建会话与课程关联关系
      */
+    @Transactional
     public Long createChatSessionAndCourseRel(Long userId, Long courseId) {
         ChatSession chatSession = createChatSession(userId);
-        return createChatCourseRel(chatSession.getId(), courseId, userId);
+        ChatCourseRel chatCourseRel = new ChatCourseRel(null, chatSession.getId(), courseId, userId);
+        chatCourseRelMapper.insert(chatCourseRel);
+        return chatCourseRel.getId();
     }
 
     private ChatSession createChatSession(Long userId) {
@@ -193,24 +184,16 @@ public class ChatPersistenceService {
         return chatSession;
     }
 
-    public Long createChatCourseRel(Long chatId, Long courseId, Long userId) {
-        ChatCourseRel chatCourseRel = new ChatCourseRel(null, chatId, courseId, userId);
-        chatCourseRelMapper.insert(chatCourseRel);
-        return chatCourseRel.getId();
-    }
 
     /**
      * 创建会话与课程关联关系
      */
+    @Transactional
     public Long createChatCoursewareRecRel(Long userId, Long coursewareRecId) {
         ChatSession chatSession = createChatSession(userId);
-
-        return createChatCoursewareRecRel(chatSession.getId(), coursewareRecId, userId);
-    }
-
-    public Long createChatCoursewareRecRel(Long chatId, Long coursewareRecId, Long userId) {
-        ChatCoursewareRecRel chatCoursewareRecRel = new ChatCoursewareRecRel(null, chatId, coursewareRecId, userId);
+        ChatCoursewareRecRel chatCoursewareRecRel = new ChatCoursewareRecRel(null, chatSession.getId(), coursewareRecId, userId);
         chatCoursewareRecRelMapper.insert(chatCoursewareRecRel);
         return chatCoursewareRecRel.getId();
     }
+
 }

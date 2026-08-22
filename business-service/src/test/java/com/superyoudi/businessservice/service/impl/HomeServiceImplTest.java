@@ -76,7 +76,7 @@ public class HomeServiceImplTest {
         mockData.setAvgKnowledgeCoverRate(51.30);
         mockData.setAvgTaskCompletionRate(58.70);
 
-        when(studentCourseProgressesMapper.getAvgProgresses(any(Long.class))).thenReturn(mockData);
+        when(studentCourseProgressesMapper.getStudyOverview(any(Long.class))).thenReturn(mockData);
 
         //执行真实HomeService里面业务方法
         StudentStudyOverview result = homeServiceImpl.getStudyOverview(4l);
@@ -104,7 +104,7 @@ public class HomeServiceImplTest {
         mockData.setAvgKnowledgeCoverRate(null);
         mockData.setAvgTaskCompletionRate(null);
 
-        when(studentCourseProgressesMapper.getAvgProgresses(any(Long.class))).thenReturn(mockData);
+        when(studentCourseProgressesMapper.getStudyOverview(any(Long.class))).thenReturn(mockData);
 
         StudentStudyOverview result = homeServiceImpl.getStudyOverview(10l);
 

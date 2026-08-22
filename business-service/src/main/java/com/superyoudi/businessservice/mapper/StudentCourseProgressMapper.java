@@ -26,7 +26,7 @@ public interface StudentCourseProgressMapper {
               AVG(task_completion_rate) AS avg_task_completion_rate
             FROM student_course_progresses
             WHERE student_id = #{studentId};""")
-    StudentStudyOverview getAvgProgresses(Long studentId);
+    StudentStudyOverview getStudyOverview(Long studentId);
 
     /**
      * 获取学生课程进度

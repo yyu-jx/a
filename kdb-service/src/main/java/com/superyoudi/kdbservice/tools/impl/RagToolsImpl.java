@@ -2,6 +2,7 @@ package com.superyoudi.kdbservice.tools.impl;
 
 import com.superyoudi.aiservice.ai.tools.RagTools;
 import com.superyoudi.aiservice.pojo.dto.AiCitation;
+import com.superyoudi.common.constants.AgentConstants;
 import com.superyoudi.kdbservice.service.KnowledgeGraphService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ToolContext;
@@ -66,15 +67,15 @@ public class RagToolsImpl implements RagTools {
             // 工具上下文
             ToolContext toolContext) {
 
-        Map<String, Object> metadata = (Map<String, Object>) toolContext.getContext().get("custom_metadata");
+        Map<String, Object> metadata = (Map<String, Object>) toolContext.getContext().get(AgentConstants.METADATA_CUSTOM_METADATA);
 
         if (metadata == null) {
             log.error("错误: 工具上下文中没有自定义元数据。");
             return "错误: 无法添加引用信息，请跳过执行。";
         }
 
-        if (!metadata.containsKey("citations"))
-            metadata.put("citations", new ArrayList<AiCitation>());
+        if (!metadata.containsKey(AgentConstants.CUSTOM_METADATA_CITATIONS))
+            metadata.put(AgentConstants.CUSTOM_METADATA_CITATIONS, new ArrayList<AiCitation>());
 
         AiCitation citation = AiCitation.builder()
                 .title(title)
@@ -82,7 +83,9 @@ public class RagToolsImpl implements RagTools {
                 .data(json)
                 .build();
 
-        ((ArrayList<AiCitation>) metadata.get("citations")).add(citation);
+        boolean added = ((ArrayList<AiCitation>) metadata.get(AgentConstants.CUSTOM_METADATA_CITATIONS)).add(citation);
+
+        log.info("添加引用信息: {}", added ? "添加成功" : "添加失败");
 
         return "执行成功。";
     }
