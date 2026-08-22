@@ -1,9 +1,9 @@
 package com.superyoudi.businessservice.service;
 
 import com.superyoudi.businessservice.pojo.dto.CourseDTO;
-import com.superyoudi.businessservice.pojo.entity.CourseData;
-import com.superyoudi.businessservice.pojo.vo.CourseStatisticsVO;
 import com.superyoudi.businessservice.pojo.entity.Course;
+import com.superyoudi.businessservice.pojo.entity.CourseData;
+import com.superyoudi.businessservice.pojo.entity.TeacherCourseAnalysis;
 import com.superyoudi.businessservice.pojo.vo.*;
 import com.superyoudi.common.exception.CourseNotExistException;
 import org.springframework.lang.NonNull;
@@ -21,6 +21,10 @@ public interface CourseService {
      * @return 课程信息
      */
     CourseVO getCourseInfo(Long courseId) throws CourseNotExistException;
+
+    Course getCourseById(Long courseId);
+
+    TeacherCourseAnalysis getTeacherCourseAnalysis(Long courseId);
 
     CourseStatisticsVO getCourseStatistics(Long teacherId);
 

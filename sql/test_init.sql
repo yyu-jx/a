@@ -7,6 +7,10 @@ INSERT INTO `users` (`username`, `realname`, `password`, `role`, `avatar_url`)
 VALUES ('wangwu', '王五', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'teacher',
         'https://example.com/avatar/wangwu.jpg');
 
+INSERT INTO `users` (`username`, `realname`, `password`, `role`, `avatar_url`)
+VALUES ('xiaoming', '小明', '123456', 'student',
+        'https://example.com/avatar/xiaoming.jpg');
+
 -- 2. 班级表测试数据
 INSERT INTO `classes` (`name`)
 VALUES ('计算机科学与技术2024级1班');

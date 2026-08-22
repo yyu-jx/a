@@ -2,6 +2,7 @@ package com.superyoudi.coursewareservice.service;
 
 import com.alibaba.cloud.ai.graph.CompiledGraph;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
 import com.superyoudi.aiservice.pojo.entity.ChatMessage;
 import com.superyoudi.aiservice.pojo.entity.ChatSession;
@@ -9,6 +10,7 @@ import com.superyoudi.aiservice.service.ChatPersistenceService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.common.constants.CoursewareGenConstants;
 import com.superyoudi.common.dto.ChatHistoryDTO;
+import com.superyoudi.common.dto.CoursewareGenerationRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
@@ -40,13 +42,13 @@ public class CoursewareInteractionService {
      * @return 用户流式输出
      * @author Sijayyx
      */
-    public Flux<String> executeWorkflowGraph(UserChatMessage userChatMessage) {
+    public Flux<String> executeWorkflowGraph(UserChatMessage<Long> userChatMessage) {
         Long userId = userChatMessage.getUserId();
         String input = userChatMessage.getMessage();
-        Long coursewareRecId = (Long) userChatMessage.getAdditionalData();
+        Long coursewareRecId = userChatMessage.getAdditionalData();
 
         Assert.notNull(userId, "userId不能为null");
-        Assert.notNull(coursewareRecId, "coursewareId不能为null");
+        Assert.notNull(coursewareRecId, "coursewareRecId不能为null");
 
         // 构建线程ID
         String threadId = constructThreadId(userId);
@@ -89,7 +91,38 @@ public class CoursewareInteractionService {
                 ));
     }
 
-    public Flux<String> resumeWorkflowGraph(UserChatMessage userChatMessage) {
+    /**
+     * 跳过监督者节点，直接使用CoursewareGenerationRequest生成课件和教案
+     *
+     * @param userId  用户ID
+     * @param request 课程生成请求信息
+     */
+    public void callCoursewareGeneration(long userId, long coursewareRecId, CoursewareGenerationRequest request) {
+        // 构建线程ID
+        String threadId = constructThreadId(userId);
+
+        // 流式输出
+        // 创建并行节点的图配置
+        RunnableConfig config = RunnableConfig.builder()
+                .threadId(threadId)
+                .addParallelNodeExecutor(CoursewareGenConstants.NODE_WORD_GENERATION, ForkJoinPool.commonPool())
+                .addParallelNodeExecutor(CoursewareGenConstants.NODE_PPT_GENERATION, ForkJoinPool.commonPool())
+                .build();
+
+        try {
+            compiledGraph.stream(Map.of(
+                    CoursewareGenConstants.KEY_USER_ID, userId,
+                    CoursewareGenConstants.KEY_COURSEWARE_REC_ID, coursewareRecId,
+                    CoursewareGenConstants.KEY_GENERATION_INFO, AiMessageUtils.LENIENT_MAPPER.writeValueAsString(request),
+                    CoursewareGenConstants.KEY_IS_SKIP_SUPERVISOR, "TRUE" // 跳过监督者节点
+            ), config);
+        } catch (JsonProcessingException e) {
+            log.error("JSON转换异常: {}", e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Flux<String> resumeWorkflowGraph(UserChatMessage<String> userChatMessage) {
         Long userId = userChatMessage.getUserId();
         String resumeStatus = "APPROVE"; // APPROVE | EDIT | REJECT
         String resumeUserFeedback = "修改状态下的修改意见。"; // TODO 解析这个

@@ -64,7 +64,7 @@ public class StudentAnswer {
     private Integer helpRequestCount;
 
     /**
-     * 错误类型，null代表无错误
+     * 错误类型，null代表无错误：concept 概念理解错误 | method 解题方法错误 | calc 计算错误 | misread 审题错误 | other 其它
      */
     private String errorType;
 

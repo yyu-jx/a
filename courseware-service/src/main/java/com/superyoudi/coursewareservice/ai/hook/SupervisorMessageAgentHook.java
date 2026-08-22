@@ -39,7 +39,7 @@ public class SupervisorMessageAgentHook extends MessagesAgentHook {
         long studentId = (long) config.metadata(CoursewareGenConstants.KEY_USER_ID).orElseThrow();
         long coursewareRecId = (long) config.metadata(CoursewareGenConstants.KEY_COURSEWARE_REC_ID).orElseThrow();
 
-        List<Message> msgHistory = AiMessageUtils.recoverChatHistory(() ->
+        List<Message> msgHistory = AiMessageUtils.constructChatHistory(() ->
                         chatPersistenceService.getOrCreateCoursewareRecChatMessages(studentId, coursewareRecId),
                 previousMessages);
 

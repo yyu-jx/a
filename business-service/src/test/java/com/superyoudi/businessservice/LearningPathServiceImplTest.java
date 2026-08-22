@@ -1,6 +1,6 @@
 package com.superyoudi.businessservice;
 
-import com.superyoudi.aiservice.ai.agent.LearningPathGenerateModel;
+import com.superyoudi.aiservice.ai.model.LearningPathGenerateModel;
 import com.superyoudi.aiservice.mapper.LearningPathMapper;
 import com.superyoudi.aiservice.mapper.LearningPathNodeMapper;
 import com.superyoudi.aiservice.pojo.entity.LearningPath;

@@ -1,7 +1,7 @@
 package com.superyoudi.coursewareservice.service;
 
-import com.superyoudi.coursewareservice.pojo.entity.CoursewareRecord;
 import com.superyoudi.coursewareservice.mapper.CoursewareRecordMapper;
+import com.superyoudi.coursewareservice.pojo.entity.CoursewareRecord;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -61,7 +61,8 @@ public class CoursewareRecordService {
     }
 
     public Long insert(CoursewareRecord record) {
-        return coursewareRecordMapper.insert(record);
+        coursewareRecordMapper.insert(record);
+        return record.getId();
     }
 
     public Long update(CoursewareRecord record) {

@@ -262,7 +262,7 @@ class ChatPersistenceServiceTest {
         when(chatSessionMapper.selectSingleByUserId(100L)).thenReturn(chatSession);
 
         // When
-        ChatSession result = chatPersistenceService.getChatSessionByUserId(100L);
+        ChatSession result = chatPersistenceService.getOrCreateChatSessionByUserId(100L);
 
         // Then
         assertThat(result).isNotNull();
@@ -278,7 +278,7 @@ class ChatPersistenceServiceTest {
         when(chatSessionMapper.selectSingleByUserId(999L)).thenReturn(null);
 
         // When
-        ChatSession result = chatPersistenceService.getChatSessionByUserId(999L);
+        ChatSession result = chatPersistenceService.getOrCreateChatSessionByUserId(999L);
 
         // Then
         assertThat(result).isNull();
@@ -301,8 +301,8 @@ class ChatPersistenceServiceTest {
         when(chatSessionMapper.selectSingleByUserId(200L)).thenReturn(session2);
 
         // When
-        ChatSession result1 = chatPersistenceService.getChatSessionByUserId(100L);
-        ChatSession result2 = chatPersistenceService.getChatSessionByUserId(200L);
+        ChatSession result1 = chatPersistenceService.getOrCreateChatSessionByUserId(100L);
+        ChatSession result2 = chatPersistenceService.getOrCreateChatSessionByUserId(200L);
 
         // Then
         assertThat(result1.getUserId()).isEqualTo(100L);
@@ -442,7 +442,7 @@ class ChatPersistenceServiceTest {
         when(chatCoursewareRecRelMapper.insert(any(ChatCoursewareRecRel.class))).thenReturn(1L);
 
         // When - 查询用户会话
-        ChatSession session = chatPersistenceService.getChatSessionByUserId(100L);
+        ChatSession session = chatPersistenceService.getOrCreateChatSessionByUserId(100L);
 
         // When - 创建课程关联
         Long courseRelResult = chatPersistenceService.createChatCourseRel(
@@ -471,7 +471,7 @@ class ChatPersistenceServiceTest {
         when(chatSessionMapper.selectSingleByUserId(999L)).thenReturn(null);
 
         // When
-        ChatSession session = chatPersistenceService.getChatSessionByUserId(999L);
+        ChatSession session = chatPersistenceService.getOrCreateChatSessionByUserId(999L);
 
         // Then
         assertThat(session).isNull();

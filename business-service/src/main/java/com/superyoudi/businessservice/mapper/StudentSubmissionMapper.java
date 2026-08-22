@@ -64,7 +64,7 @@ public interface StudentSubmissionMapper {
     MissionScoreStats selectScoreStatsByTaskId(@Param("taskId") Long taskId);
 
     @Select("select * from student_submissions where task_id = #{taskId} and student_id = #{student_id} limit 1")
-    StudentSubmission selectByTaskAndStudentId(Long taskId, Long student_id);
+    StudentSubmission selectByTaskAndStudentId(Long taskId, Long studentId);
 
 
     @Select("select * from student_submissions where task_id = #{taskId}")

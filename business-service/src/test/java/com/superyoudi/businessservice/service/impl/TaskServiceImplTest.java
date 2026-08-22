@@ -4,7 +4,7 @@ import com.superyoudi.aiservice.service.TaskAiService;
 import com.superyoudi.businessservice.mapper.QuestionMapper;
 import com.superyoudi.businessservice.mapper.StudentSubmissionMapper;
 import com.superyoudi.businessservice.mapper.TaskMapper;
-import com.superyoudi.businessservice.pojo.dto.TaskQuestionDTO;
+import com.superyoudi.businessservice.pojo.dto.TaskQuestion;
 import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
 import com.superyoudi.businessservice.pojo.entity.Task;
 import com.superyoudi.common.dto.ErrorQuestionVO;
@@ -57,10 +57,10 @@ class TaskServiceImplTest {
     @Test
     void submitTask_paramNull_throwParamInvalid() {
         assertThrows(ParamInvalidException.class, () -> {
-            taskService.addOrUpdateStudentSubmission(null);
+            taskService.addOrUpdateStudentSubmission(new StudentSubmission());
         });
         assertThrows(ParamInvalidException.class, () -> {
-            taskService.addOrUpdateStudentSubmission(null);
+            taskService.addOrUpdateStudentSubmission(new StudentSubmission());
         });
     }
 
@@ -77,7 +77,7 @@ class TaskServiceImplTest {
                 .thenReturn(exist);
 
         assertThrows(StudentRepeatJoinCourseException.class, () -> {
-            taskService.addOrUpdateStudentSubmission(null);
+            taskService.addOrUpdateStudentSubmission(new StudentSubmission());
         });
 
         // 确认没有调用更新、新增
@@ -98,7 +98,7 @@ class TaskServiceImplTest {
                 .thenReturn(exist);
         when(submissionMapper.update(Mockito.any())).thenReturn(1L);
 
-        taskService.addOrUpdateStudentSubmission(null);
+        taskService.addOrUpdateStudentSubmission(new StudentSubmission());
 
         // 校验调用更新，没有调用insert
         verify(submissionMapper, Mockito.times(1)).update(Mockito.any());
@@ -115,7 +115,7 @@ class TaskServiceImplTest {
                 .thenReturn(null);
         when(submissionMapper.insert(Mockito.any())).thenReturn(1);
 
-        taskService.addOrUpdateStudentSubmission(null);
+        taskService.addOrUpdateStudentSubmission(new StudentSubmission());
 
         verify(submissionMapper, Mockito.times(1)).insert(Mockito.any());
         verify(submissionMapper, never()).update(Mockito.any());
@@ -234,8 +234,8 @@ class TaskServiceImplTest {
         return task;
     }
 
-    private TaskQuestionDTO buildMockQuestion(Long id, String type, String answerJson) {
-        TaskQuestionDTO question = new TaskQuestionDTO();
+    private TaskQuestion buildMockQuestion(Long id, String type, String answerJson) {
+        TaskQuestion question = new TaskQuestion();
         question.setId(id);
         question.setTeacherId(100L);
         question.setScore(new BigDecimal("10"));

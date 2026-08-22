@@ -1,6 +1,6 @@
 package com.superyoudi.businessservice.utils;
 
-import com.superyoudi.aiservice.ai.AnswerCorrectionModel;
+import com.superyoudi.aiservice.ai.model.AnswerCorrectionModel;
 import com.superyoudi.businessservice.pojo.entity.Question;
 import com.superyoudi.businessservice.pojo.entity.StudentAnswer;
 import org.springframework.util.Assert;
@@ -51,7 +51,7 @@ public class AnswerValidator {
      * @param studentFillAnswer  学生答案
      * @return 最终得分
      */
-    public static int validateFillAnswer(AnswerCorrectionModel correctionModel, String question, int totalScore,
+    public static AnswerCorrectionModel.CorrectionResult validateFillAnswer(AnswerCorrectionModel correctionModel, String question, int totalScore,
                                          Question.FillAnswer questionFillAnswer, StudentAnswer.FillAnswer studentFillAnswer) {
 
         Assert.notNull(questionFillAnswer, "FillAnswer cannot be null");
@@ -96,7 +96,7 @@ public class AnswerValidator {
      * @param studentAnswer   学生答案
      * @return 最终得分
      */
-    public static int validateSubjectiveAnswer(AnswerCorrectionModel correctionModel, String question, int totalScore, String correctAnswer, String studentAnswer) {
+    public static AnswerCorrectionModel.CorrectionResult validateSubjectiveAnswer(AnswerCorrectionModel correctionModel, String question, int totalScore, String correctAnswer, String studentAnswer) {
         return correctionModel.doSubjectiveAnswerCorrection(totalScore, question, correctAnswer, studentAnswer);
     }
 
@@ -134,6 +134,6 @@ public class AnswerValidator {
     @FunctionalInterface
     public interface CorrectionStrategy {
         /// 计算得分
-        int calcScore(Question question, Object correctAnswer, Object studentAnswer, int questionScore);
+        AnswerCorrectionModel.CorrectionResult getCorrectionResult(Question question, Object correctAnswer, Object studentAnswer, int questionScore);
     }
 }

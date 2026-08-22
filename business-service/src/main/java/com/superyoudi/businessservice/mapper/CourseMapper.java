@@ -135,13 +135,6 @@ public interface CourseMapper {
     @Select("SELECT COUNT(*) FROM courses WHERE teacher_id = #{teacherId} AND status = 'opening'")
     Long countOpeningByTeacherId(Long teacherId);
 
-    /**
-     * 根据用户id查询用户角色
-     *
-     * @param userId 用户id
-     * @return 用户角色
-     */
-    String selectUserRoleById(Long userId);
 
     /**
      * 根据教师id查询课程列表

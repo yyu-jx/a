@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class TaskQuestionDTO {
+public class TaskQuestion {
     private Long id;
     private Long teacherId;
     private BigDecimal score;

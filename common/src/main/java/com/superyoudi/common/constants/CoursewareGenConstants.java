@@ -17,7 +17,7 @@ public final class CoursewareGenConstants {
     /// 用户聊天消息的附加信息
     public static final String KEY_USER_ADDITIONAL_DATA = "additional_data";
     /// AI的流式输出
-    public static final String KEY_RESPONSE = "response";
+    public static final String KEY_STREAMING_RESPONSE = "streaming_response";
     /// 生成PPT和Word所需信息
     public static final String KEY_GENERATION_INFO = "generation_info";
     /// PPT大纲，Markdown格式
@@ -26,6 +26,10 @@ public final class CoursewareGenConstants {
     public static final String KEY_SHOULD_GENERATE = "should_generate";
     /// Agents的生成结果
     public static final String KEY_AGENTS_INFO = "agents_info";
+    /// 是否跳过监督者节点
+    public static final String KEY_IS_SKIP_SUPERVISOR = "is_skip_supervisor";
+
+
     /// 监督者节点
     public static final String NODE_SUPERVISOR = "supervisorNode";
     /// HTML大纲生成节点

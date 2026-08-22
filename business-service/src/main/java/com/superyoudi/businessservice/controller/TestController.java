@@ -39,7 +39,7 @@ class TestController {
 
     @GetMapping(value = "/aitutor", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> testCallAiTutor(@RequestParam(value = "input") String input) {
-        return aiTutorService.callAiTutor(new UserChatMessage(1L, input, 1L));
+        return aiTutorService.call(new UserChatMessage(1L, input, 1L));
     }
 
     @GetMapping("/kp")

@@ -42,14 +42,20 @@
         </dependency>
         <dependency>
             <groupId>com.superyoudi</groupId>
-            <artifactId>courseware-service</artifactId>
+            <artifactId>ai-service</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>com.superyoudi</groupId>
-            <artifactId>ai-service</artifactId>
+            <artifactId>courseware-service</artifactId>
             <version>0.0.1-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.superyoudi</groupId>
+                    <artifactId>ai-service</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
 

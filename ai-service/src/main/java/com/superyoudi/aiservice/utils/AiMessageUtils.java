@@ -41,7 +41,7 @@ public class AiMessageUtils {
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private static final String EMPTY_STRING = "";
 
-    public static List<Message> recoverChatHistory(Supplier<List<ChatMessage>> chatHistorySupplier, List<Message> previousMessages) {
+    public static List<Message> constructChatHistory(Supplier<List<ChatMessage>> chatHistorySupplier, List<Message> previousMessages) {
         List<ChatMessage> chatMessages = chatHistorySupplier.get();
 
         if (chatMessages == null) {

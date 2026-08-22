@@ -2,10 +2,12 @@ package com.superyoudi.businessservice.service.impl;
 
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
+import com.alibaba.cloud.ai.graph.utils.TypeRef;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.superyoudi.aiservice.ai.agent.AiTutorAgent;
+import com.superyoudi.aiservice.pojo.dto.AiCitation;
 import com.superyoudi.aiservice.pojo.dto.LearningPathDTO;
 import com.superyoudi.aiservice.pojo.dto.StudentCourseInfoDTO;
 import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
@@ -20,19 +22,25 @@ import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.businessservice.mapper.UserMapper;
 import com.superyoudi.businessservice.pojo.entity.Course;
+import com.superyoudi.businessservice.pojo.entity.PathNodeTaskRel;
+import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
 import com.superyoudi.businessservice.pojo.entity.User;
+import com.superyoudi.businessservice.service.QuestionBaseService;
+import com.superyoudi.businessservice.service.TaskService;
+import com.superyoudi.common.constants.AgentConstants;
 import com.superyoudi.common.dto.ChatHistoryDTO;
 import com.superyoudi.common.exception.LearningPathFinishedException;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
-import com.superyoudi.kdbservice.service.KnowledgeGraphService;
 import com.superyoudi.kdbservice.service.KnowledgePointService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Sijayyx
@@ -47,58 +55,61 @@ public class AiTutorServiceImpl implements AiTutorService {
     private final LearningPathService learningPathService;
     private final KnowledgePointService knowledgePointService;
     private final UserMapper userMapper;
-    private final KnowledgeGraphService knowledgeGraphService;
     private final ChatPersistenceService chatPersistenceService;
+    private final QuestionBaseService questionBaseService;
+    private final TaskService taskService;
 
 
     public AiTutorServiceImpl(@Lazy AiTutorAgent aiTutorAgent, // 延迟注入ai tutor agent，否则会造成循环依赖
                               CourseMapper courseMapper,
                               LearningPathService learningPathService,
                               KnowledgePointService knowledgePointService,
-                              UserMapper userMapper, KnowledgeGraphService knowledgeGraphService, ChatPersistenceService chatPersistenceService) {
+                              UserMapper userMapper,
+                              ChatPersistenceService chatPersistenceService, QuestionBaseService questionBaseService, TaskService taskService) {
         this.courseMapper = courseMapper;
         this.learningPathService = learningPathService;
         this.knowledgePointService = knowledgePointService;
         this.userMapper = userMapper;
         this.aiTutorAgent = aiTutorAgent;
-        this.knowledgeGraphService = knowledgeGraphService;
         this.chatPersistenceService = chatPersistenceService;
+        this.questionBaseService = questionBaseService;
+        this.taskService = taskService;
     }
 
     @Override
-    public Flux<String> callAiTutor(UserChatMessage userChatMessage) {
-        Long courseId = (Long) userChatMessage.getAdditionalData();
+    public Flux<String> call(UserChatMessage<Long> userChatMessage) {
+        Long courseId = userChatMessage.getAdditionalData();
 
         // 设置config的metadata以进行context engineering
         RunnableConfig runnableConfig = RunnableConfig.builder()
                 .threadId("ai_tutor_thread_" + userChatMessage.getUserId() + "_" + courseId)
-                .addMetadata(AiTutorAgent.METADATA_STUDENT_ID, userChatMessage.getUserId())
-                .addMetadata(AiTutorAgent.METADATA_COURSE_ID, courseId)
-                .addMetadata(AiTutorAgent.METADATA_CUSTOM_METADATA, new HashMap<String, Object>())
+                .addMetadata(AgentConstants.METADATA_USER_ID, userChatMessage.getUserId())
+                .addMetadata(AgentConstants.METADATA_COURSE_ID, courseId)
+                .addMetadata(AgentConstants.METADATA_CUSTOM_METADATA, new HashMap<String, Object>())
                 .build();
 
         try {
-            Flux<String> result = aiTutorAgent.callAgent(userChatMessage.getMessage(), runnableConfig)
+            return aiTutorAgent.callAgent(userChatMessage.getMessage(), runnableConfig)
                     .map(nodeOutput ->
                             AiMessageUtils.handleStreamingOutput(
                                     nodeOutput,
                                     null,
                                     message -> log.info("AI Tutor回复: {}", message), // 打日志
                                     () -> {
-                                        ChatSession chatSession = chatPersistenceService.getOrCreateChatSession(userChatMessage.getUserId(), courseId);
-                                        if (chatSession == null)
-                                            return null; // 如果聊天会话不存在，返回null
+                                        // 添加引用消息
+                                        Map<String, Object> customMetadata = runnableConfig.metadata(AgentConstants.METADATA_CUSTOM_METADATA, new TypeRef<Map<String, Object>>() {
+                                        }).orElse(null);
 
-                                        ChatMessage latestMsg = chatPersistenceService.getLatestAiMessageByChatId(chatSession.getId());
-
-                                        if (latestMsg == null)
-                                            return null;
-
-                                        return latestMsg.getId().toString(); // 附加AI对话的消息ID
+                                        if (customMetadata != null) {
+                                            List<AiCitation> citations = (List<AiCitation>) customMetadata.getOrDefault(AgentConstants.CUSTOM_METADATA_CITATIONS, List.of());
+                                            try {
+                                                return AiMessageUtils.LENIENT_MAPPER.writeValueAsString(citations);
+                                            } catch (JsonProcessingException e) {
+                                                return null;
+                                            }
+                                        }
+                                        return null;
                                     }));
-
-
-            return result;
         } catch (GraphRunnerException e) {
             log.error("调用AI Tutor失败", e);
             throw new RuntimeException("调用AI Tutor失败", e);
@@ -107,7 +118,7 @@ public class AiTutorServiceImpl implements AiTutorService {
 
     @Override
     public ChatHistoryDTO getChatHistory(Long studentId, Long courseId) {
-        ChatSession session = chatPersistenceService.getOrCreateChatSession(studentId, courseId);
+        ChatSession session = chatPersistenceService.getOrCreateChatSessionByCourseRel(studentId, courseId);
         List<ChatMessage> chatMessages = chatPersistenceService.getChatMessages(session.getId());
         return chatPersistenceService.constructChatHistory(session.getId(), studentId, chatMessages);
     }
@@ -137,8 +148,13 @@ public class AiTutorServiceImpl implements AiTutorService {
     }
 
     @Override
-    public LearningPathDTO getLearningPathInfo(Long studentId, Long courseId) {
+    public LearningPathDTO getLearningPathInfo(@NonNull Long studentId, @NonNull Long courseId) {
+
         LearningPath learningPath = learningPathService.getLearningPathByStudentAndCourse(studentId, courseId);
+        if (learningPath == null) {
+            learningPathService.createLearningPath(studentId, courseId);
+        }
+
         Long currentNodeId = learningPath.getCurrentNodeId();
         LearningPathNode learningPathNode = learningPathService.getLearningPathNodeById(currentNodeId);
         Course course = courseMapper.selectById(courseId);
@@ -205,17 +221,32 @@ public class AiTutorServiceImpl implements AiTutorService {
     }
 
     @Override
-    public String queryKnowledgePoint(String kpName) {
-        return knowledgeGraphService.retrieveKnowledgePoint(kpName);
+    public void composePathNodeHomework(long pathNodeId,
+                                        long courseId,
+                                        long studentId,
+                                        List<String> knowledgePoints,
+                                        String title,
+                                        Map<String, Integer> questionConfig,
+                                        int totalScore) {
+
+        Long taskId = taskService.composeTask(0, courseId, knowledgePoints, title, null,
+                "homework", questionConfig, totalScore);
+
+        taskService.addPathNodeTaskRel(taskId, pathNodeId, studentId);
     }
 
     @Override
-    public String retriveKnowledgeGraph(String query) {
-        return knowledgeGraphService.retrieveKnowledgeGraph(query);
+    public boolean checkPathNodeHomeWorkExists(long pathNodeId, long courseId, long studentId) {
+        PathNodeTaskRel pathNodeTaskRel = taskService.getPathNodeTaskRel(pathNodeId);
+        return pathNodeTaskRel != null;
     }
 
     @Override
-    public String retrieveDocuments(String query) {
-        return knowledgeGraphService.retrieveDocuments(query);
+    public boolean checkPathNodeHomeworkFinished(long pathNodeId, long studentId) {
+        StudentSubmission studentSubmission = taskService.tryGetTaskSubmissionByPathNodeId(pathNodeId, studentId);
+
+        if (studentSubmission == null) return false;
+
+        return studentSubmission.getStatus().equals("submitted") || studentSubmission.getStatus().equals("passed");
     }
 }

@@ -5,11 +5,11 @@ import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
+import com.superyoudi.aiservice.ai.tools.RagTools;
 import com.superyoudi.aiservice.pojo.entity.ChatMessage;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.common.constants.CoursewareGenConstants;
 import com.superyoudi.coursewareservice.ai.hook.SupervisorMessageAgentHook;
-import com.superyoudi.aiservice.ai.tools.RagTools;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -120,7 +120,7 @@ public class SupervisorNode implements NodeAction {
                         new Generation(new AssistantMessage(content))
                 )));
 
-        return Map.of(CoursewareGenConstants.KEY_RESPONSE, responseFlux);
+        return Map.of(CoursewareGenConstants.KEY_STREAMING_RESPONSE, responseFlux);
     }
 
     /**
@@ -161,7 +161,6 @@ public class SupervisorNode implements NodeAction {
                 你是一位总结专家，可以根据对话历史总结需要生成的资料的各个要点，以及需要生成哪些资料，并以严格的Json格式输出。
                 
                 Json文本中包含以下几项:
-                userId为用户ID，必填
                 wordAction为对教案执行的动作，generate表示新生成一份教案，edit表示对已有教案进行修改，other表示其它操作，none表示不执行任何操作。
                 wordActionInfo为对教案执行动作的信息与要求，若无任何动作，则设置为null。
                 pptAction为对PPT执行的动作，generate表示新生成一个PPT，edit表示对已有PPT进行修改，other表示其它操作，none表示不执行任何操作。

@@ -1,19 +1,28 @@
 package com.superyoudi.businessservice.service;
 
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
-import com.superyoudi.businessservice.pojo.dto.TaskQuestionDTO;
-import com.superyoudi.businessservice.pojo.entity.StudentAnswer;
-import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
-import com.superyoudi.businessservice.pojo.entity.TaskList;
+import com.superyoudi.businessservice.pojo.dto.TaskQuestion;
+import com.superyoudi.businessservice.pojo.entity.*;
 import com.superyoudi.businessservice.pojo.vo.StudentTaskOverviewVO;
 import com.superyoudi.common.dto.ErrorQuestionVO;
 import org.springframework.data.domain.Page;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 public interface TaskService {
 
+    TaskAnalysis getTaskAnalysis(Long taskId);
+
+    List<Task> getCourseRelatedTasks(Long courseId);
+
     Long saveTaskData(TaskDTO taskDTO);
+
+    @Transactional(rollbackFor = Exception.class)
+    Long composeTask(long assignerId, long courseId, List<String> knowledgePoints,
+                     String title, String description, String type,
+                     Map<String, Integer> questionConfig, int totalScore);
 
     /**
      * 学生提交作业
@@ -68,7 +77,7 @@ public interface TaskService {
      * @param taskId 任务id
      * @return 任务问题列表
      */
-    List<TaskQuestionDTO> getTaskQuestionList(Long taskId);
+    List<TaskQuestion> getTaskQuestionList(Long taskId);
 
 
     /**
@@ -95,5 +104,14 @@ public interface TaskService {
      */
     List<StudentSubmission> getSubmissions(Long taskId);
 
-    void executeSubmissionCorrection(StudentSubmission submission);
+
+    void executeSubmissionCorrection(StudentSubmission submission, boolean isIgnoreSubmitStrategy);
+
+    void addPathNodeTaskRel(Long taskId, Long pathNodeId, Long studentId);
+
+    PathNodeTaskRel getPathNodeTaskRel( Long pathNodeId);
+
+    void removePathNodeTaskRel(Long taskId, Long pathNodeId);
+
+    StudentSubmission tryGetTaskSubmissionByPathNodeId(Long pathNodeId, Long studentId);
 }
