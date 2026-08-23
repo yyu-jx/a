@@ -1,4 +1,4 @@
-package com.superyoudi.coursewareservice.config;
+package com.superyoudi.businessservice.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;

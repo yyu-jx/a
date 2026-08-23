@@ -115,12 +115,25 @@ public class ChatPersistenceService {
 
     /**
      * 向列表追加消息
+     *
+     * @return 消息ID
      */
     @Transactional
     public Long appendChatMessage(Long chatId, String message, String role) {
         ChatMessage chatMessage = new ChatMessage(chatId, message, role);
         chatMessageMapper.insertWithAutoSeq(chatMessage);
 
+        return chatMessage.getId();
+    }
+
+    /**
+     * 向列表追加消息
+     *
+     * @return 消息ID
+     */
+    @Transactional
+    public Long appendChatMessage(ChatMessage chatMessage) {
+        chatMessageMapper.insertWithAutoSeq(chatMessage);
         return chatMessage.getId();
     }
 
@@ -153,9 +166,10 @@ public class ChatPersistenceService {
     @Transactional
     public ChatSession getOrCreateChatSessionByUserId(Long userId) {
         ChatSession chatSession = chatSessionMapper.selectSingleByUserId(userId);
-        if (chatSession == null)
+        if (chatSession == null) {
+            log.error("未找到会话，创建新的会话。");
             chatSession = createChatSession(userId);
-
+        }
         return chatSession;
     }
 

@@ -4,6 +4,7 @@ import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
 import com.superyoudi.common.dto.ChatHistoryDTO;
 import com.superyoudi.common.dto.CoursewareGenerationRequest;
 import com.superyoudi.common.dto.TaskArrangementRequest;
+import jakarta.annotation.Nonnull;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -21,9 +22,9 @@ public interface AiTeacherAssistantService {
 
     Long callCoursewareGeneration(long userId, CoursewareGenerationRequest request);
 
-    void correctTask(long taskId);
+    void correctTask(long userId, long taskId);
 
-    void composeTask(TaskArrangementRequest request);
+    void composeTask(long userId, TaskArrangementRequest request);
 
     String getCourseList(Long userId);
 
@@ -34,4 +35,7 @@ public interface AiTeacherAssistantService {
     String getCourseTaskList(@NonNull Long courseId);
 
     String getTaskAnalysis(@NonNull Long taskId);
+
+
+    <T> void notifyTaskCompletion(Long userId, @Nonnull T result, @Nonnull String taskType);
 }
