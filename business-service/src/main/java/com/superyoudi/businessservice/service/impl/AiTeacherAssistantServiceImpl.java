@@ -205,7 +205,6 @@ public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService 
 
     }
 
-
     // 参数均为可选
     @Override
     public String getStudentAnalysis(@Nullable Long studentId, @Nullable String studentName) {
@@ -268,23 +267,6 @@ public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService 
 
     @Override
     public <T> void notifyTaskCompletion(Long userId, @Nonnull T result, @Nonnull String taskType) {
-        try {
-            // JSON化result文本
-            AgentTaskResultDTO<T> taskResultDTO = new AgentTaskResultDTO<>(taskType, result);
-            String resultJson = AiMessageUtils.LENIENT_MAPPER.writeValueAsString(taskResultDTO);
-            // 存表
-            ChatSession session = chatPersistenceService.getOrCreateChatSessionByUserId(userId);
-            ChatMessage chatMessage = new ChatMessage(session.getId(), resultJson, ChatMessage.ROLE_SYSTEM);
-
-            Long msgId = chatPersistenceService.appendChatMessage(chatMessage);
-            chatMessage.setId(msgId);
-
-            // 通知前端
-            AgentTaskResultMessageEndpoint.notifyTaskResult(chatMessage);
-
-        } catch (JsonProcessingException e) {
-            log.error("JSON转换失败", e);
-        }
-
+        AgentTaskResultMessageEndpoint.notifyTaskCompletion(userId, result, taskType, chatPersistenceService);
     }
 }

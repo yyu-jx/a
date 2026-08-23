@@ -1,9 +1,14 @@
 package com.superyoudi.businessservice.websocket;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.superyoudi.aiservice.pojo.entity.ChatMessage;
+import com.superyoudi.aiservice.pojo.entity.ChatSession;
+import com.superyoudi.aiservice.service.ChatPersistenceService;
+import com.superyoudi.businessservice.pojo.dto.AgentTaskResultDTO;
+import jakarta.annotation.Nonnull;
 import jakarta.websocket.*;
 import jakarta.websocket.server.HandshakeRequest;
 import jakarta.websocket.server.PathParam;
@@ -36,19 +41,48 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @ServerEndpoint(value = "/ai/chat/websocket/{chatId}", configurator = AgentTaskResultMessageEndpoint.Configurator.class)
 public class AgentTaskResultMessageEndpoint {
-    // 存储所有连接的会话
+
     private static final ConcurrentHashMap<Long, Session> SESSIONS = new ConcurrentHashMap<>();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .registerModule(new JavaTimeModule()) // 注册时间序列化模块
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
+    /**
+     * 通知前端任务执行结果，发送ChatMessage
+     *
+     * @param userId                 用户ID
+     * @param result                 任务执行结果
+     * @param taskType               数据类型。请查看AgentTaskResultDTO的TYPE_TASK和TYPE_COURSEWARE_GEN_REQUEST
+     * @param chatPersistenceService 聊天持久化服务
+     * @param <T>                    Task或CoursewareGenerationRequest.DTO
+     */
+    public static <T> void notifyTaskCompletion(Long userId, @Nonnull T result, @Nonnull String taskType, ChatPersistenceService chatPersistenceService) {
+        try {
+            // JSON化result文本
+            AgentTaskResultDTO<T> taskResultDTO = new AgentTaskResultDTO<>(taskType, result);
+            String resultJson = OBJECT_MAPPER.writeValueAsString(taskResultDTO);
+            // 存表
+            ChatSession session = chatPersistenceService.getOrCreateChatSessionByUserId(userId);
+            ChatMessage chatMessage = new ChatMessage(session.getId(), resultJson, ChatMessage.ROLE_SYSTEM);
+
+            Long msgId = chatPersistenceService.appendChatMessage(chatMessage);
+            chatMessage.setId(msgId);
+
+            // 通知前端
+            notifyTaskResult(chatMessage);
+
+        } catch (JsonProcessingException e) {
+            log.error("JSON转换失败", e);
+        }
+
+    }
 
     /**
      * 将一条ChatMessage推送到前端
      *
      * @param chatMessage 要发送的消息，必须指定ChatId
      */
-    public static void notifyTaskResult(ChatMessage chatMessage) {
+    private static void notifyTaskResult(ChatMessage chatMessage) {
 
         Assert.notNull(chatMessage.getChatId(), "chatId 不能为空");
 

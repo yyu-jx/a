@@ -21,17 +21,17 @@ import com.superyoudi.aiservice.service.LearningPathService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.businessservice.mapper.UserMapper;
-import com.superyoudi.businessservice.pojo.entity.Course;
-import com.superyoudi.businessservice.pojo.entity.PathNodeTaskRel;
-import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
-import com.superyoudi.businessservice.pojo.entity.User;
+import com.superyoudi.businessservice.pojo.dto.AgentTaskResultDTO;
+import com.superyoudi.businessservice.pojo.entity.*;
 import com.superyoudi.businessservice.service.QuestionBaseService;
 import com.superyoudi.businessservice.service.TaskService;
+import com.superyoudi.businessservice.websocket.AgentTaskResultMessageEndpoint;
 import com.superyoudi.common.constants.AgentConstants;
 import com.superyoudi.common.dto.ChatHistoryDTO;
 import com.superyoudi.common.exception.LearningPathFinishedException;
 import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.service.KnowledgePointService;
+import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
@@ -221,16 +221,21 @@ public class AiTutorServiceImpl implements AiTutorService {
     }
 
     @Override
-    public void composePathNodeHomework(long pathNodeId,
-                                        long courseId,
-                                        long studentId,
-                                        List<String> knowledgePoints,
-                                        String title,
-                                        Map<String, Integer> questionConfig,
-                                        int totalScore) {
+    public void composePathNodeHomework(
+            long pathNodeId,
+            long courseId,
+            long studentId,
+            List<String> knowledgePoints,
+            String title,
+            Map<String, Integer> questionConfig,
+            int totalScore) {
 
         Long taskId = taskService.composeTask(0, courseId, knowledgePoints, title, null,
                 "homework", questionConfig, totalScore);
+
+        // 通知前端
+        Task task = taskService.getTaskById(taskId);
+        notifyTaskCompletion(studentId, task, AgentTaskResultDTO.TYPE_TASK);
 
         taskService.addPathNodeTaskRel(taskId, pathNodeId, studentId);
     }
@@ -248,5 +253,10 @@ public class AiTutorServiceImpl implements AiTutorService {
         if (studentSubmission == null) return false;
 
         return studentSubmission.getStatus().equals("submitted") || studentSubmission.getStatus().equals("passed");
+    }
+
+    @Override
+    public <T> void notifyTaskCompletion(Long userId, @Nonnull T result, @Nonnull String taskType) {
+        AgentTaskResultMessageEndpoint.notifyTaskCompletion(userId, result, taskType, chatPersistenceService);
     }
 }
