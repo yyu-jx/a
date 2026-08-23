@@ -21,6 +21,18 @@ public interface ChatMessageMapper {
     List<ChatMessage> selectByChatId(Long chatId);
 
     /**
+     * 根据会话ID查询最新的 N 条消息（按序号升序）
+     *
+     * @param chatId 会话ID
+     * @param limit  查询条数
+     * @return 最新的 N 条消息列表（按序号升序排列）
+     */
+    @Select("SELECT * FROM chat_messages WHERE chat_id = #{chatId} " +
+            "ORDER BY msg_seq DESC LIMIT #{limit}")
+    List<ChatMessage> selectByChatId(@Param("chatId") Long chatId,
+                                     @Param("limit") Integer limit);
+
+    /**
      * 根据会话ID和消息序号查询单条消息
      */
     @Select("SELECT * FROM chat_messages WHERE chat_id = #{chatId} AND msg_seq = #{msgSeq}")

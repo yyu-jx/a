@@ -25,6 +25,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ChatPersistenceService {
 
+    private static final int CHAT_MESSAGE_LIMIT = 20; // 默认会话查询消息数量限制
+
     private final ChatSessionMapper chatSessionMapper;
     private final ChatMessageMapper chatMessageMapper;
     private final ChatCourseRelMapper chatCourseRelMapper;
@@ -84,7 +86,7 @@ public class ChatPersistenceService {
             return null;
         }
 
-        return chatMessageMapper.selectByChatId(chatCourseRel.getChatId());
+        return chatMessageMapper.selectByChatId(chatCourseRel.getChatId(), CHAT_MESSAGE_LIMIT);
     }
 
     @Transactional
@@ -96,7 +98,7 @@ public class ChatPersistenceService {
             return null;
         }
 
-        return chatMessageMapper.selectByChatId(chatCoursewareRecRel.getChatId());
+        return chatMessageMapper.selectByChatId(chatCoursewareRecRel.getChatId(), CHAT_MESSAGE_LIMIT);
     }
 
     @Transactional
@@ -109,7 +111,7 @@ public class ChatPersistenceService {
             return null;
         }
 
-        return chatMessageMapper.selectByChatId(chatSession.getId());
+        return chatMessageMapper.selectByChatId(chatSession.getId(), CHAT_MESSAGE_LIMIT);
 
     }
 

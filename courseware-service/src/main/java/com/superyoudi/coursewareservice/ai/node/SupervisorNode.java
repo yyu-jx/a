@@ -156,7 +156,6 @@ public class SupervisorNode implements NodeAction {
      */
     private String generatePptJson(long userId, long coursewareRecId) {
 
-
         String systemPrompt = """
                 你是一位总结专家，可以根据对话历史总结需要生成的资料的各个要点，以及需要生成哪些资料，并以严格的Json格式输出。
                 
@@ -182,12 +181,13 @@ public class SupervisorNode implements NodeAction {
                 用户ID: %d
                 """;
 
+        // 读取对话历史
         return chatClient.prompt(String.format(systemPrompt, userId, getFormattedChatHistory(userId, coursewareRecId)))
                 .call()
                 .content();
     }
 
-    public String getFormattedChatHistory(long userId, long coursewareRecId) {
+    private String getFormattedChatHistory(long userId, long coursewareRecId) {
         List<ChatMessage> chatHistory = supervisorMessageAgentHook.getChatHistory(userId, coursewareRecId);
         return AiMessageUtils.formatChatHistory(chatHistory);
     }
