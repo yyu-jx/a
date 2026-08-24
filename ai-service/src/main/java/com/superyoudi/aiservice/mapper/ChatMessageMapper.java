@@ -29,8 +29,8 @@ public interface ChatMessageMapper {
      */
     @Select("SELECT * FROM chat_messages WHERE chat_id = #{chatId} " +
             "ORDER BY msg_seq DESC LIMIT #{limit}")
-    List<ChatMessage> selectByChatId(@Param("chatId") Long chatId,
-                                     @Param("limit") Integer limit);
+    List<ChatMessage> selectByChatIdWithLimit(@Param("chatId") Long chatId,
+                                              @Param("limit") Integer limit);
 
     /**
      * 根据会话ID和消息序号查询单条消息

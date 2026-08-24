@@ -17,8 +17,6 @@ import reactor.core.publisher.Flux;
 @Component
 public class AiTeacherAssistantAgent {
 
-    // TODO 聊天记录
-
     private final ReactAgent agent;
 
     public AiTeacherAssistantAgent(AiTeacherMessageAgentHook hook, AiTeacherAssistantTools teacherAssistantTools, ChatModel chatModel, RagTools ragTools) {

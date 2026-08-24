@@ -55,8 +55,7 @@ public class AiTeacherAssistantTools {
         Long userId = (Long) context.getContext().get(AgentConstants.METADATA_USER_ID);
 
 
-        Long coursewareRecId = aiTeacherAssistantService.callCoursewareGeneration(userId, request);
-        // TODO 前端发消息
+      aiTeacherAssistantService.callCoursewareGeneration(userId, request);
         return "成功";
     }
 

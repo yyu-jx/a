@@ -29,7 +29,7 @@ server:
       charset: UTF-8
       enabled: true
       force: true
-  port: 18080
+  port: 8080
 
 mybatis:
   configuration:

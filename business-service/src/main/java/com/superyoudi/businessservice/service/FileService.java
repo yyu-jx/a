@@ -95,6 +95,42 @@ public class FileService {
         return userFile.getId();
     }
 
+
+    /**
+     * 插入文件表，不存硬盘
+     *
+     * @param userFile   插入的数据。必须设置source字段
+     * @param uniqueName 文件唯一名称（附带扩展名）。如果为null，则自动生成
+     * @param extension  文件扩展名，传入null表示无扩展名
+     * @return UserFile的ID
+     */
+    public Long insertUserFile(@NonNull UserFile userFile, @Nullable String uniqueName, @Nullable String extension) {
+        Assert.notNull(userFile, "userFile不能为null");
+
+        String source = userFile.getSource();
+        String path;
+        if (source.equals(UserFileConstants.SOURCE_UPLOAD))
+            path = uploadPath;
+        else if (source.equals(UserFileConstants.SOURCE_GENERATED))
+            path = exportPath;
+        else
+            throw new IllegalArgumentException("文件来源不合法");
+
+        if (extension == null)
+            extension = "";
+
+        // 生成唯一名称
+        if (uniqueName == null)
+            uniqueName = System.currentTimeMillis() + "_" + UUID.randomUUID() + extension;
+
+        String fileUrl = path + "/" + uniqueName;
+
+        userFile.setFileUrl(fileUrl);
+        userFileMapper.insert(userFile);
+        return userFile.getId();
+    }
+
+
     /**
      * 获取用户文件列表
      */
@@ -141,6 +177,7 @@ public class FileService {
             case "pdf" -> UserFileConstants.TYPE_PDF;
             case "docx" -> UserFileConstants.TYPE_DOCX;
             case "pptx" -> UserFileConstants.TYPE_PPTX;
+            case "zip" -> UserFileConstants.TYPE_ZIP;
             case "mp4",
                  "mp3",
                  "mkv",

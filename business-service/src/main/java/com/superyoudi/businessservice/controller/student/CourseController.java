@@ -61,7 +61,8 @@ public class CourseController {
 
 
     /**
-     * 获取课程学习路径
+     * 获取课程
+     * 学习路径
      * <p>
      * 如果没有，就生成并返回
      */

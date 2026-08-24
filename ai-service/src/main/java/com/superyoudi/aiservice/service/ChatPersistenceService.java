@@ -86,7 +86,7 @@ public class ChatPersistenceService {
             return null;
         }
 
-        return chatMessageMapper.selectByChatId(chatCourseRel.getChatId(), CHAT_MESSAGE_LIMIT);
+        return chatMessageMapper.selectByChatIdWithLimit(chatCourseRel.getChatId(), CHAT_MESSAGE_LIMIT);
     }
 
     @Transactional
@@ -98,7 +98,7 @@ public class ChatPersistenceService {
             return null;
         }
 
-        return chatMessageMapper.selectByChatId(chatCoursewareRecRel.getChatId(), CHAT_MESSAGE_LIMIT);
+        return chatMessageMapper.selectByChatIdWithLimit(chatCoursewareRecRel.getChatId(), CHAT_MESSAGE_LIMIT);
     }
 
     @Transactional
@@ -111,7 +111,7 @@ public class ChatPersistenceService {
             return null;
         }
 
-        return chatMessageMapper.selectByChatId(chatSession.getId(), CHAT_MESSAGE_LIMIT);
+        return chatMessageMapper.selectByChatIdWithLimit(chatSession.getId(), CHAT_MESSAGE_LIMIT);
 
     }
 
