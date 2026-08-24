@@ -5,6 +5,7 @@ import java.util.List;
 /**
  * 知识图谱返回结构：节点 + 边
  */
+@Deprecated
 public record KnowledgeGraphDTO(
         List<NodeDTO> nodes,
         List<EdgeDTO> edges) {

@@ -2,6 +2,8 @@ package com.superyoudi.businessservice.service;
 
 import com.superyoudi.businessservice.pojo.entity.Question;
 import com.superyoudi.businessservice.pojo.entity.QuestionProperty;
+import com.superyoudi.common.dto.QuestionDTO;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +22,7 @@ public interface QuestionBaseService {
 
     List<Question> getQuestionsByKnowledge(String knowledge);
 
-    void addQuestion(Question question, QuestionProperty questionProperty);
+    void addQuestion(@Nullable QuestionDTO dto);
 
     void updateQuestion(Question question);
 

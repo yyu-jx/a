@@ -1,11 +1,17 @@
 package com.superyoudi.businessservice.service.impl;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.superyoudi.aiservice.ai.model.QuestionGenerateModel;
+import com.superyoudi.businessservice.mapper.QuestionKnowledgeRelMapper;
 import com.superyoudi.businessservice.mapper.QuestionMapper;
 import com.superyoudi.businessservice.mapper.QuestionPropertyMapper;
 import com.superyoudi.businessservice.pojo.entity.Question;
+import com.superyoudi.businessservice.pojo.entity.QuestionKnowledgeRel;
 import com.superyoudi.businessservice.pojo.entity.QuestionProperty;
-import com.superyoudi.common.constants.QuestionConstants;
+import com.superyoudi.common.dto.QuestionDTO;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -14,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,484 +30,650 @@ import static org.mockito.Mockito.*;
 /**
  * @author Sijayyx
  */
+
 @ExtendWith(MockitoExtension.class)
 class QuestionBaseServiceImplTest {
 
-    private final Long TEST_TEACHER_ID = 1L;
-    private final Long TEST_COURSE_ID = 100L;
-    private final Long TEST_QUESTION_ID = 1000L;
-    private final Long TEST_PROPERTY_ID = 2000L;
     @Mock
     private QuestionMapper questionMapper;
+
     @Mock
     private QuestionPropertyMapper questionPropertyMapper;
+
+    @Mock
+    private QuestionGenerateModel questionGenerateModel;
+
+    @Mock
+    private QuestionKnowledgeRelMapper questionKnowledgeRelMapper;
+
     @InjectMocks
     private QuestionBaseServiceImpl questionBaseService;
+
     private Question testQuestion;
     private QuestionProperty testProperty;
+    private QuestionDTO testDTO;
 
     @BeforeEach
     void setUp() {
+        // 创建测试数据
         testQuestion = Question.builder()
-                .id(TEST_QUESTION_ID)
-                .teacherId(TEST_TEACHER_ID)
-                .courseId(TEST_COURSE_ID)
-                .type(QuestionConstants.TYPE_CHOICE)
+                .id(1L)
+                .courseId(100L)
+                .teacherId(200L)
+                .type("choice")
                 .content("测试题目内容")
-                .answer("{\"A\":\"选项A\",\"B\":\"选项B\"}")
+                .answer("{\"select\":\"A\"}")
                 .build();
 
         testProperty = QuestionProperty.builder()
-                .id(TEST_PROPERTY_ID)
-                .questionId(TEST_QUESTION_ID)
-                .analysis("本题考查了XXX知识点")
-                .source(QuestionConstants.SOURCE_MANUAL)
-                .difficulty(QuestionConstants.DIFFICULTY_MEDIUM)
+                .id(1L)
+                .questionId(1L)
+                .analysis("测试解析")
+                .source("manual")
+                .difficulty("easy")
+                .build();
+
+        testDTO = QuestionDTO.builder()
+                .courseId(100L)
+                .teacherId(200L)
+                .type("choice")
+                .content("测试题目内容")
+                .answer("{\"select\":\"A\"}")
+                .analysis("测试解析")
+                .source("manual")
+                .difficulty("easy")
+                .knowledgeList(Arrays.asList("知识点1", "知识点2"))
                 .build();
     }
 
-    // ========== getQuestions 测试 ==========
-    @Test
-    void getQuestions_WhenQuestionTypeIsNull_ShouldFindAllByTeacherAndCourse() {
-        // Arrange
-        List<Question> expectedQuestions = Arrays.asList(testQuestion);
-        when(questionMapper.findByTeacherIdAndCourseId(TEST_TEACHER_ID, TEST_COURSE_ID))
-                .thenReturn(expectedQuestions);
+    @Nested
+    @DisplayName("generateQuestions 方法测试")
+    class GenerateQuestionsTest {
 
-        // Act
-        List<Question> result = questionBaseService.getQuestions(TEST_TEACHER_ID, TEST_COURSE_ID, null);
+        @Test
+        @DisplayName("成功生成题目")
+        void shouldGenerateQuestionsSuccessfully() {
+            // Arrange
+            Long assignerId = 200L;
+            Long courseId = 100L;
+            List<String> knowledge = Arrays.asList("知识点1", "知识点2");
+            String questionType = "choice";
+            int count = 2;
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(testQuestion, result.get(0));
-        verify(questionMapper, times(1))
-                .findByTeacherIdAndCourseId(TEST_TEACHER_ID, TEST_COURSE_ID);
-        verify(questionMapper, never())
-                .findByTeacherIdAndCourseIdAndType(anyLong(), anyLong(), anyString());
+            QuestionGenerateModel.QuestionGenerateResult result =
+                    new QuestionGenerateModel.QuestionGenerateResult();
+            QuestionGenerateModel.QuestionGenerateResult.QuestionData data1 =
+                    new QuestionGenerateModel.QuestionGenerateResult.QuestionData();
+            data1.setContent("题目1");
+            data1.setAnswer(JsonNodeFactory.instance.objectNode().put("select", "A"));
+
+            QuestionGenerateModel.QuestionGenerateResult.QuestionData data2 =
+                    new QuestionGenerateModel.QuestionGenerateResult.QuestionData();
+            data2.setContent("题目2");
+            data2.setAnswer(JsonNodeFactory.instance.objectNode().put("select", "B"));
+
+            result.setQuestionData(Arrays.asList(data1, data2));
+
+            when(questionGenerateModel.call(knowledge, questionType, count)).thenReturn(result);
+            when(questionMapper.insert(any(Question.class))).thenReturn(1L);
+
+            // Act
+            List<Question> questions = questionBaseService.generateQuestions(
+                    assignerId, courseId, knowledge, questionType, count);
+
+            // Assert
+            assertNotNull(questions);
+            assertEquals(2, questions.size());
+            verify(questionGenerateModel, times(1)).call(knowledge, questionType, count);
+            verify(questionMapper, times(2)).insert(any(Question.class));
+
+            // 验证生成的题目属性
+            Question generatedQuestion = questions.get(0);
+            assertEquals(courseId, generatedQuestion.getCourseId());
+            assertEquals(assignerId, generatedQuestion.getTeacherId());
+            assertEquals(questionType, generatedQuestion.getType());
+
+            // 验证答案被正确转换为字符串
+            assertEquals("{\"select\":\"A\"}", generatedQuestion.getAnswer());
+        }
+
+        @Test
+        @DisplayName("大模型返回空列表")
+        void shouldReturnEmptyListWhenModelReturnsEmpty() {
+            // Arrange
+            Long assignerId = 200L;
+            Long courseId = 100L;
+            List<String> knowledge = Arrays.asList("知识点1");
+            String questionType = "choice";
+            int count = 1;
+
+            QuestionGenerateModel.QuestionGenerateResult result =
+                    new QuestionGenerateModel.QuestionGenerateResult();
+            result.setQuestionData(Collections.emptyList());
+
+            when(questionGenerateModel.call(knowledge, questionType, count)).thenReturn(result);
+
+            // Act
+            List<Question> questions = questionBaseService.generateQuestions(
+                    assignerId, courseId, knowledge, questionType, count);
+
+            // Assert
+            assertNotNull(questions);
+            assertTrue(questions.isEmpty());
+            verify(questionMapper, never()).insert(any(Question.class));
+        }
+
+        @Test
+        @DisplayName("大模型调用异常")
+        void shouldThrowExceptionWhenModelFails() {
+            // Arrange
+            Long assignerId = 200L;
+            Long courseId = 100L;
+            List<String> knowledge = Arrays.asList("知识点1");
+            String questionType = "choice";
+            int count = 1;
+
+            when(questionGenerateModel.call(anyList(), anyString(), anyInt()))
+                    .thenThrow(new RuntimeException("模型调用失败"));
+
+            // Act & Assert
+            assertThrows(RuntimeException.class, () -> {
+                questionBaseService.generateQuestions(assignerId, courseId, knowledge, questionType, count);
+            });
+            verify(questionMapper, never()).insert(any(Question.class));
+        }
     }
 
-    @Test
-    void getQuestions_WhenQuestionTypeIsNotNull_ShouldFindByTeacherAndCourseAndType() {
-        // Arrange
-        String questionType = QuestionConstants.TYPE_CHOICE;
-        List<Question> expectedQuestions = Arrays.asList(testQuestion);
-        when(questionMapper.findByTeacherIdAndCourseIdAndType(TEST_TEACHER_ID, TEST_COURSE_ID, questionType))
-                .thenReturn(expectedQuestions);
+    @Nested
+    @DisplayName("getQuestions 方法测试")
+    class GetQuestionsTest {
 
-        // Act
-        List<Question> result = questionBaseService.getQuestions(TEST_TEACHER_ID, TEST_COURSE_ID, questionType);
+        @Test
+        @DisplayName("查询所有题目（不指定类型）")
+        void shouldGetAllQuestionsWhenTypeIsNull() {
+            // Arrange
+            Long teacherId = 200L;
+            Long courseId = 100L;
+            List<Question> expectedQuestions = Arrays.asList(testQuestion);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(testQuestion, result.get(0));
-        verify(questionMapper, never())
-                .findByTeacherIdAndCourseId(TEST_TEACHER_ID, TEST_COURSE_ID);
-        verify(questionMapper, times(1))
-                .findByTeacherIdAndCourseIdAndType(TEST_TEACHER_ID, TEST_COURSE_ID, questionType);
+            when(questionMapper.findByTeacherIdAndCourseId(teacherId, courseId))
+                    .thenReturn(expectedQuestions);
+
+            // Act
+            List<Question> questions = questionBaseService.getQuestions(teacherId, courseId, null);
+
+            // Assert
+            assertNotNull(questions);
+            assertEquals(1, questions.size());
+            verify(questionMapper, times(1)).findByTeacherIdAndCourseId(teacherId, courseId);
+        }
+
+        @Test
+        @DisplayName("查询指定类型的题目")
+        void shouldGetQuestionsByType() {
+            // Arrange
+            Long teacherId = 200L;
+            Long courseId = 100L;
+            String questionType = "choice";
+            List<Question> expectedQuestions = Arrays.asList(testQuestion);
+
+            when(questionMapper.findByTeacherIdAndCourseIdAndType(teacherId, courseId, questionType))
+                    .thenReturn(expectedQuestions);
+
+            // Act
+            List<Question> questions = questionBaseService.getQuestions(teacherId, courseId, questionType);
+
+            // Assert
+            assertNotNull(questions);
+            assertEquals(1, questions.size());
+            verify(questionMapper, times(1))
+                    .findByTeacherIdAndCourseIdAndType(teacherId, courseId, questionType);
+        }
+
+        @Test
+        @DisplayName("teacherId为null时抛出异常")
+        void shouldThrowExceptionWhenTeacherIdIsNull() {
+            // Act & Assert
+            assertThrows(IllegalArgumentException.class, () -> {
+                questionBaseService.getQuestions(null, 100L, null);
+            });
+        }
+
+        @Test
+        @DisplayName("courseId为null时抛出异常")
+        void shouldThrowExceptionWhenCourseIdIsNull() {
+            // Act & Assert
+            assertThrows(IllegalArgumentException.class, () -> {
+                questionBaseService.getQuestions(200L, null, null);
+            });
+        }
     }
 
-    @Test
-    void getQuestions_WhenNoQuestionsFound_ShouldReturnEmptyList() {
-        // Arrange
-        when(questionMapper.findByTeacherIdAndCourseId(TEST_TEACHER_ID, TEST_COURSE_ID))
-                .thenReturn(List.of());
+    @Nested
+    @DisplayName("getQuestionsByKnowledge 方法测试")
+    class GetQuestionsByKnowledgeTest {
 
-        // Act
-        List<Question> result = questionBaseService.getQuestions(TEST_TEACHER_ID, TEST_COURSE_ID, null);
+        @Test
+        @DisplayName("根据知识点查询题目")
+        void shouldGetQuestionsByKnowledge() {
+            // Arrange
+            String knowledge = "知识点1";
+            List<Question> expectedQuestions = Arrays.asList(testQuestion);
 
-        // Assert
-        assertNotNull(result);
-        assertTrue(result.isEmpty());
-        verify(questionMapper, times(1))
-                .findByTeacherIdAndCourseId(TEST_TEACHER_ID, TEST_COURSE_ID);
+            when(questionMapper.findQuestionsByKnowledge(knowledge))
+                    .thenReturn(expectedQuestions);
+
+            // Act
+            List<Question> questions = questionBaseService.getQuestionsByKnowledge(knowledge);
+
+            // Assert
+            assertNotNull(questions);
+            assertEquals(1, questions.size());
+            verify(questionMapper, times(1)).findQuestionsByKnowledge(knowledge);
+        }
+
+        @Test
+        @DisplayName("根据知识点查询无结果")
+        void shouldReturnEmptyListWhenNoQuestionsFound() {
+            // Arrange
+            String knowledge = "不存在的知识点";
+
+            when(questionMapper.findQuestionsByKnowledge(knowledge))
+                    .thenReturn(Collections.emptyList());
+
+            // Act
+            List<Question> questions = questionBaseService.getQuestionsByKnowledge(knowledge);
+
+            // Assert
+            assertNotNull(questions);
+            assertTrue(questions.isEmpty());
+        }
     }
 
-    @Test
-    void getQuestions_WhenTeacherIdIsNull_ShouldThrowException() {
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class,
-                () -> questionBaseService.getQuestions(null, TEST_COURSE_ID, null));
+    @Nested
+    @DisplayName("addQuestion 方法测试")
+    class AddQuestionTest {
+
+        @Test
+        @DisplayName("成功添加题目及属性")
+        void shouldAddQuestionWithPropertySuccessfully() {
+            // Arrange
+            when(questionMapper.insert(any(Question.class))).thenReturn(1L);
+            when(questionPropertyMapper.insert(any(QuestionProperty.class))).thenReturn(1L);
+            when(questionKnowledgeRelMapper.insert(any(QuestionKnowledgeRel.class))).thenReturn(1L);
+
+            // Act
+            questionBaseService.addQuestion(testDTO);
+
+            // Assert
+            ArgumentCaptor<Question> questionCaptor = ArgumentCaptor.forClass(Question.class);
+            verify(questionMapper, times(1)).insert(questionCaptor.capture());
+
+            Question capturedQuestion = questionCaptor.getValue();
+            assertEquals(testDTO.getCourseId(), capturedQuestion.getCourseId());
+            assertEquals(testDTO.getTeacherId(), capturedQuestion.getTeacherId());
+            assertEquals(testDTO.getType(), capturedQuestion.getType());
+            assertEquals(testDTO.getContent(), capturedQuestion.getContent());
+            assertEquals(testDTO.getAnswer(), capturedQuestion.getAnswer());
+
+            // 验证属性插入
+            ArgumentCaptor<QuestionProperty> propertyCaptor = ArgumentCaptor.forClass(QuestionProperty.class);
+            verify(questionPropertyMapper, times(1)).insert(propertyCaptor.capture());
+
+            QuestionProperty capturedProperty = propertyCaptor.getValue();
+            assertEquals(testDTO.getAnalysis(), capturedProperty.getAnalysis());
+            assertEquals(testDTO.getSource(), capturedProperty.getSource());
+            assertEquals(testDTO.getDifficulty(), capturedProperty.getDifficulty());
+
+            // 验证知识点关系插入
+            verify(questionKnowledgeRelMapper, times(2)).insert(any(QuestionKnowledgeRel.class));
+        }
+
+        @Test
+        @DisplayName("添加题目时DTO为null抛出异常")
+        void shouldThrowExceptionWhenDTOIsNull() {
+            // Act & Assert
+            assertThrows(IllegalArgumentException.class, () -> {
+                questionBaseService.addQuestion(null);
+            });
+            verify(questionMapper, never()).insert(any(Question.class));
+        }
+
+        @Test
+        @DisplayName("添加题目时teacherId为null抛出异常")
+        void shouldThrowExceptionWhenTeacherIdIsNull() {
+            // Arrange
+            testDTO.setTeacherId(null);
+
+            // Act & Assert
+            assertThrows(IllegalArgumentException.class, () -> {
+                questionBaseService.addQuestion(testDTO);
+            });
+            verify(questionMapper, never()).insert(any(Question.class));
+        }
+
+        @Test
+        @DisplayName("添加题目时content为空抛出异常")
+        void shouldThrowExceptionWhenContentIsEmpty() {
+            // Arrange
+            testDTO.setContent("");
+
+            // Act & Assert
+            assertThrows(IllegalArgumentException.class, () -> {
+                questionBaseService.addQuestion(testDTO);
+            });
+            verify(questionMapper, never()).insert(any(Question.class));
+        }
+
+        @Test
+        @DisplayName("插入题目失败抛出异常")
+        void shouldThrowExceptionWhenInsertFails() {
+            // Arrange
+            when(questionMapper.insert(any(Question.class))).thenReturn(0L);
+
+            // Act & Assert
+            assertThrows(RuntimeException.class, () -> {
+                questionBaseService.addQuestion(testDTO);
+            });
+            verify(questionPropertyMapper, never()).insert(any(QuestionProperty.class));
+            verify(questionKnowledgeRelMapper, never()).insert(any(QuestionKnowledgeRel.class));
+        }
+
+        @Test
+        @DisplayName("添加题目时knowledgeList为空列表")
+        void shouldAddQuestionWhenKnowledgeListIsEmpty() {
+            // Arrange
+            testDTO.setKnowledgeList(Collections.emptyList());
+            when(questionMapper.insert(any(Question.class))).thenReturn(1L);
+            when(questionPropertyMapper.insert(any(QuestionProperty.class))).thenReturn(1L);
+
+            // Act
+            questionBaseService.addQuestion(testDTO);
+
+            // Assert
+            verify(questionMapper, times(1)).insert(any(Question.class));
+            verify(questionPropertyMapper, times(1)).insert(any(QuestionProperty.class));
+            verify(questionKnowledgeRelMapper, never()).insert(any(QuestionKnowledgeRel.class));
+        }
     }
 
-    @Test
-    void getQuestions_WhenCourseIdIsNull_ShouldThrowException() {
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class,
-                () -> questionBaseService.getQuestions(TEST_TEACHER_ID, null, null));
+    @Nested
+    @DisplayName("updateQuestion 方法测试")
+    class UpdateQuestionTest {
+
+        @Test
+        @DisplayName("成功更新题目")
+        void shouldUpdateQuestionSuccessfully() {
+            // Arrange
+            when(questionMapper.update(any(Question.class))).thenReturn(1L);
+
+            // Act
+            questionBaseService.updateQuestion(testQuestion);
+
+            // Assert
+            verify(questionMapper, times(1)).update(testQuestion);
+        }
+
+        @Test
+        @DisplayName("更新题目失败抛出异常")
+        void shouldThrowExceptionWhenUpdateFails() {
+            // Arrange
+            when(questionMapper.update(any(Question.class))).thenReturn(0L);
+
+            // Act & Assert
+            assertThrows(RuntimeException.class, () -> {
+                questionBaseService.updateQuestion(testQuestion);
+            });
+        }
+
+        @Test
+        @DisplayName("更新不存在的题目")
+        void shouldThrowExceptionWhenUpdateNonExistentQuestion() {
+            // Arrange
+            when(questionMapper.update(any(Question.class))).thenReturn(null);
+
+            // Act & Assert
+            assertThrows(RuntimeException.class, () -> {
+                questionBaseService.updateQuestion(testQuestion);
+            });
+        }
     }
 
-    // ========== addQuestion 测试 ==========
-    @Test
-    void addQuestion_WhenQuestionPropertyIsNull_ShouldInsertQuestionOnly() {
-        // Arrange
-        when(questionMapper.insert(testQuestion)).thenReturn(TEST_QUESTION_ID);
+    @Nested
+    @DisplayName("deleteQuestion 方法测试")
+    class DeleteQuestionTest {
 
-        // Act
-        questionBaseService.addQuestion(testQuestion, null);
+        @Test
+        @DisplayName("成功删除题目")
+        void shouldDeleteQuestionSuccessfully() {
+            // Arrange
+            Long questionId = 1L;
+            when(questionMapper.deleteById(questionId)).thenReturn(1L);
 
-        // Assert
-        verify(questionMapper, times(1)).insert(testQuestion);
-        verify(questionPropertyMapper, never()).insert(any(QuestionProperty.class));
+            // Act
+            questionBaseService.deleteQuestion(questionId);
+
+            // Assert
+            verify(questionMapper, times(1)).deleteById(questionId);
+        }
+
+        @Test
+        @DisplayName("删除题目失败抛出异常")
+        void shouldThrowExceptionWhenDeleteFails() {
+            // Arrange
+            Long questionId = 1L;
+            when(questionMapper.deleteById(questionId)).thenReturn(0L);
+
+            // Act & Assert
+            assertThrows(RuntimeException.class, () -> {
+                questionBaseService.deleteQuestion(questionId);
+            });
+        }
+
+        @Test
+        @DisplayName("删除不存在的题目")
+        void shouldThrowExceptionWhenDeleteNonExistentQuestion() {
+            // Arrange
+            Long questionId = 999L;
+            when(questionMapper.deleteById(questionId)).thenReturn(null);
+
+            // Act & Assert
+            assertThrows(RuntimeException.class, () -> {
+                questionBaseService.deleteQuestion(questionId);
+            });
+        }
     }
 
-    @Test
-    void addQuestion_WhenQuestionPropertyIsNotNull_ShouldInsertBoth() {
-        // Arrange
-        when(questionMapper.insert(testQuestion)).thenReturn(TEST_QUESTION_ID);
-        when(questionPropertyMapper.insert(any(QuestionProperty.class))).thenReturn(TEST_PROPERTY_ID);
+    @Nested
+    @DisplayName("addQuestionProperty 方法测试")
+    class AddQuestionPropertyTest {
 
-        // Act
-        questionBaseService.addQuestion(testQuestion, testProperty);
+        @Test
+        @DisplayName("成功添加题目属性")
+        void shouldAddQuestionPropertySuccessfully() {
+            // Arrange
+            when(questionPropertyMapper.insert(any(QuestionProperty.class))).thenReturn(1L);
 
-        // Assert
-        verify(questionMapper, times(1)).insert(testQuestion);
+            // Act
+            questionBaseService.addQuestionProperty(testProperty);
 
-        ArgumentCaptor<QuestionProperty> propertyCaptor = ArgumentCaptor.forClass(QuestionProperty.class);
-        verify(questionPropertyMapper, times(1)).insert(propertyCaptor.capture());
+            // Assert
+            verify(questionPropertyMapper, times(1)).insert(testProperty);
+        }
 
-        QuestionProperty capturedProperty = propertyCaptor.getValue();
-        assertEquals(TEST_QUESTION_ID, capturedProperty.getQuestionId());
-        assertEquals(testProperty.getAnalysis(), capturedProperty.getAnalysis());
-        assertEquals(testProperty.getSource(), capturedProperty.getSource());
-        assertEquals(testProperty.getDifficulty(), capturedProperty.getDifficulty());
+        @Test
+        @DisplayName("添加题目属性为null抛出异常")
+        void shouldThrowExceptionWhenPropertyIsNull() {
+            // Act & Assert
+            assertThrows(IllegalArgumentException.class, () -> {
+                questionBaseService.addQuestionProperty(null);
+            });
+            verify(questionPropertyMapper, never()).insert(any(QuestionProperty.class));
+        }
+
+        @Test
+        @DisplayName("添加题目属性questionId为null抛出异常")
+        void shouldThrowExceptionWhenQuestionIdIsNull() {
+            // Arrange
+            testProperty.setQuestionId(null);
+
+            // Act & Assert
+            assertThrows(IllegalArgumentException.class, () -> {
+                questionBaseService.addQuestionProperty(testProperty);
+            });
+            verify(questionPropertyMapper, never()).insert(any(QuestionProperty.class));
+        }
+
+        @Test
+        @DisplayName("插入题目属性失败抛出异常")
+        void shouldThrowExceptionWhenInsertFails() {
+            // Arrange
+            when(questionPropertyMapper.insert(any(QuestionProperty.class))).thenReturn(0L);
+
+            // Act & Assert
+            assertThrows(RuntimeException.class, () -> {
+                questionBaseService.addQuestionProperty(testProperty);
+            });
+        }
     }
 
-    @Test
-    void addQuestion_WhenQuestionIsNull_ShouldThrowException() {
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class,
-                () -> questionBaseService.addQuestion(null, testProperty));
+    @Nested
+    @DisplayName("updateQuestionProperty 方法测试")
+    class UpdateQuestionPropertyTest {
+
+        @Test
+        @DisplayName("成功更新题目属性")
+        void shouldUpdateQuestionPropertySuccessfully() {
+            // Arrange
+            when(questionPropertyMapper.update(any(QuestionProperty.class))).thenReturn(1L);
+
+            // Act
+            questionBaseService.updateQuestionProperty(testProperty);
+
+            // Assert
+            verify(questionPropertyMapper, times(1)).update(testProperty);
+        }
+
+        @Test
+        @DisplayName("更新题目属性为null抛出异常")
+        void shouldThrowExceptionWhenPropertyIsNull() {
+            // Act & Assert
+            assertThrows(IllegalArgumentException.class, () -> {
+                questionBaseService.updateQuestionProperty(null);
+            });
+            verify(questionPropertyMapper, never()).update(any(QuestionProperty.class));
+        }
+
+        @Test
+        @DisplayName("更新题目属性ID为null抛出异常")
+        void shouldThrowExceptionWhenPropertyIdIsNull() {
+            // Arrange
+            testProperty.setId(null);
+
+            // Act & Assert
+            assertThrows(IllegalArgumentException.class, () -> {
+                questionBaseService.updateQuestionProperty(testProperty);
+            });
+            verify(questionPropertyMapper, never()).update(any(QuestionProperty.class));
+        }
+
+        @Test
+        @DisplayName("更新题目属性失败抛出异常")
+        void shouldThrowExceptionWhenUpdateFails() {
+            // Arrange
+            when(questionPropertyMapper.update(any(QuestionProperty.class))).thenReturn(0L);
+
+            // Act & Assert
+            assertThrows(RuntimeException.class, () -> {
+                questionBaseService.updateQuestionProperty(testProperty);
+            });
+        }
     }
 
-    @Test
-    void addQuestion_WhenInsertFails_ShouldThrowException() {
-        // Arrange
-        when(questionMapper.insert(testQuestion)).thenReturn(0L);
+    @Nested
+    @DisplayName("deleteQuestionProperty 方法测试")
+    class DeleteQuestionPropertyTest {
 
-        // Act & Assert
-        assertThrows(Exception.class,
-                () -> questionBaseService.addQuestion(testQuestion, null));
+        @Test
+        @DisplayName("成功删除题目属性")
+        void shouldDeleteQuestionPropertySuccessfully() {
+            // Arrange
+            Long propertyId = 1L;
+            when(questionPropertyMapper.deleteById(propertyId)).thenReturn(1L);
+
+            // Act
+            questionBaseService.deleteQuestionProperty(propertyId);
+
+            // Assert
+            verify(questionPropertyMapper, times(1)).deleteById(propertyId);
+        }
+
+        @Test
+        @DisplayName("删除题目属性ID为null抛出异常")
+        void shouldThrowExceptionWhenPropertyIdIsNull() {
+            // Act & Assert
+            assertThrows(IllegalArgumentException.class, () -> {
+                questionBaseService.deleteQuestionProperty(null);
+            });
+            verify(questionPropertyMapper, never()).deleteById(anyLong());
+        }
+
+        @Test
+        @DisplayName("删除题目属性失败抛出异常")
+        void shouldThrowExceptionWhenDeleteFails() {
+            // Arrange
+            Long propertyId = 1L;
+            when(questionPropertyMapper.deleteById(propertyId)).thenReturn(0L);
+
+            // Act & Assert
+            assertThrows(RuntimeException.class, () -> {
+                questionBaseService.deleteQuestionProperty(propertyId);
+            });
+        }
     }
 
-    // ========== updateQuestion 测试 ==========
-    @Test
-    void updateQuestion_ShouldCallMapperUpdate() {
-        // Arrange
-        when(questionMapper.update(testQuestion)).thenReturn(1L);
+    @Nested
+    @DisplayName("getQuestionPropertyByQuestionId 方法测试")
+    class GetQuestionPropertyByQuestionIdTest {
 
-        // Act
-        questionBaseService.updateQuestion(testQuestion);
+        @Test
+        @DisplayName("成功获取题目属性")
+        void shouldGetQuestionPropertySuccessfully() {
+            // Arrange
+            Long questionId = 1L;
+            when(questionPropertyMapper.findByQuestionId(questionId)).thenReturn(testProperty);
 
-        // Assert
-        verify(questionMapper, times(1)).update(testQuestion);
-    }
+            // Act
+            QuestionProperty property = questionBaseService.getQuestionPropertyByQuestionId(questionId);
 
-    @Test
-    void updateQuestion_WhenUpdateFails_ShouldThrowException() {
-        // Arrange
-        when(questionMapper.update(testQuestion)).thenReturn(0L);
+            // Assert
+            assertNotNull(property);
+            assertEquals(testProperty, property);
+            verify(questionPropertyMapper, times(1)).findByQuestionId(questionId);
+        }
 
-        // Act & Assert
-        assertThrows(Exception.class,
-                () -> questionBaseService.updateQuestion(testQuestion));
-    }
+        @Test
+        @DisplayName("获取题目属性questionId为null抛出异常")
+        void shouldThrowExceptionWhenQuestionIdIsNull() {
+            // Act & Assert
+            assertThrows(IllegalArgumentException.class, () -> {
+                questionBaseService.getQuestionPropertyByQuestionId(null);
+            });
+            verify(questionPropertyMapper, never()).findByQuestionId(anyLong());
+        }
 
-    @Test
-    void updateQuestion_WhenQuestionIsNull_ShouldThrowException() {
-        // Act & Assert
-        assertThrows(Exception.class,
-                () -> questionBaseService.updateQuestion(null));
-    }
+        @Test
+        @DisplayName("获取不存在的题目属性返回null")
+        void shouldReturnNullWhenPropertyNotFound() {
+            // Arrange
+            Long questionId = 999L;
+            when(questionPropertyMapper.findByQuestionId(questionId)).thenReturn(null);
 
-    @Test
-    void updateQuestion_ShouldUpdateAllFields() {
-        // Arrange
-        Question updatedQuestion = Question.builder()
-                .id(TEST_QUESTION_ID)
-                .teacherId(TEST_TEACHER_ID)
-                .courseId(TEST_COURSE_ID)
-                .type(QuestionConstants.TYPE_SUBJECTIVE)
-                .content("更新后的题目内容")
-                .answer("更新后的答案")
-                .build();
+            // Act
+            QuestionProperty property = questionBaseService.getQuestionPropertyByQuestionId(questionId);
 
-        when(questionMapper.update(updatedQuestion)).thenReturn(1L);
-
-        // Act
-        questionBaseService.updateQuestion(updatedQuestion);
-
-        // Assert
-        ArgumentCaptor<Question> questionCaptor = ArgumentCaptor.forClass(Question.class);
-        verify(questionMapper, times(1)).update(questionCaptor.capture());
-
-        Question captured = questionCaptor.getValue();
-        assertEquals(TEST_QUESTION_ID, captured.getId());
-        assertEquals(QuestionConstants.TYPE_SUBJECTIVE, captured.getType());
-        assertEquals("更新后的题目内容", captured.getContent());
-    }
-
-    // ========== deleteQuestion 测试 ==========
-    @Test
-    void deleteQuestion_ShouldCallMapperDelete() {
-        // Arrange
-        when(questionMapper.deleteById(TEST_QUESTION_ID)).thenReturn(1L);
-
-        // Act
-        questionBaseService.deleteQuestion(TEST_QUESTION_ID);
-
-        // Assert
-        verify(questionMapper, times(1)).deleteById(TEST_QUESTION_ID);
-    }
-
-    @Test
-    void deleteQuestion_WhenDeleteFails_ShouldThrowException() {
-        // Arrange
-        when(questionMapper.deleteById(TEST_QUESTION_ID)).thenReturn(0L);
-
-        // Act & Assert
-        assertThrows(Exception.class,
-                () -> questionBaseService.deleteQuestion(TEST_QUESTION_ID));
-    }
-
-    @Test
-    void deleteQuestion_WhenIdIsNull_ShouldThrowException() {
-        // Act & Assert
-        assertThrows(Exception.class,
-                () -> questionBaseService.deleteQuestion(null));
-    }
-
-    // ========== addQuestionProperty 测试 ==========
-    @Test
-    void addQuestionProperty_ShouldCallMapperInsert() {
-        // Arrange
-        when(questionPropertyMapper.insert(testProperty)).thenReturn(TEST_PROPERTY_ID);
-
-        // Act
-        questionBaseService.addQuestionProperty(testProperty);
-
-        // Assert
-        verify(questionPropertyMapper, times(1)).insert(testProperty);
-    }
-
-    @Test
-    void addQuestionProperty_WhenInsertFails_ShouldThrowException() {
-        // Arrange
-        when(questionPropertyMapper.insert(testProperty)).thenReturn(0L);
-
-        // Act & Assert
-        assertThrows(Exception.class,
-                () -> questionBaseService.addQuestionProperty(testProperty));
-    }
-
-    @Test
-    void addQuestionProperty_WhenPropertyIsNull_ShouldThrowException() {
-        // Act & Assert
-        assertThrows(Exception.class,
-                () -> questionBaseService.addQuestionProperty(null));
-    }
-
-    // ========== updateQuestionProperty 测试 ==========
-    @Test
-    void updateQuestionProperty_ShouldCallMapperUpdate() {
-        // Arrange
-        when(questionPropertyMapper.update(testProperty)).thenReturn(1L);
-
-        // Act
-        questionBaseService.updateQuestionProperty(testProperty);
-
-        // Assert
-        verify(questionPropertyMapper, times(1)).update(testProperty);
-    }
-
-    @Test
-    void updateQuestionProperty_WhenUpdateFails_ShouldThrowException() {
-        // Arrange
-        when(questionPropertyMapper.update(testProperty)).thenReturn(0L);
-
-        // Act & Assert
-        assertThrows(Exception.class,
-                () -> questionBaseService.updateQuestionProperty(testProperty));
-    }
-
-    @Test
-    void updateQuestionProperty_ShouldUpdateAllFields() {
-        // Arrange
-        QuestionProperty updatedProperty = QuestionProperty.builder()
-                .id(TEST_PROPERTY_ID)
-                .questionId(TEST_QUESTION_ID)
-                .analysis("更新后的解析")
-                .source(QuestionConstants.SOURCE_AI)
-                .difficulty(QuestionConstants.DIFFICULTY_HARD)
-                .build();
-
-        when(questionPropertyMapper.update(updatedProperty)).thenReturn(1L);
-
-        // Act
-        questionBaseService.updateQuestionProperty(updatedProperty);
-
-        // Assert
-        ArgumentCaptor<QuestionProperty> propertyCaptor = ArgumentCaptor.forClass(QuestionProperty.class);
-        verify(questionPropertyMapper, times(1)).update(propertyCaptor.capture());
-
-        QuestionProperty captured = propertyCaptor.getValue();
-        assertEquals(TEST_PROPERTY_ID, captured.getId());
-        assertEquals("更新后的解析", captured.getAnalysis());
-        assertEquals(QuestionConstants.SOURCE_AI, captured.getSource());
-        assertEquals(QuestionConstants.DIFFICULTY_HARD, captured.getDifficulty());
-    }
-
-    // ========== deleteQuestionProperty 测试 ==========
-    @Test
-    void deleteQuestionProperty_ShouldCallMapperDelete() {
-        // Arrange
-        when(questionPropertyMapper.deleteById(TEST_PROPERTY_ID)).thenReturn(1L);
-
-        // Act
-        questionBaseService.deleteQuestionProperty(TEST_PROPERTY_ID);
-
-        // Assert
-        verify(questionPropertyMapper, times(1)).deleteById(TEST_PROPERTY_ID);
-    }
-
-    @Test
-    void deleteQuestionProperty_WhenDeleteFails_ShouldThrowException() {
-        // Arrange
-        when(questionPropertyMapper.deleteById(TEST_PROPERTY_ID)).thenReturn(0L);
-
-        // Act & Assert
-        assertThrows(Exception.class,
-                () -> questionBaseService.deleteQuestionProperty(TEST_PROPERTY_ID));
-    }
-
-    @Test
-    void deleteQuestionProperty_WhenIdIsNull_ShouldThrowException() {
-        // Act & Assert
-        assertThrows(Exception.class,
-                () -> questionBaseService.deleteQuestionProperty(null));
-    }
-
-    // ========== getQuestionPropertyByQuestionId 测试 ==========
-    @Test
-    void getQuestionPropertyByQuestionId_ShouldCallMapperFind() {
-        // Arrange
-        when(questionPropertyMapper.findByQuestionId(TEST_QUESTION_ID)).thenReturn(testProperty);
-
-        // Act
-        QuestionProperty result = questionBaseService.getQuestionPropertyByQuestionId(TEST_QUESTION_ID);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(testProperty, result);
-        verify(questionPropertyMapper, times(1)).findByQuestionId(TEST_QUESTION_ID);
-    }
-
-    @Test
-    void getQuestionPropertyByQuestionId_WhenPropertyNotFound_ShouldReturnNull() {
-        // Arrange
-        when(questionPropertyMapper.findByQuestionId(TEST_QUESTION_ID)).thenReturn(null);
-
-        // Act
-        QuestionProperty result = questionBaseService.getQuestionPropertyByQuestionId(TEST_QUESTION_ID);
-
-        // Assert
-        assertNull(result);
-        verify(questionPropertyMapper, times(1)).findByQuestionId(TEST_QUESTION_ID);
-    }
-
-    @Test
-    void getQuestionPropertyByQuestionId_WhenIdIsNull_ShouldThrowException() {
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class,
-                () -> questionBaseService.getQuestionPropertyByQuestionId(null));
-    }
-
-    // ========== 集成场景测试 ==========
-    @Test
-    void addQuestion_WithProperty_ShouldSetQuestionIdCorrectly() {
-        // Arrange
-        Question newQuestion = Question.builder()
-                .teacherId(TEST_TEACHER_ID)
-                .courseId(TEST_COURSE_ID)
-                .type(QuestionConstants.TYPE_FILL)
-                .content("新的填空题")
-                .build();
-
-        QuestionProperty newProperty = QuestionProperty.builder()
-                .analysis("本题考查填空")
-                .source(QuestionConstants.SOURCE_MANUAL)
-                .difficulty(QuestionConstants.DIFFICULTY_EASY)
-                .build();
-
-        // 模拟 insert 返回影响行数，并设置 ID
-        when(questionMapper.insert(newQuestion)).thenAnswer(invocation -> {
-            newQuestion.setId(999L);
-            return 1L;
-        });
-
-        // 模拟属性插入返回影响行数
-        when(questionPropertyMapper.insert(any(QuestionProperty.class))).thenReturn(1L);
-
-        // Act
-        questionBaseService.addQuestion(newQuestion, newProperty);
-
-        // Assert
-        // 1. 验证 question 的 ID 被设置
-        assertNotNull(newQuestion.getId());
-        assertEquals(999L, newQuestion.getId());
-
-        // 2. 验证属性插入被调用
-        verify(questionPropertyMapper, times(1)).insert(any(QuestionProperty.class));
-
-        // 3. 捕获参数并验证
-        ArgumentCaptor<QuestionProperty> propertyCaptor = ArgumentCaptor.forClass(QuestionProperty.class);
-        verify(questionPropertyMapper).insert(propertyCaptor.capture());
-
-        QuestionProperty capturedProperty = propertyCaptor.getValue();
-        assertNotNull(capturedProperty); // 这里不应该为 null
-        assertEquals(999L, capturedProperty.getQuestionId());
-        assertEquals("本题考查填空", capturedProperty.getAnalysis());
-        assertEquals(QuestionConstants.SOURCE_MANUAL, capturedProperty.getSource());
-        assertEquals(QuestionConstants.DIFFICULTY_EASY, capturedProperty.getDifficulty());
-    }
-
-    @Test
-    void deleteQuestion_ShouldDeleteWithoutCheckingProperty() {
-        // Arrange
-        when(questionMapper.deleteById(TEST_QUESTION_ID)).thenReturn(1L);
-
-        // Act
-        questionBaseService.deleteQuestion(TEST_QUESTION_ID);
-
-        // Assert
-        verify(questionMapper, times(1)).deleteById(TEST_QUESTION_ID);
-        // 由于级联删除，不需要显式调用删除属性
-        verify(questionPropertyMapper, never()).deleteByQuestionId(anyLong());
-    }
-
-    @Test
-    void getQuestions_WithDifferentQuestionTypes_ShouldCallCorrectMapperMethod() {
-        // Test with choice type
-        when(questionMapper.findByTeacherIdAndCourseIdAndType(
-                TEST_TEACHER_ID, TEST_COURSE_ID, QuestionConstants.TYPE_CHOICE))
-                .thenReturn(List.of());
-
-        questionBaseService.getQuestions(TEST_TEACHER_ID, TEST_COURSE_ID, QuestionConstants.TYPE_CHOICE);
-
-        verify(questionMapper, times(1))
-                .findByTeacherIdAndCourseIdAndType(
-                        TEST_TEACHER_ID, TEST_COURSE_ID, QuestionConstants.TYPE_CHOICE);
-
-        // Test with fill type
-        when(questionMapper.findByTeacherIdAndCourseIdAndType(
-                TEST_TEACHER_ID, TEST_COURSE_ID, QuestionConstants.TYPE_FILL))
-                .thenReturn(List.of());
-
-        questionBaseService.getQuestions(TEST_TEACHER_ID, TEST_COURSE_ID, QuestionConstants.TYPE_FILL);
-
-        verify(questionMapper, times(1))
-                .findByTeacherIdAndCourseIdAndType(
-                        TEST_TEACHER_ID, TEST_COURSE_ID, QuestionConstants.TYPE_FILL);
+            // Assert
+            assertNull(property);
+        }
     }
 }

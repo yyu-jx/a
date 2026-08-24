@@ -353,6 +353,7 @@ public class KnowledgeGraphService {
     /**
      * 查询全部知识图谱：节点 + 边（供前端可视化）
      */
+    @Deprecated
     @Transactional(readOnly = true)
     public KnowledgeGraphDTO getKnowledgeGraph() {
         List<KnowledgePointNode> all = knowledgePointRepository.findAll();

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
@@ -81,11 +83,13 @@ public class QuestionGenerateModel {
 
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class QuestionGenerateResult {
         List<QuestionData> questionData;
 
         @Data
         @AllArgsConstructor
+        @NoArgsConstructor
         public static class QuestionData {
             private String content;
             private JsonNode answer; // JSON
