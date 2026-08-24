@@ -37,7 +37,7 @@
         SELECT
         t.id AS task_id,
         t.course_id,
-        c.name,
+        c.name AS course_name,
         t.title,
         t.description,
         t.type,
@@ -61,6 +61,22 @@
             AND ss.status = #{status}
         </if>
         ORDER BY t.created_at DESC
+        LIMIT #{pageable.offset}, #{pageable.pageSize}
+    </select>
+
+    <select id="countStudentTask" resultType="long">
+        SELECT count(*)
+        FROM tasks t
+        INNER JOIN task_student_rel rel ON t.id = rel.task_id
+        LEFT JOIN student_submissions ss ON t.id = ss.task_id AND rel.student_id = ss.student_id
+        WHERE rel.student_id = #{userId}
+        AND t.status = 'published'
+        <if test="courseId != null">
+            AND t.course_id = #{courseId}
+        </if>
+        <if test="status != null and status != ''">
+            AND ss.status = #{status}
+        </if>
     </select>
 
     <!-- 教师查询：assigner_id = userId，全部任务状态，不需要任务学生关联表 -->
@@ -68,7 +84,7 @@
         SELECT
         t.id AS task_id,
         t.course_id,
-        c.name,
+        c.name AS course_name,
         t.title,
         t.description,
         t.type,
@@ -90,5 +106,20 @@
             AND ss.status = #{status}
         </if>
         ORDER BY t.created_at DESC
+        LIMIT #{pageable.offset}, #{pageable.pageSize}
+    </select>
+
+    <select id="countTeacherTask" resultType="long">
+        SELECT count(*)
+        FROM tasks t
+        LEFT JOIN courses c ON t.course_id = c.id
+        LEFT JOIN student_submissions ss ON t.id = ss.task_id AND ss.student_id = #{userId}
+        WHERE t.assigner_id = #{userId}
+        <if test="courseId != null">
+            AND t.course_id = #{courseId}
+        </if>
+        <if test="status != null and status != ''">
+            AND ss.status = #{status}
+        </if>
     </select>
 </mapper>

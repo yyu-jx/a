@@ -18,8 +18,11 @@ import com.superyoudi.common.exception.ParamInvalidException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -321,10 +324,14 @@ public class TaskServiceImpl implements TaskService {
         Pageable pageable = PageRequest.of(realPageNum - 1, realPageSize);
         if ("teacher".equals(role)) {
             // 教师：查自己布置的全部任务
-            return taskMapper.selectTeacherTaskPage(pageable, userId, courseId, status);
+            Long total = taskMapper.countTeacherTask(userId, courseId, status);
+            List<TaskList> content = taskMapper.selectTeacherTaskPage(pageable, userId, courseId, status);
+            return new PageImpl<>(content == null ? List.of() : content, pageable, total == null ? 0 : total);
         } else {
             // 学生：只查已发布published分配给自己的任务
-            return taskMapper.selectStudentTaskPage(pageable, userId, courseId, status);
+            Long total = taskMapper.countStudentTask(userId, courseId, status);
+            List<TaskList> content = taskMapper.selectStudentTaskPage(pageable, userId, courseId, status);
+            return new PageImpl<>(content == null ? List.of() : content, pageable, total == null ? 0 : total);
         }
     }
 

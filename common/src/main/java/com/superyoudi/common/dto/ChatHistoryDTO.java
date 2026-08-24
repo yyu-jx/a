@@ -19,6 +19,7 @@ public class ChatHistoryDTO {
     @Data
     @AllArgsConstructor
     public static class ChatMessageData {
+        private Long id;
         private Integer msgSeq;
         private String msgType;
         private String message;

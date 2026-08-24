@@ -4,6 +4,7 @@ import com.alibaba.cloud.ai.transformer.splitter.SentenceSplitter;
 import com.superyoudi.aiservice.ai.model.KnowledgeGraphExtractionModel;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.kdbservice.dto.KnowledgeExtractionResult;
+import com.superyoudi.kdbservice.dto.KnowledgeGraphDTO;
 import com.superyoudi.kdbservice.graph.KnowledgePointNode;
 import com.superyoudi.kdbservice.graph.KnowledgePointRelation;
 import com.superyoudi.kdbservice.graph.KnowledgeTextFragmentNode;
@@ -17,6 +18,7 @@ import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -346,6 +348,39 @@ public class KnowledgeGraphService {
         sb.append("---\n");
 
         return sb.toString();
+    }
+
+    /**
+     * 查询全部知识图谱：节点 + 边（供前端可视化）
+     */
+    @Transactional(readOnly = true)
+    public KnowledgeGraphDTO getKnowledgeGraph() {
+        List<KnowledgePointNode> all = knowledgePointRepository.findAll();
+
+        LinkedHashMap<String, KnowledgeGraphDTO.NodeDTO> nodeMap = new LinkedHashMap<>();
+        List<KnowledgeGraphDTO.EdgeDTO> edges = new ArrayList<>();
+        Set<String> seenEdges = new HashSet<>();
+
+        for (KnowledgePointNode n : all) {
+            if (n.getName() == null) continue;
+            nodeMap.putIfAbsent(n.getName(),
+                    new KnowledgeGraphDTO.NodeDTO(n.getName(), n.getName(), n.getDescription()));
+
+            List<KnowledgePointRelation> rels = n.getRelatedToKnowledgePoints();
+            if (rels == null) continue;
+
+            for (KnowledgePointRelation rel : rels) {
+                if (rel == null || rel.getTargetNode() == null) continue;
+                String target = rel.getTargetNode().getName();
+                if (target == null) continue;
+                String type = rel.getRelationType() != null ? rel.getRelationType() : "RELATED_TO";
+                String key = n.getName() + "|" + type + "|" + target;
+                if (seenEdges.add(key)) {
+                    edges.add(new KnowledgeGraphDTO.EdgeDTO(n.getName(), target, type));
+                }
+            }
+        }
+        return new KnowledgeGraphDTO(new ArrayList<>(nodeMap.values()), edges);
     }
 
 

@@ -62,6 +62,15 @@ public interface CourseMapper {
     void joinCourse(Long studentId, Long courseId);
 
     /**
+     * 查询课程下的所有学生id
+     *
+     * @param courseId 课程id
+     * @return 学生id列表
+     */
+    @Select("SELECT student_id FROM course_student_rel WHERE course_id = #{courseId}")
+    List<Long> selectStudentIdsByCourseId(@Param("courseId") Long courseId);
+
+    /**
      * 根据课程id查询课程信息
      *
      * @param courseId 课程id

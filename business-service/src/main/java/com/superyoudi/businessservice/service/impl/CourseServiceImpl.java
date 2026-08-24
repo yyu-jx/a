@@ -235,7 +235,7 @@ public class CourseServiceImpl implements CourseService {
                     vo.setCourseId(raw.getCourseId().intValue());
                     vo.setKnowledgeId(raw.getKnowledgeId());
                     vo.setKnowledgeStatus(raw.getStatus());
-                    vo.setTaskTitle(raw.getCourseName() + " - " + knowledgeNameMap.getOrDefault(raw.getKnowledgeId(), "【知识点已失效】"));
+                    vo.setTaskTitle(raw.getCourseName() + " - " + knowledgeNameMap.getOrDefault(raw.getKnowledgeId(), raw.getKnowledgeId()));
                     return vo;
                 })
                 .collect(Collectors.toList());
@@ -249,8 +249,14 @@ public class CourseServiceImpl implements CourseService {
     public LearningPathVO getCourseLearningPath(Long studentId, Long courseId) {
         LearningPath learningPath = learningPathService.getLearningPathByStudentAndCourse(studentId, courseId);
         if (learningPath == null) {
-            Long lpId = learningPathService.createLearningPath(studentId, courseId);
-            learningPath = learningPathService.getLearningPathById(lpId);
+            try {
+                Long lpId = learningPathService.createLearningPath(studentId, courseId);
+                learningPath = learningPathService.getLearningPathById(lpId);
+            } catch (Exception e) {
+                // 学习路径生成失败（如课程数据结构缺失），优雅降级为空路径，避免接口 500
+                log.error("学习路径生成失败，studentId={}, courseId={}", studentId, courseId, e);
+                return new LearningPathVO(null, courseId, "暂无学习路径", List.of());
+            }
         }
 
         List<LearningPathNode> learningPathNodes = learningPathService.getLearningPathNodes(learningPath.getId());
