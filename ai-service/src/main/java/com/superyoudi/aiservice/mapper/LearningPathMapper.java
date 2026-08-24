@@ -1,6 +1,7 @@
 package com.superyoudi.aiservice.mapper;
 
 import com.superyoudi.aiservice.pojo.entity.LearningPath;
+import com.superyoudi.aiservice.pojo.entity.LearningPathNode;
 import com.superyoudi.common.dto.TodayTaskRawDTO;
 import org.apache.ibatis.annotations.*;
 
@@ -136,5 +137,9 @@ public interface LearningPathMapper {
             "ORDER BY updated_at DESC LIMIT 1")
     LearningPath selectLatestPathByStudentId(Long studentId);
 
-
+    /**
+     * 根据学习路径ID查询第一个学习路径节点
+     */
+    @Select("SELECT * FROM learning_path_nodes WHERE path_id = #{pathId} ORDER BY id ASC LIMIT 1")
+    LearningPathNode findFirstNodeByPathId(Long pathId);
 }

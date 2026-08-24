@@ -25,7 +25,7 @@ public class KnowledgePointService {
 
         KnowledgePointDTO dto = new KnowledgePointDTO();
         dto.setKnowledgeId(knowledgePointNode.getName());
-        dto.setKnowledgeTitle(knowledgePointNode.getDescription());
+        dto.setKnowledgeDescription(knowledgePointNode.getDescription());
         return dto;
     }
 
@@ -42,7 +42,7 @@ public class KnowledgePointService {
         return nodeList.stream().map(node -> {
             KnowledgePointDTO dto = new KnowledgePointDTO();
             dto.setKnowledgeId(node.getName());
-            dto.setKnowledgeTitle(node.getDescription());
+            dto.setKnowledgeDescription(node.getDescription());
             return dto;
         }).collect(Collectors.toList());
     }

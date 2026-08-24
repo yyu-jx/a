@@ -148,7 +148,7 @@ public class HomeServiceImplTest {
         mockPath.setUpdatedAt(updateTime);
 
         KnowledgePointDTO dto = new KnowledgePointDTO();
-        dto.setKnowledgeTitle("虚拟内存的基本概念");
+        dto.setKnowledgeDescription("虚拟内存的基本概念");
 
         when(learningPathMapper.selectLatestPathByStudentId(userId)).thenReturn(mockPath);
         when(learningPathNodeMapper.selectProceedingKnowledgeId(mockPathId)).thenReturn(mockKpId);
@@ -191,7 +191,7 @@ public class HomeServiceImplTest {
         // 构造批量查询知识点返回DTO
         KnowledgePointDTO dto = new KnowledgePointDTO();
         dto.setKnowledgeId("kp_022");
-        dto.setKnowledgeTitle("虚拟内存");
+        dto.setKnowledgeDescription("虚拟内存");
         List<KnowledgePointDTO> mockDtoList = List.of(dto);
 
         when(knowledgePointService.batchGetKnowledgePoints(anyList()))

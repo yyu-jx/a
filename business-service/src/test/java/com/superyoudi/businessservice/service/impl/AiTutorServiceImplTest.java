@@ -171,7 +171,7 @@ class AiTutorServiceImplTest {
             course.setName("Java 编程基础");
 
             knowledgePointDTO = new KnowledgePointDTO();
-            knowledgePointDTO.setKnowledgeTitle("面向对象编程");
+            knowledgePointDTO.setKnowledgeDescription("面向对象编程");
         }
 
         @Test
@@ -208,7 +208,7 @@ class AiTutorServiceImplTest {
         void shouldHandleNullKnowledgeTitle() {
             // Given
             KnowledgePointDTO emptyKpDto = new KnowledgePointDTO();
-            emptyKpDto.setKnowledgeTitle(null);
+            emptyKpDto.setKnowledgeDescription(null);
 
             when(learningPathService.getLearningPathByStudentAndCourse(STUDENT_ID, COURSE_ID))
                     .thenReturn(learningPath);
@@ -430,7 +430,7 @@ class AiTutorServiceImplTest {
             List<LearningPathNode> nodes = Collections.singletonList(node);
 
             KnowledgePointDTO kpDto = new KnowledgePointDTO();
-            kpDto.setKnowledgeTitle(null);
+            kpDto.setKnowledgeDescription(null);
 
             when(learningPathService.getLearningPathNodes(LEARNING_PATH_ID)).thenReturn(nodes);
             when(knowledgePointService.getKnowledgePoint("100")).thenReturn(kpDto);
@@ -472,7 +472,7 @@ class AiTutorServiceImplTest {
 
         private KnowledgePointDTO createKnowledgePointDTO(String title) {
             KnowledgePointDTO dto = new KnowledgePointDTO();
-            dto.setKnowledgeTitle(title);
+            dto.setKnowledgeDescription(title);
             return dto;
         }
     }

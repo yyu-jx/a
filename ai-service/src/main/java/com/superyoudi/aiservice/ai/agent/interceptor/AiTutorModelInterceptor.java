@@ -159,6 +159,7 @@ public class AiTutorModelInterceptor extends ModelInterceptor {
 
             return prompt;
         } catch (Exception e) {
+            log.error("AI导师提示词构建失败", e);
             throw new AiServiceInvalidException("AI导师提示词构建失败");
         }
 

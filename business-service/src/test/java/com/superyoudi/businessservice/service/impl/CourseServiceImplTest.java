@@ -601,7 +601,7 @@ public class CourseServiceImplTest {
         // mock知识库批量查询返回
         KnowledgePointDTO knowledgePointDTO = new KnowledgePointDTO();
         knowledgePointDTO.setKnowledgeId("k_001");
-        knowledgePointDTO.setKnowledgeTitle("变量与数据类型");
+        knowledgePointDTO.setKnowledgeDescription("变量与数据类型");
         List<KnowledgePointDTO> knowledgeResult = List.of(knowledgePointDTO);
         when(knowledgePointService.batchGetKnowledgePoints(anyList())).thenReturn(knowledgeResult);
 

@@ -80,7 +80,7 @@ public class HomeServiceImpl implements HomeService {
             try {
                 List<KnowledgePointDTO> dtoList = knowledgePointService.batchGetKnowledgePoints(List.of(currentKnowledgeId));
                 if (!dtoList.isEmpty()) {
-                    knowledgeTitle = dtoList.get(0).getKnowledgeTitle();
+                    knowledgeTitle = dtoList.get(0).getKnowledgeDescription();
                 }
             } catch (Exception e) {
             }
@@ -147,7 +147,7 @@ public class HomeServiceImpl implements HomeService {
         Map<String, String> knowledgeNameMap = dtoList.stream()
                 .collect(Collectors.toMap(
                         KnowledgePointDTO::getKnowledgeId,
-                        KnowledgePointDTO::getKnowledgeTitle,
+                        KnowledgePointDTO::getKnowledgeDescription,
                         // 重复id兼容（防止重复节点冲突）
                         (oldVal, newVal) -> newVal
                 ));
@@ -209,7 +209,7 @@ public class HomeServiceImpl implements HomeService {
         Map<String, String> knowledgeNameMap = dtoList.stream()
                 .collect(Collectors.toMap(
                         KnowledgePointDTO::getKnowledgeId,
-                        KnowledgePointDTO::getKnowledgeTitle,
+                        KnowledgePointDTO::getKnowledgeDescription,
                         // 重复id兼容（防止重复节点冲突）
                         (oldVal, newVal) -> newVal
                 ));
@@ -266,7 +266,7 @@ public class HomeServiceImpl implements HomeService {
         List<String> knowledgeIds = List.of(weakest);
         List<KnowledgePointDTO> dtoList = knowledgePointService.batchGetKnowledgePoints(knowledgeIds);
         if (dtoList != null && !dtoList.isEmpty()) {
-            weakCourse.setWeakestKnowledgeName(dtoList.get(0).getKnowledgeTitle());
+            weakCourse.setWeakestKnowledgeName(dtoList.get(0).getKnowledgeDescription());
         }
 
         String suggestion =homeAIService.generateTeacherSuggest(weakCourse);

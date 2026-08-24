@@ -28,4 +28,6 @@ public interface LearningPathService {
     void updateLearningPathStage(Long pathId, String stage);
 
     void updateLearningPath(LearningPath learningPath);
+
+    Long setLearningPathToStartNode(Long pathId);
 }

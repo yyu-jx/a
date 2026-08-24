@@ -17,9 +17,9 @@ public interface SectionKnowledgeRelMapper {
             FROM section_knowledge_rel r
             JOIN sections s ON s.id = r.section_id
             JOIN chapters c ON c.id = s.chapter_id
-            WHERE c.course_data_id = #{courseId}
+            WHERE c.course_data_id = #{courseDataId}
             """)
-    Long countCourseKnowledge(@Param("courseId") Long courseId);
+    Long countCourseKnowledge(@Param("courseDataId") Long courseDataId);
 
     @Select("SELECT * FROM section_knowledge_rel WHERE id = #{id}")
     SectionKnowledgeRel selectById(Long id);
@@ -72,7 +72,7 @@ public interface SectionKnowledgeRelMapper {
      * 插入关联关系
      */
     @Insert("INSERT INTO section_knowledge_rel (course_data_id, section_id, neo4j_kp_id, created_at) " +
-            "VALUES (#{courseId}, #{sectionId}, #{neo4jKpId}, #{createdTime})")
+            "VALUES (#{courseDataId}, #{sectionId}, #{neo4jKpId}, #{createdTime})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     Long insert(SectionKnowledgeRel sectionKnowledgeRel);
 

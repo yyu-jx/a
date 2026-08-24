@@ -111,7 +111,6 @@ public class CourseServiceImpl implements CourseService {
     }
 
 
-
     @Override
     public CourseStatisticsVO getCourseStatistics(Long teacherId) {
         int courseTotal = courseMapper.countCoursesByTeacherId(teacherId);
@@ -223,7 +222,7 @@ public class CourseServiceImpl implements CourseService {
         Map<String, String> knowledgeNameMap = knowledgelist.stream()
                 .collect(Collectors.toMap(
                         KnowledgePointDTO::getKnowledgeId,
-                        KnowledgePointDTO::getKnowledgeTitle,
+                        KnowledgePointDTO::getKnowledgeDescription,
                         // 重复id兼容（防止重复节点冲突）
                         (oldVal, newVal) -> newVal
                 ));
@@ -324,6 +323,7 @@ public class CourseServiceImpl implements CourseService {
         return result;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void saveCourseData(CourseOpeningDataDTO courseData) {
         List<KnowledgeExtractionResult.KnowledgePointItem> knowledgePoints = new ArrayList<>();
         List<KnowledgeExtractionResult.KnowledgeRelationItem> knowledgeRelations = new ArrayList<>();
