@@ -3,6 +3,7 @@ package com.superyoudi.businessservice.service.impl;
 import com.superyoudi.businessservice.mapper.UserFileMapper;
 import com.superyoudi.businessservice.pojo.entity.UserFile;
 import com.superyoudi.businessservice.service.FileService;
+import com.superyoudi.common.constants.UserFileConstants;
 import com.superyoudi.common.dto.UserFileRefDTO;
 import com.superyoudi.coursewareservice.mapper.CoursewareFileRelMapper;
 import com.superyoudi.coursewareservice.pojo.entity.CoursewareFileRel;
@@ -33,7 +34,19 @@ public class CoursewareFileRefServiceImpl implements CoursewareFileRefService {
     }
 
     @Override
-    public void saveFileAndRef(@NonNull Long coursewareRecId, @NonNull MultipartFile file, @NonNull Long userId, String fileDesc, @NonNull String source) {
+    public Long saveExportedFile(Long userId, String fileName) {
+        UserFile exportedFile = UserFile.builder()
+                .userId(userId)
+                .fileName(fileName)
+                .source(UserFileConstants.SOURCE_GENERATED)
+                .type(UserFileConstants.TYPE_ZIP)
+                .build();
+        fileService.insertUserFile(exportedFile, fileName, ".zip");
+        return exportedFile.getId();
+    }
+
+    @Override
+    public void saveFileWithRef(@NonNull Long coursewareRecId, @NonNull MultipartFile file, @NonNull Long userId, String fileDesc, @NonNull String source) {
         Long fileId = fileService.saveUserFile(file, userId, fileDesc, source);
         addFileRef(coursewareRecId, fileId);
     }

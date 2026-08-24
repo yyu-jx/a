@@ -1,11 +1,9 @@
 package com.superyoudi.coursewareservice.service.impl;
 
 import com.microsoft.playwright.Page;
+import com.superyoudi.common.utils.SimpleCache;
 import com.superyoudi.coursewareservice.component.FileZipper;
 import com.superyoudi.coursewareservice.component.PlaywrightManager;
-import com.superyoudi.coursewareservice.pojo.dto.CoursewareGenData;
-import com.superyoudi.coursewareservice.pojo.entity.CoursewareRecord;
-import com.superyoudi.coursewareservice.pojo.dto.GenerationStatus;
 import com.superyoudi.coursewareservice.model.common.TableData;
 import com.superyoudi.coursewareservice.model.ppt.PresentationData;
 import com.superyoudi.coursewareservice.model.ppt.SlideData;
@@ -14,11 +12,13 @@ import com.superyoudi.coursewareservice.model.word.WordData;
 import com.superyoudi.coursewareservice.model.word.WordElement;
 import com.superyoudi.coursewareservice.model.word.WordImage;
 import com.superyoudi.coursewareservice.model.word.WordParagraph;
+import com.superyoudi.coursewareservice.pojo.dto.CoursewareGenData;
+import com.superyoudi.coursewareservice.pojo.dto.GenerationStatus;
+import com.superyoudi.coursewareservice.pojo.entity.CoursewareRecord;
 import com.superyoudi.coursewareservice.service.CoursewareFileRefService;
 import com.superyoudi.coursewareservice.service.CoursewareGenerationService;
 import com.superyoudi.coursewareservice.service.CoursewareRecordService;
 import com.superyoudi.coursewareservice.utils.HtmlDomUtils;
-import com.superyoudi.common.utils.SimpleCache;
 import com.superyoudi.coursewareservice.utils.word.WordTableUtils;
 import com.superyoudi.coursewareservice.websocket.CoursewareGenerationEndpoint;
 import lombok.RequiredArgsConstructor;
@@ -52,7 +52,6 @@ import static com.superyoudi.coursewareservice.utils.word.WordParagraphUtils.cre
 /**
  * @author Sijayyx
  */
-// TODO
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -119,10 +118,11 @@ public class CoursewareGenerationServiceImpl implements CoursewareGenerationServ
         if (wordName == null)
             wordName = "word" + System.currentTimeMillis() + ".docx";
 
-        // 压缩
-        String zipName = FileZipper.compressInputStreamToZip(Map.of(pptName, pptIs, wordName, wordIs), exportFilePath, pptName + ".zip");
+        // 压缩，返回zip的文件名（附带扩展名）
+        String zipName = FileZipper.compressInputStreamToZip(Map.of(pptName, pptIs, wordName, wordIs),
+                null, exportFilePath);
 
-        // TODO 存文件表
+        coursewareFileRefService.saveExportedFile(coursewareGenData.getUserId(), zipName);
 
         return zipName;
     }

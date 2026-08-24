@@ -52,8 +52,10 @@ public class AiTeacherMessageAgentHook extends MessagesAgentHook {
         // 存最新用户消息
         saveChatMessage(teacherId, previousMessages);
 
-        return new AgentCommand(msgHistory);
+//        return new AgentCommand(msgHistory);
+        return super.beforeAgent(previousMessages, config);
     }
+
 
     @Override
     public AgentCommand afterAgent(List<Message> previousMessages, RunnableConfig config) {

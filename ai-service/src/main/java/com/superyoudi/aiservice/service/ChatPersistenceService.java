@@ -25,6 +25,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ChatPersistenceService {
 
+    private static final int CHAT_MESSAGE_LIMIT = 20; // 默认会话查询消息数量限制
+
     private final ChatSessionMapper chatSessionMapper;
     private final ChatMessageMapper chatMessageMapper;
     private final ChatCourseRelMapper chatCourseRelMapper;
@@ -84,7 +86,7 @@ public class ChatPersistenceService {
             return null;
         }
 
-        return chatMessageMapper.selectByChatId(chatCourseRel.getChatId());
+        return chatMessageMapper.selectByChatIdWithLimit(chatCourseRel.getChatId(), CHAT_MESSAGE_LIMIT);
     }
 
     @Transactional
@@ -96,7 +98,7 @@ public class ChatPersistenceService {
             return null;
         }
 
-        return chatMessageMapper.selectByChatId(chatCoursewareRecRel.getChatId());
+        return chatMessageMapper.selectByChatIdWithLimit(chatCoursewareRecRel.getChatId(), CHAT_MESSAGE_LIMIT);
     }
 
     @Transactional
@@ -109,18 +111,31 @@ public class ChatPersistenceService {
             return null;
         }
 
-        return chatMessageMapper.selectByChatId(chatSession.getId());
+        return chatMessageMapper.selectByChatIdWithLimit(chatSession.getId(), CHAT_MESSAGE_LIMIT);
 
     }
 
     /**
      * 向列表追加消息
+     *
+     * @return 消息ID
      */
     @Transactional
     public Long appendChatMessage(Long chatId, String message, String role) {
         ChatMessage chatMessage = new ChatMessage(chatId, message, role);
         chatMessageMapper.insertWithAutoSeq(chatMessage);
 
+        return chatMessage.getId();
+    }
+
+    /**
+     * 向列表追加消息
+     *
+     * @return 消息ID
+     */
+    @Transactional
+    public Long appendChatMessage(ChatMessage chatMessage) {
+        chatMessageMapper.insertWithAutoSeq(chatMessage);
         return chatMessage.getId();
     }
 
@@ -153,9 +168,10 @@ public class ChatPersistenceService {
     @Transactional
     public ChatSession getOrCreateChatSessionByUserId(Long userId) {
         ChatSession chatSession = chatSessionMapper.selectSingleByUserId(userId);
-        if (chatSession == null)
+        if (chatSession == null) {
+            log.error("未找到会话，创建新的会话。");
             chatSession = createChatSession(userId);
-
+        }
         return chatSession;
     }
 

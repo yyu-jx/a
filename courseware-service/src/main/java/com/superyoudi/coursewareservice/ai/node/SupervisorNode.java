@@ -183,12 +183,13 @@ public class SupervisorNode implements NodeAction {
                 用户ID: %d
                 """;
 
-        return chatClient.prompt(String.format(systemPrompt, getFormattedChatHistory(userId, coursewareRecId), userId))
+        // 读取对话历史
+        return chatClient.prompt(String.format(systemPrompt, userId, getFormattedChatHistory(userId, coursewareRecId)))
                 .call()
                 .content();
     }
 
-    public String getFormattedChatHistory(long userId, long coursewareRecId) {
+    private String getFormattedChatHistory(long userId, long coursewareRecId) {
         List<ChatMessage> chatHistory = supervisorMessageAgentHook.getChatHistory(userId, coursewareRecId);
         return AiMessageUtils.formatChatHistory(chatHistory);
     }

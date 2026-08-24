@@ -21,6 +21,18 @@ public interface ChatMessageMapper {
     List<ChatMessage> selectByChatId(Long chatId);
 
     /**
+     * 根据会话ID查询最新的 N 条消息（按序号升序）
+     *
+     * @param chatId 会话ID
+     * @param limit  查询条数
+     * @return 最新的 N 条消息列表（按序号升序排列）
+     */
+    @Select("SELECT * FROM chat_messages WHERE chat_id = #{chatId} " +
+            "ORDER BY msg_seq DESC LIMIT #{limit}")
+    List<ChatMessage> selectByChatIdWithLimit(@Param("chatId") Long chatId,
+                                              @Param("limit") Integer limit);
+
+    /**
      * 根据会话ID和消息序号查询单条消息
      */
     @Select("SELECT * FROM chat_messages WHERE chat_id = #{chatId} AND msg_seq = #{msgSeq}")
@@ -53,15 +65,20 @@ public interface ChatMessageMapper {
     Long insert(ChatMessage chatMessage);
 
     /**
-     * 插入消息，并自增msg_seq
+     * 插入消息，并自增msg_seq。
+     * <p>
+     * 自增的msg_seq将回填至chatMessage中。
      */
+    @SelectKey(
+            // 预先计算msg_seq
+            statement = "SELECT COALESCE(MAX(msg_seq), 0) + 1 FROM chat_messages WHERE chat_id = #{chatId}",
+            keyProperty = "msgSeq",
+            before = true,
+            resultType = Integer.class
+    )
     @Insert("""
             INSERT INTO chat_messages (chat_id, msg_seq, msg_type, role, message, sent_at)
-            SELECT #{chatId},
-            COALESCE(MAX(msg_seq), 0) + 1,
-            #{msgType}, #{role}, #{message}, #{sentAt}
-            FROM chat_messages
-            WHERE chat_id = #{chatId}
+            VALUES (#{chatId}, #{msgSeq}, #{msgType}, #{role}, #{message}, #{sentAt})
             """)
     @Options(useGeneratedKeys = true, keyProperty = "id")
     Long insertWithAutoSeq(ChatMessage chatMessage);

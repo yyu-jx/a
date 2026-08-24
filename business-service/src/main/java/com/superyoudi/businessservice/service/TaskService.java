@@ -113,4 +113,6 @@ public interface TaskService {
     void removePathNodeTaskRel(Long taskId, Long pathNodeId);
 
     StudentSubmission tryGetTaskSubmissionByPathNodeId(Long pathNodeId, Long studentId);
+
+    Task getTaskById(long taskId);
 }

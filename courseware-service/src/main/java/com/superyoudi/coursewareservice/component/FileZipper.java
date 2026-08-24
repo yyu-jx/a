@@ -30,8 +30,8 @@ public class FileZipper {
      * 压缩文件流列表为 ZIP 包
      *
      * @param fileMap 文件映射列表，包含文件名和对应的文件流
-     * @param zipName  压缩包名称。若为null，则自动生成文件名。
-     * @return zip 文件名
+     * @param zipName 压缩包名称。若为null，则自动生成文件名。
+     * @return zip文件名，附带扩展名
      * @throws IOException 压缩过程中发生的 IO 异常
      */
     public static String compressInputStreamToZip(@NotNull Map<String, InputStream> fileMap,

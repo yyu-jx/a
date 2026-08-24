@@ -21,6 +21,11 @@ public final class UserFileConstants {
     public static final String TYPE_DOCX = "docx";
 
     /**
+    * ZIP文件（压缩包）
+    */
+    public static final String TYPE_ZIP = "zip";
+
+    /**
      * 媒体文件（图片、音频、视频等）
      */
     public static final String TYPE_MEDIA = "media";

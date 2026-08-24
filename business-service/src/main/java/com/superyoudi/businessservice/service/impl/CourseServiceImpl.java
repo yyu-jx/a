@@ -274,7 +274,7 @@ public class CourseServiceImpl implements CourseService {
     @Override
     @Transactional
     public void generateCourseData(Long courseDataId) throws CourseNotExistException {
-        CourseData cd = courseDataMapper.selectById(courseDataId); // FIXME
+        CourseData cd = courseDataMapper.selectById(courseDataId);
         if (cd == null) throw new CourseNotExistException("课程数据不存在");
 
         String courseDataJson = courseDataGenerateModel.call(courseDataId, cd.getName(), cd.getInfo());

@@ -14,12 +14,14 @@ import com.superyoudi.aiservice.service.ChatPersistenceService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
 import com.superyoudi.businessservice.mapper.UserMapper;
+import com.superyoudi.businessservice.pojo.dto.AgentTaskResultDTO;
 import com.superyoudi.businessservice.pojo.dto.StudentStudyOverview;
 import com.superyoudi.businessservice.pojo.entity.*;
 import com.superyoudi.businessservice.service.CourseService;
 import com.superyoudi.businessservice.service.TaskAnalysisService;
 import com.superyoudi.businessservice.service.TaskService;
 import com.superyoudi.businessservice.service.TeacherCourseAnalysisService;
+import com.superyoudi.businessservice.websocket.AgentTaskResultMessageEndpoint;
 import com.superyoudi.common.constants.AgentConstants;
 import com.superyoudi.common.dto.ChatHistoryDTO;
 import com.superyoudi.common.dto.CoursewareGenerationRequest;
@@ -27,6 +29,7 @@ import com.superyoudi.common.dto.TaskArrangementRequest;
 import com.superyoudi.coursewareservice.pojo.entity.CoursewareRecord;
 import com.superyoudi.coursewareservice.service.CoursewareInteractionService;
 import com.superyoudi.coursewareservice.service.CoursewareRecordService;
+import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
@@ -129,6 +132,11 @@ public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService 
     public Long callCoursewareGeneration(long userId, CoursewareGenerationRequest request) {
         // 新建一个coursewareRecord
         Long newCoursewareRecordId = coursewareRecordService.insert(CoursewareRecord.builder().userId(userId).build());
+        CoursewareGenerationRequest.DTO dto = request.toDTO(newCoursewareRecordId);
+
+        // 发送消息到前端
+        notifyTaskCompletion(userId, dto, AgentTaskResultDTO.TYPE_COURSEWARE_GEN_REQUEST);
+
         // 调用生成方法
         coursewareInteractionService.callCoursewareGeneration(userId, newCoursewareRecordId, request);
         // 返回coursewareRecordId
@@ -136,19 +144,20 @@ public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService 
     }
 
     @Override
-    public void correctTask(long taskId) {
-        // FIXME: 耗时任务
-
+    public void correctTask(long userId, long taskId) {
         List<StudentSubmission> submissions = taskService.getSubmissions(taskId);
         for (StudentSubmission submission : submissions) {
             taskService.executeSubmissionCorrection(submission, true);
         }
+
+        Task task = taskService.getTaskById(taskId);
+        notifyTaskCompletion(userId, task, AgentTaskResultDTO.TYPE_TASK);
     }
 
     @Override
-    public void composeTask(TaskArrangementRequest request) {
+    public void composeTask(long userId, TaskArrangementRequest request) {
         Assert.notNull(request, "TaskResubscriptionRequest 不能为null");
-        taskService.composeTask(
+        Long taskId = taskService.composeTask(
                 request.getAssignerId(),
                 request.getCourseId(),
                 request.getKnowledgePoints(),
@@ -158,6 +167,9 @@ public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService 
                 request.getQuestionConfig(),
                 request.getTotalScore()
         );
+
+        Task task = taskService.getTaskById(taskId);
+        notifyTaskCompletion(userId, task, AgentTaskResultDTO.TYPE_TASK);
     }
 
     @Override
@@ -192,7 +204,6 @@ public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService 
                 "薄弱知识点: " + (analysis.getWeakestKnowledge() != null ? analysis.getWeakestKnowledge() : "无") + "\n";
 
     }
-
 
     // 参数均为可选
     @Override
@@ -252,5 +263,10 @@ public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService 
                 "最高分: " + taskAnalysis.getMaxScore() + "\n" +
                 "最低分: " + taskAnalysis.getMinScore() + "\n" +
                 "平均时间花费: " + taskAnalysis.getAvgTimeSpent() + "\n";
+    }
+
+    @Override
+    public <T> void notifyTaskCompletion(Long userId, @Nonnull T result, @Nonnull String taskType) {
+        AgentTaskResultMessageEndpoint.notifyTaskCompletion(userId, result, taskType, chatPersistenceService);
     }
 }

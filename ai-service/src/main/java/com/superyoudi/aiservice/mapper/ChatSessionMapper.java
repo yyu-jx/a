@@ -31,7 +31,7 @@ public interface ChatSessionMapper {
     @Select("SELECT * FROM chat_session WHERE user_id = #{userId}")
     List<ChatSession> selectByUserId(Long userId);
 
-    @Select("SELECT * FROM chat_session WHERE user_id = #{userId}")
+    @Select("SELECT * FROM chat_session WHERE user_id = #{userId} LIMIT 1")
     ChatSession selectSingleByUserId(Long userId);
 
     @Select("SELECT * FROM chat_session")
