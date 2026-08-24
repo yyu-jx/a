@@ -16,7 +16,6 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
-import org.springframework.ai.chat.prompt.PromptTemplate;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
@@ -131,21 +130,23 @@ public class SupervisorNode implements NodeAction {
      * @author Sijayyx
      */
     private String predicateAbleToGenerate(String input) {
-        PromptTemplate promptTemplate = new PromptTemplate(
-                """
-                        只根据给出的话语，判断其接下来是否会生成或修改PPT或者教案。
-                        只有在表明"接下来会生成或修改"的意思时，条件才满足。如果是在向用户提问等，则不满足条件。
-                        如果是，请返回TRUE，否则返回FALSE。不要返回其它内容。
-                        这是给出的话语：
-                        {response}
-                        """
-        );
+        // 确定性启发式判断：AI 判断不稳定，改用关键词。
+        // 纯提问/澄清 → FALSE；包含课件/教案结构关键词 → TRUE。
+        if (input == null || input.isBlank()) return "FALSE";
 
-        String prompt = promptTemplate.render(Map.of("response", input));
-        return chatClient.prompt()
-                .user(prompt)
-                .call()
-                .content();
+        // 1) 先查课件/教案结构关键词：出现即视为要生成（优先，避免被"确认"等词误判）
+        String[] markers = {"教学目标", "概念讲解", "教学流程", "例题", "核心知识点",
+                "重难点", "课堂练习", "课件", "教案", "大纲", "提纲", "章节", "PPT", "Word"};
+        for (String m : markers) {
+            if (input.contains(m)) return "TRUE";
+        }
+        // 2) 无明显结构关键词，若在提问/澄清 → FALSE
+        if (input.contains("？") || input.contains("?")
+                || input.contains("请提供") || input.contains("需要您")
+                || input.contains("补充")) {
+            return "FALSE";
+        }
+        return "FALSE";
     }
 
     /**
@@ -182,7 +183,7 @@ public class SupervisorNode implements NodeAction {
                 用户ID: %d
                 """;
 
-        return chatClient.prompt(String.format(systemPrompt, userId, getFormattedChatHistory(userId, coursewareRecId)))
+        return chatClient.prompt(String.format(systemPrompt, getFormattedChatHistory(userId, coursewareRecId), userId))
                 .call()
                 .content();
     }

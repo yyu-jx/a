@@ -4,6 +4,7 @@ import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
+import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
 import com.superyoudi.common.constants.CoursewareGenConstants;
 import com.superyoudi.coursewareservice.ai.tool.HtmlWordTools;
 import lombok.extern.slf4j.Slf4j;
@@ -121,11 +122,18 @@ public class HtmlWordGenNode implements NodeAction {
         Long coursewareId = state.value(CoursewareGenConstants.KEY_COURSEWARE_REC_ID, Long.class).orElse(null);
 
         String result = "";
-//        try {
-//            result = reactAgent.call(state.value("input", "错误")).getText();
-//        } catch (GraphRunnerException e) {
-//            throw new RuntimeException(e);
-//        }
+        try {
+            String prompt = String.format("""
+                    请生成教案(Word文档)。生成信息:
+                    %s
+
+                    课件记录ID: %s
+                    """, state.value(CoursewareGenConstants.KEY_PPT_OUTLINE, "错误"), coursewareId);
+
+            result = reactAgent.call(prompt).getText();
+        } catch (GraphRunnerException e) {
+            throw new RuntimeException(e);
+        }
 
         log.info("HtmlWordGenNode result: {}", htmlWordTools.getHtml(coursewareId));
 

@@ -45,7 +45,9 @@ public class CoursewareInteractionService {
     public Flux<String> executeWorkflowGraph(UserChatMessage<Long> userChatMessage) {
         Long userId = userChatMessage.getUserId();
         String input = userChatMessage.getMessage();
-        Long coursewareRecId = userChatMessage.getAdditionalData();
+        // additionalData 是泛型 Object，JSON 数字默认解析为 Integer，需安全转 Long
+        Object addData = userChatMessage.getAdditionalData();
+        Long coursewareRecId = addData instanceof Number ? ((Number) addData).longValue() : null;
 
         Assert.notNull(userId, "userId不能为null");
         Assert.notNull(coursewareRecId, "coursewareRecId不能为null");

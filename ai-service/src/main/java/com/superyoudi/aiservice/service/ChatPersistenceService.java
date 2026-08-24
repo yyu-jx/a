@@ -36,7 +36,7 @@ public class ChatPersistenceService {
      */
     public ChatHistoryDTO constructChatHistory(Long chatSessionId, Long userId, List<ChatMessage> chatMessages) {
         List<ChatHistoryDTO.ChatMessageData> messages = chatMessages.stream().map(message ->
-                        new ChatHistoryDTO.ChatMessageData(message.getMsgSeq(), message.getMsgType(),
+                        new ChatHistoryDTO.ChatMessageData(message.getId(), message.getMsgSeq(), message.getMsgType(),
                                 message.getMessage(), message.getRole(), message.getSentAt()))
                 .toList();
 

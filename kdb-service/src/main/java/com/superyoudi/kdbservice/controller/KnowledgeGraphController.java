@@ -1,5 +1,7 @@
 package com.superyoudi.kdbservice.controller;
 
+import com.superyoudi.common.entity.Result;
+import com.superyoudi.kdbservice.dto.KnowledgeGraphDTO;
 import com.superyoudi.kdbservice.service.KnowledgeGraphService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +21,14 @@ class KnowledgeGraphController {
     @GetMapping
     public String hello() {
         return "hello";
+    }
+
+    /**
+     * 获取全部知识图谱（节点 + 边），供前端可视化
+     */
+    @GetMapping("/graph")
+    public Result<KnowledgeGraphDTO> graph() {
+        return Result.success(knowledgeGraphService.getKnowledgeGraph());
     }
 
 

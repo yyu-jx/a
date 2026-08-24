@@ -259,9 +259,15 @@ public class HomeServiceImpl implements HomeService {
             return "> 暂无开课或学情数据，无法生成教学建议";
         }
 
-        List<String> knowledgeIds = List.of(weakCourse.getWeakestKnowledge());
+        String weakest = weakCourse.getWeakestKnowledge();
+        if (weakest == null) {
+            return "> 暂无薄弱知识点数据，无法生成教学建议";
+        }
+        List<String> knowledgeIds = List.of(weakest);
         List<KnowledgePointDTO> dtoList = knowledgePointService.batchGetKnowledgePoints(knowledgeIds);
-        weakCourse.setWeakestKnowledgeName(dtoList.get(0).getKnowledgeTitle());
+        if (dtoList != null && !dtoList.isEmpty()) {
+            weakCourse.setWeakestKnowledgeName(dtoList.get(0).getKnowledgeTitle());
+        }
 
         String suggestion =homeAIService.generateTeacherSuggest(weakCourse);
         // 2. 写入Redis缓存

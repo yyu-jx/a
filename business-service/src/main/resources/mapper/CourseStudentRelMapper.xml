@@ -7,7 +7,7 @@
     <!-- 教师查询任教课程，联表拿到老师真实姓名realname作为teacherName -->
     <select id="selectTeacherCourseList" resultType="com.superyoudi.businessservice.pojo.vo.CourseVO">
         SELECT
-            c.id AS courseId,
+            c.id AS id,
             c.name,
             c.description,
             c.cover_url AS coverUrl,
@@ -24,7 +24,7 @@
     <!-- 学生查询参加的课程，关联课程学生中间表 -->
     <select id="selectStudentCourseList" resultType="com.superyoudi.businessservice.pojo.vo.CourseVO">
         SELECT
-            c.id AS courseId,
+            c.id AS id,
             c.name,
             c.description,
             c.cover_url AS coverUrl,
