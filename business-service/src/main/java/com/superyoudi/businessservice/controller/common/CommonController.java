@@ -79,7 +79,7 @@ public class CommonController {
      * @return 学生列表
      */
     @GetMapping("/student")
-    public PageResp<StudentVO> getStudentList(StudentQuery query) {
-        return courseService.queryStudentList(query);
+    public Result<PageResp<StudentVO>> getStudentList(StudentQuery query) {
+        return Result.success(courseService.queryStudentList(query));
     }
 }
