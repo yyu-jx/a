@@ -1,6 +1,8 @@
 package com.superyoudi.businessservice.mapper;
 
+import com.superyoudi.businessservice.pojo.dto.StudentQuery;
 import com.superyoudi.businessservice.pojo.entity.User;
+import com.superyoudi.businessservice.pojo.vo.StudentVO;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
@@ -96,4 +98,10 @@ public interface UserMapper {
      */
     @Select("SELECT COUNT(*) FROM users WHERE username = #{username}")
     Long countByUsername(String username);
+
+    List<StudentVO> selectStudentList(@Param("q") StudentQuery query,
+                                      @Param("offset") Long offset,
+                                      @Param("limit") Long limit);
+
+    Long countStudent(@Param("q")StudentQuery query);
 }
