@@ -5,7 +5,7 @@ import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
 import com.superyoudi.aiservice.ai.agent.hook.AiTutorMessageAgentHook;
-import com.superyoudi.aiservice.ai.agent.interceptor.AiTutorModelInterceptor;
+import com.superyoudi.aiservice.ai.agent.interceptor.AiTutorPromptModelInterceptor;
 import com.superyoudi.aiservice.ai.agent.tools.AiTutorTools;
 import com.superyoudi.aiservice.ai.tools.RagTools;
 import lombok.extern.slf4j.Slf4j;
@@ -22,14 +22,14 @@ public class AiTutorAgent {
 
     private final ReactAgent agent;
 
-    public AiTutorAgent(AiTutorModelInterceptor aiTutorModelInterceptor,
+    public AiTutorAgent(AiTutorPromptModelInterceptor aiTutorPromptModelInterceptor,
                         AiTutorMessageAgentHook aiTutorMessageAgentHook,
                         AiTutorTools aiTutorTools, ChatModel chatModel, RagTools ragTools) {
 
         this.agent = ReactAgent.builder()
                 .name("ai-tutor")
                 .model(chatModel)
-                .interceptors(aiTutorModelInterceptor) // 提示词在这里设置
+                .interceptors(aiTutorPromptModelInterceptor) // 提示词在这里设置
                 .hooks(aiTutorMessageAgentHook)
                 .methodTools(ragTools, aiTutorTools)
                 .build();
