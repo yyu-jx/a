@@ -9,12 +9,14 @@ import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.mapper.*;
 import com.superyoudi.businessservice.pojo.dto.CourseDTO;
 import com.superyoudi.businessservice.pojo.dto.CourseOpeningDataDTO;
+import com.superyoudi.businessservice.pojo.dto.StudentQuery;
 import com.superyoudi.businessservice.pojo.entity.*;
 import com.superyoudi.businessservice.pojo.vo.*;
 import com.superyoudi.businessservice.service.CourseService;
 import com.superyoudi.common.constants.CourseConstants;
 import com.superyoudi.common.dto.StudentCourseProgress;
 import com.superyoudi.common.dto.TodayTaskRawDTO;
+import com.superyoudi.common.entity.PageResp;
 import com.superyoudi.common.exception.BusinessException;
 import com.superyoudi.common.exception.CourseNotExistException;
 import com.superyoudi.common.exception.NoStudyTaskException;
@@ -321,6 +323,25 @@ public class CourseServiceImpl implements CourseService {
 
 
         return result;
+    }
+
+    /**
+     * 查询学生列表
+     */
+    @Override
+    public PageResp<StudentVO> queryStudentList(StudentQuery query) {
+        // 默认分页
+        int pageNum = query.getPageNum() == null ? 1 : query.getPageNum();
+        int pageSize = query.getPageSize() == null ? 10 : query.getPageSize();
+        int offset = (pageNum -1) * pageSize;
+
+        List<StudentVO> list = userMapper.selectStudentList(query, offset, pageSize);
+        Long total = userMapper.countStudent(query);
+
+        PageResp<StudentVO> resp = new PageResp<>();
+        resp.setTotal(total);
+        resp.setData(list);
+        return resp;
     }
 
     @Transactional(rollbackFor = Exception.class)

@@ -1,10 +1,12 @@
 package com.superyoudi.businessservice.service;
 
 import com.superyoudi.businessservice.pojo.dto.CourseDTO;
+import com.superyoudi.businessservice.pojo.dto.StudentQuery;
 import com.superyoudi.businessservice.pojo.entity.Course;
 import com.superyoudi.businessservice.pojo.entity.CourseData;
 import com.superyoudi.businessservice.pojo.entity.TeacherCourseAnalysis;
 import com.superyoudi.businessservice.pojo.vo.*;
+import com.superyoudi.common.entity.PageResp;
 import com.superyoudi.common.exception.CourseNotExistException;
 import org.springframework.lang.NonNull;
 
@@ -70,4 +72,13 @@ public interface CourseService {
      * @return 用户课程列表
      */
     List<CourseVO> getUserCourseList(Long userId);
+
+
+    /**
+     * 获取学生列表
+     *
+     * @param query 筛选条件
+     * @return 学生列表
+     */
+    PageResp<StudentVO> queryStudentList(StudentQuery query);
 }

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.superyoudi.businessservice.mapper.UserMapper">
+    <select id="selectStudentList" resultType="com.superyoudi.businessservice.pojo.vo.StudentVO">
+        SELECT DISTINCT
+        u.id,
+        u.username,
+        u.realname,
+        u.role,
+        u.avatar_url AS avatarUrl,
+        u.created_at AS createdAt,
+        u.updated_at AS updatedAt
+        FROM users u
+
+        <!-- 按课程查询：关联课程学生表 -->
+        <if test="q.courseId != null">
+            INNER JOIN course_student_rel cs ON u.id = cs.student_id
+        </if>
+
+        <!-- 按任务查询：关联任务学生关联表 + 提交表拿status -->
+        <if test="q.taskId != null">
+            INNER JOIN task_student_rel ts ON u.id = ts.student_id
+            LEFT JOIN student_submissions ss
+            ON ts.task_id = ss.task_id AND ts.student_id = ss.student_id
+        </if>
+
+        <where>
+            <!-- 只查学生角色 -->
+            u.role = 'student'
+
+            <if test="q.courseId != null">
+                AND cs.course_id = #{q.courseId}
+            </if>
+
+            <if test="q.taskId != null">
+                AND ts.task_id = #{q.taskId}
+                <!-- status过滤，任务场景生效 -->
+                <if test="q.status != null and q.status != ''">
+                    AND ss.status = #{q.status}
+                </if>
+            </if>
+
+            <!-- keyword搜索：学号/真实姓名模糊 -->
+            <if test="q.keyword != null and q.keyword != ''">
+                AND (u.username LIKE CONCAT('%',#{q.keyword},'%')
+                OR u.realname LIKE CONCAT('%',#{q.keyword},'%'))
+            </if>
+        </where>
+
+        LIMIT #{offset}, #{limit}
+
+
+    </select>
+    <select id="countStudent" resultType="java.lang.Long">
+        SELECT COUNT(DISTINCT u.id)
+        FROM users u
+
+        <if test="q.courseId != null">
+            INNER JOIN course_student_rel cs ON u.id = cs.student_id
+        </if>
+        <if test="q.taskId != null">
+            INNER JOIN task_student_rel ts ON u.id = ts.student_id
+            LEFT JOIN student_submissions ss
+            ON ts.task_id = ss.task_id AND ts.student_id = ss.student_id
+        </if>
+
+        <where>
+            u.role = 'student'
+            <if test="q.courseId != null">
+                AND cs.course_id = #{q.courseId}
+            </if>
+            <if test="q.taskId != null">
+                AND ts.task_id = #{q.taskId}
+                <if test="q.status != null and q.status != ''">
+                    AND ss.status = #{q.status}
+                </if>
+            </if>
+            <if test="q.keyword != null and q.keyword != ''">
+                AND (u.username LIKE CONCAT('%',#{q.keyword},'%')
+                OR u.realname LIKE CONCAT('%',#{q.keyword},'%'))
+            </if>
+        </where>
+    </select>
+</mapper>

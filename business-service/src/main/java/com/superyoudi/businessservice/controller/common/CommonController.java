@@ -1,10 +1,13 @@
 package com.superyoudi.businessservice.controller.common;
 
+import com.superyoudi.businessservice.pojo.dto.StudentQuery;
 import com.superyoudi.businessservice.pojo.dto.TaskQuestion;
 import com.superyoudi.businessservice.pojo.entity.TaskList;
 import com.superyoudi.businessservice.pojo.vo.CourseVO;
+import com.superyoudi.businessservice.pojo.vo.StudentVO;
 import com.superyoudi.businessservice.service.CourseService;
 import com.superyoudi.businessservice.service.TaskService;
+import com.superyoudi.common.entity.PageResp;
 import com.superyoudi.common.entity.Result;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -66,5 +69,17 @@ public class CommonController {
     public Result<List<TaskQuestion>> getTaskQuestion(@RequestParam Long taskId) {
         List<TaskQuestion> list = taskService.getTaskQuestionList(taskId);
         return Result.success(list);
+    }
+
+
+    /**
+     * 获取学生列表
+     *
+     * @param query 筛选条件
+     * @return 学生列表
+     */
+    @GetMapping("/student")
+    public PageResp<StudentVO> getStudentList(StudentQuery query) {
+        return courseService.queryStudentList(query);
     }
 }
