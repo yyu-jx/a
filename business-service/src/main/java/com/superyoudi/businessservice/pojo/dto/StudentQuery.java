@@ -4,10 +4,10 @@ import lombok.Data;
 
 @Data
 public class StudentQuery {
-    private Integer courseId;
-    private Integer taskId;
-    private Integer pageNum;
-    private Integer pageSize;
+    private Long courseId;
+    private Long taskId;
+    private Long pageNum;
+    private Long pageSize;
     private String keyword;
     private String status;
 }

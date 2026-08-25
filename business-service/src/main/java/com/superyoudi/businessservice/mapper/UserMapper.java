@@ -100,8 +100,8 @@ public interface UserMapper {
     Long countByUsername(String username);
 
     List<StudentVO> selectStudentList(@Param("q") StudentQuery query,
-                                      @Param("offset") int offset,
-                                      @Param("limit") int limit);
+                                      @Param("offset") Long offset,
+                                      @Param("limit") Long limit);
 
     Long countStudent(@Param("q")StudentQuery query);
 }

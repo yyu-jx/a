@@ -331,9 +331,9 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public PageResp<StudentVO> queryStudentList(StudentQuery query) {
         // 默认分页
-        int pageNum = query.getPageNum() == null ? 1 : query.getPageNum();
-        int pageSize = query.getPageSize() == null ? 10 : query.getPageSize();
-        int offset = (pageNum -1) * pageSize;
+        Long pageNum = query.getPageNum() == null ? 1L : query.getPageNum();
+        Long pageSize = query.getPageSize() == null ? 10L : query.getPageSize();
+        Long offset = (pageNum -1) * pageSize;
 
         List<StudentVO> list = userMapper.selectStudentList(query, offset, pageSize);
         Long total = userMapper.countStudent(query);

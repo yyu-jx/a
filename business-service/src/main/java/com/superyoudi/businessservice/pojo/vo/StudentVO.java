@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 
 @Data
 public class StudentVO {
-    private Integer id;
+    private Long id;
     private String username;
     private String realname;
     private String role;
