@@ -33,7 +33,7 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 @HookPositions({HookPosition.BEFORE_MODEL}) // 在调用模型之前执行
-public class AiTutorModelInterceptor extends ModelInterceptor {
+public class AiTutorPromptModelInterceptor extends ModelInterceptor {
 
     private final AiTutorService aiTutorService;
 
@@ -79,6 +79,10 @@ public class AiTutorModelInterceptor extends ModelInterceptor {
                     # 禁止行为
                     - 不编造或传播未经证实的信息
                     - 不忽视学生的疑问和困惑
+                    
+                    # 知识检索
+                    - 你可以调用工具检索知识图谱，获取需要的信息
+                    - 你可以调用工具，对用户的回复添加引用信息（如果有）
                     """);
 
             // 构造上下文
@@ -159,6 +163,7 @@ public class AiTutorModelInterceptor extends ModelInterceptor {
 
             return prompt;
         } catch (Exception e) {
+            log.error("AI导师提示词构建失败", e);
             throw new AiServiceInvalidException("AI导师提示词构建失败");
         }
 

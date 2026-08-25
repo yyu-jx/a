@@ -24,7 +24,7 @@ public class CoursewareGenerationEndpoint {
 
     // 存储所有连接的会话
     private static final ConcurrentHashMap<Long, Session> SESSIONS = new ConcurrentHashMap<>();
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /**
      * 向前端推送通知。
@@ -46,7 +46,7 @@ public class CoursewareGenerationEndpoint {
      */
     private static void sendMessage(Session session, GenerationStatus generationStatus) {
         try {
-            String json = objectMapper.writeValueAsString(generationStatus);
+            String json = OBJECT_MAPPER.writeValueAsString(generationStatus);
             log.info("发送消息: 会话ID: {}, 消息: {}", generationStatus.getCoursewareId(), json);
             session.getBasicRemote().sendText(json);
         } catch (IOException e) {

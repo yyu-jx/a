@@ -21,17 +21,16 @@ import com.superyoudi.aiservice.service.LearningPathService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.mapper.CourseMapper;
 import com.superyoudi.businessservice.mapper.UserMapper;
-import com.superyoudi.businessservice.pojo.entity.Course;
-import com.superyoudi.businessservice.pojo.entity.PathNodeTaskRel;
-import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
-import com.superyoudi.businessservice.pojo.entity.User;
+import com.superyoudi.businessservice.pojo.dto.AgentTaskResultDTO;
+import com.superyoudi.businessservice.pojo.entity.*;
 import com.superyoudi.businessservice.service.QuestionBaseService;
 import com.superyoudi.businessservice.service.TaskService;
+import com.superyoudi.businessservice.websocket.AgentTaskResultMessageEndpoint;
 import com.superyoudi.common.constants.AgentConstants;
 import com.superyoudi.common.dto.ChatHistoryDTO;
 import com.superyoudi.common.exception.LearningPathFinishedException;
-import com.superyoudi.kdbservice.dto.KnowledgePointDTO;
 import com.superyoudi.kdbservice.service.KnowledgePointService;
+import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
@@ -152,11 +151,19 @@ public class AiTutorServiceImpl implements AiTutorService {
 
         LearningPath learningPath = learningPathService.getLearningPathByStudentAndCourse(studentId, courseId);
         if (learningPath == null) {
-            learningPathService.createLearningPath(studentId, courseId);
+            Long lpId = learningPathService.createLearningPath(studentId, courseId);
+            learningPath = learningPathService.getLearningPathById(lpId);
         }
 
         Long currentNodeId = learningPath.getCurrentNodeId();
+
+        // 如果当前currentNodeId为null，表示学习路径尚未开始，需要设置为开始节点
+        if (currentNodeId == null)
+            currentNodeId = learningPathService.setLearningPathToStartNode(learningPath.getId());
+
         LearningPathNode learningPathNode = learningPathService.getLearningPathNodeById(currentNodeId);
+
+
         Course course = courseMapper.selectById(courseId);
 
         return new LearningPathDTO(courseId, course.getName(), learningPath.getId(),
@@ -183,25 +190,13 @@ public class AiTutorServiceImpl implements AiTutorService {
         sb.append(String.format("学习路径 %d：\n", learningPathId));
 
         for (LearningPathNode node : learningPathNodes) {
-
             try {
                 List<String> kpIds = mapper.readValue(node.getKnowledgeIds(), new TypeReference<>() {
                 });
 
-                // 获取知识点信息
-                List<KnowledgePointDTO> kpDtoList = knowledgePointService.batchGetKnowledgePoints(kpIds);
-                StringBuilder knowledgeTitle = new StringBuilder();
-
-                for (KnowledgePointDTO kpDto : kpDtoList) {
-                    if (kpDto == null || kpDto.getKnowledgeTitle() == null || kpDto.getKnowledgeTitle().isEmpty())
-                        continue;
-
-                    knowledgeTitle.append(kpDto.getKnowledgeTitle()).append(", ");
-                }
-
                 // 格式化节点信息
                 sb.append("节点ID：").append(node.getId())
-                        .append("，知识点列表：").append(knowledgeTitle)
+                        .append("，知识点列表：").append(String.join(", ", kpIds))
                         .append("，状态：").append(node.getStatus())
                         .append("\n");
             } catch (JsonProcessingException e) {
@@ -221,16 +216,21 @@ public class AiTutorServiceImpl implements AiTutorService {
     }
 
     @Override
-    public void composePathNodeHomework(long pathNodeId,
-                                        long courseId,
-                                        long studentId,
-                                        List<String> knowledgePoints,
-                                        String title,
-                                        Map<String, Integer> questionConfig,
-                                        int totalScore) {
+    public void composePathNodeHomework(
+            long pathNodeId,
+            long courseId,
+            long studentId,
+            List<String> knowledgePoints,
+            String title,
+            Map<String, Integer> questionConfig,
+            int totalScore) {
 
         Long taskId = taskService.composeTask(0, courseId, knowledgePoints, title, null,
                 "homework", questionConfig, totalScore);
+
+        // 通知前端
+        Task task = taskService.getTaskById(taskId);
+        notifyTaskCompletion(studentId, task, AgentTaskResultDTO.TYPE_TASK);
 
         taskService.addPathNodeTaskRel(taskId, pathNodeId, studentId);
     }
@@ -248,5 +248,10 @@ public class AiTutorServiceImpl implements AiTutorService {
         if (studentSubmission == null) return false;
 
         return studentSubmission.getStatus().equals("submitted") || studentSubmission.getStatus().equals("passed");
+    }
+
+    @Override
+    public <T> void notifyTaskCompletion(Long userId, @Nonnull T result, @Nonnull String taskType) {
+        AgentTaskResultMessageEndpoint.notifyTaskCompletion(userId, result, taskType, chatPersistenceService);
     }
 }

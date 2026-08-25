@@ -46,7 +46,7 @@ public class ChatMessage {
      */
     private String role;
     /**
-     * 消息内容，支持JSON字符串 / URL地址
+     * 消息内容，支持JSON字符串
      */
     private String message;
     /**

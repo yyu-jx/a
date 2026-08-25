@@ -2,6 +2,7 @@ package com.superyoudi.businessservice.controller;
 
 import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
 import com.superyoudi.aiservice.service.AiTutorService;
+import com.superyoudi.aiservice.service.LearningPathService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.pojo.dto.CourseOpeningDataDTO;
 import com.superyoudi.businessservice.service.impl.CourseServiceImpl;
@@ -26,10 +27,12 @@ class TestController {
 
     private final AiTutorService aiTutorService;
     private final CourseServiceImpl courseService;
+    private final LearningPathService learningPathService;
 
-    TestController(AiTutorService aiTutorService, CourseServiceImpl courseService) {
+    TestController(AiTutorService aiTutorService, CourseServiceImpl courseService, LearningPathService learningPathService) {
         this.aiTutorService = aiTutorService;
         this.courseService = courseService;
+        this.learningPathService = learningPathService;
     }
 
     @GetMapping("/test")
@@ -49,6 +52,12 @@ class TestController {
         CourseOpeningDataDTO courseOpeningDataDTO = AiMessageUtils.convertJsonValue(json, CourseOpeningDataDTO.class);
 
         courseService.saveCourseData(courseOpeningDataDTO);
+        return "success";
+    }
+
+    @GetMapping("/clp")
+    public String testCreateLearningPath(){
+        learningPathService.createLearningPath(3L,1L);
         return "success";
     }
 }

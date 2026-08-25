@@ -1,11 +1,14 @@
 package com.superyoudi.businessservice.service.impl;
 
 import com.superyoudi.aiservice.ai.model.QuestionGenerateModel;
+import com.superyoudi.businessservice.mapper.QuestionKnowledgeRelMapper;
 import com.superyoudi.businessservice.mapper.QuestionMapper;
 import com.superyoudi.businessservice.mapper.QuestionPropertyMapper;
 import com.superyoudi.businessservice.pojo.entity.Question;
+import com.superyoudi.businessservice.pojo.entity.QuestionKnowledgeRel;
 import com.superyoudi.businessservice.pojo.entity.QuestionProperty;
 import com.superyoudi.businessservice.service.QuestionBaseService;
+import com.superyoudi.common.dto.QuestionDTO;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -23,11 +26,13 @@ public class QuestionBaseServiceImpl implements QuestionBaseService {
     private final QuestionMapper questionMapper;
     private final QuestionPropertyMapper questionPropertyMapper;
     private final QuestionGenerateModel questionGenerateModel;
+    private final QuestionKnowledgeRelMapper questionKnowledgeRelMapper;
 
-    public QuestionBaseServiceImpl(QuestionMapper questionMapper, QuestionPropertyMapper questionPropertyMapper, QuestionGenerateModel questionGenerateModel) {
+    public QuestionBaseServiceImpl(QuestionMapper questionMapper, QuestionPropertyMapper questionPropertyMapper, QuestionGenerateModel questionGenerateModel, QuestionKnowledgeRelMapper questionKnowledgeRelMapper) {
         this.questionMapper = questionMapper;
         this.questionPropertyMapper = questionPropertyMapper;
         this.questionGenerateModel = questionGenerateModel;
+        this.questionKnowledgeRelMapper = questionKnowledgeRelMapper;
     }
 
     /**
@@ -91,21 +96,44 @@ public class QuestionBaseServiceImpl implements QuestionBaseService {
      * <p>
      * 若题目属性为null，则只添加题目。
      */
-    @Override
     @Transactional(rollbackFor = Exception.class)
-    public void addQuestion(@NonNull Question question, @Nullable QuestionProperty questionProperty) {
-        Assert.notNull(question, "question不能为null");
-        Assert.notNull(question.getTeacherId(), "teacherId不能为null");
-        Assert.notNull(question.getCourseId(), "courseId不能为null");
-        Assert.hasText(question.getContent(), "题干不能为空");
+    @Override
+    public void addQuestion(@Nullable QuestionDTO dto) {
+        Assert.notNull(dto, "question不能为null");
+        Assert.notNull(dto.getTeacherId(), "teacherId不能为null");
+        Assert.notNull(dto.getCourseId(), "courseId不能为null");
+        Assert.hasText(dto.getContent(), "题干不能为空");
 
+        // 添加题目
+        Question question = Question.builder()
+                .courseId(dto.getCourseId())
+                .teacherId(dto.getTeacherId())
+                .type(dto.getType())
+                .content(dto.getContent())
+                .answer(dto.getAnswer())
+                .build();
         Long rows = questionMapper.insert(question);
         if (rows == null || rows == 0) {
             throw new RuntimeException("插入题目失败");
         }
-        if (questionProperty != null) {
-            questionProperty.setQuestionId(question.getId());
-            questionPropertyMapper.insert(questionProperty);
+
+        // 添加题目属性
+        QuestionProperty property = QuestionProperty.builder()
+                .questionId(question.getId())
+                .analysis(dto.getAnalysis())
+                .source(dto.getSource())
+                .difficulty(dto.getDifficulty())
+                .build();
+
+        questionPropertyMapper.insert(property);
+
+        // 添加题目与知识点的关系
+        List<String> knowledgeList = dto.getKnowledgeList();
+        for (int i = 0, knowledgeListSize = knowledgeList.size(); i < knowledgeListSize; i++) {
+            String kp = knowledgeList.get(i);
+            QuestionKnowledgeRel questionKnowledgeRel =
+                    new QuestionKnowledgeRel(null, question.getId(), kp, i);
+            questionKnowledgeRelMapper.insert(questionKnowledgeRel);
         }
     }
 

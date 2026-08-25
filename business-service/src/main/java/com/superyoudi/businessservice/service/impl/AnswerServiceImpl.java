@@ -12,7 +12,6 @@ import com.superyoudi.businessservice.pojo.entity.StudentAnswer;
 import com.superyoudi.businessservice.pojo.entity.StudentSubmission;
 import com.superyoudi.businessservice.pojo.entity.TaskQuestionRel;
 import com.superyoudi.businessservice.service.AnswerService;
-import com.superyoudi.common.dto.QuestionDTO;
 import com.superyoudi.common.dto.TeacherAiCorrectingDTO;
 import com.superyoudi.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +41,6 @@ public class AnswerServiceImpl implements AnswerService {
     private final StringRedisTemplate stringRedisTemplate;
 
 
-
     @Override
     public Flux<String> getQuestionHelpStream(Long questionId, Long taskId, Long studentId) {
         Question question = questionMapper.findById(questionId);
@@ -62,7 +60,7 @@ public class AnswerServiceImpl implements AnswerService {
     }
 
     @Override
-    public Flux<String> getCorrectionSuggestions(Long questionId, Long taskId,Long studentId) {
+    public Flux<String> getCorrectionSuggestions(Long questionId, Long taskId, Long studentId) {
         // 参数校验
         if (taskId == null || questionId == null) {
             throw new BusinessException("taskId、questionId不能为空");
@@ -111,7 +109,8 @@ public class AnswerServiceImpl implements AnswerService {
         // 8. 解析题目答案JSON：提取标准答案 + 得分关键点
         Map<String, Object> answerMap;
         try {
-            answerMap = objectMapper.readValue(question.getAnswer(), new TypeReference<Map<String, Object>>() {});
+            answerMap = objectMapper.readValue(question.getAnswer(), new TypeReference<Map<String, Object>>() {
+            });
         } catch (Exception e) {
             log.error("题目answer字段JSON解析失败，questionId:{}", questionId, e);
             throw new BusinessException("题目答案数据格式异常");
@@ -122,7 +121,8 @@ public class AnswerServiceImpl implements AnswerService {
         // 9. 解析学生作答JSON：提取学生答题内容
         Map<String, Object> stuAnswerMap;
         try {
-            stuAnswerMap = objectMapper.readValue(studentAnswer.getAnswer(), new TypeReference<Map<String, Object>>() {});
+            stuAnswerMap = objectMapper.readValue(studentAnswer.getAnswer(), new TypeReference<Map<String, Object>>() {
+            });
         } catch (Exception e) {
             log.error("学生作答JSON解析失败，submissionId:{}, questionId:{}", submission.getId(), questionId, e);
             throw new BusinessException("学生作答数据格式异常");
@@ -139,7 +139,7 @@ public class AnswerServiceImpl implements AnswerService {
 
         // 11. AI获取流式结果，收集完整结果存入Redis，再继续流式下发
         Flux<String> aiFlux = answerAiService.getCorrectionSuggestions(dto)
-                .onErrorMap( e -> new BusinessException("AI批改服务暂时不可用"));
+                .onErrorMap(e -> new BusinessException("AI批改服务暂时不可用"));
 
         // 12. collectList 把AI全部字符收集拼接完整字符串
         return aiFlux

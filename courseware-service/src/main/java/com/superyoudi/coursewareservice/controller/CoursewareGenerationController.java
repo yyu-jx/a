@@ -40,7 +40,7 @@ public class CoursewareGenerationController {
     @PostMapping("/refs")
     public Result<Void> uploadFile(@RequestParam Long coursewareRecordId, @RequestParam MultipartFile file,
                                    @RequestParam Long userId, @RequestParam String fileDesc, @RequestParam String source) {
-        coursewareFileRefService.saveFileAndRef(coursewareRecordId, file, userId, fileDesc, source);
+        coursewareFileRefService.saveFileWithRef(coursewareRecordId, file, userId, fileDesc, source);
         return Result.success();
     }
 

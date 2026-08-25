@@ -5,6 +5,7 @@ import com.superyoudi.aiservice.pojo.dto.StudentCourseInfoDTO;
 import com.superyoudi.aiservice.pojo.dto.UserChatMessage;
 import com.superyoudi.common.dto.ChatHistoryDTO;
 import com.superyoudi.common.exception.LearningPathFinishedException;
+import jakarta.annotation.Nonnull;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -42,4 +43,6 @@ public interface AiTutorService {
     boolean checkPathNodeHomeWorkExists(long pathNodeId, long courseId, long studentId);
 
     boolean checkPathNodeHomeworkFinished(long pathNodeId, long studentId);
+
+    <T> void notifyTaskCompletion(Long userId, @Nonnull T result, @Nonnull String taskType);
 }

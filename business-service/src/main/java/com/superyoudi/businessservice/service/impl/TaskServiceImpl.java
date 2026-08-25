@@ -24,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -167,10 +168,11 @@ public class TaskServiceImpl implements TaskService {
      * 1. 根据知识点查question set
      * 2. 根据题型分组成question lists
      * 3. 检查每个题型是否有足够的题目，如果没有，调用AI生成。
-     * 4. 组装题目，生成任务，进行知识节点的关联，向前端推送。
+     * 4. 组装题目，生成任务
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
+    @NonNull
     public Long composeTask(long assignerId, long courseId, List<String> knowledgePoints,
                             String title, String description, String type,
                             Map<String, Integer> questionConfig, int totalScore) {
@@ -469,6 +471,11 @@ public class TaskServiceImpl implements TaskService {
         Long taskId = taskQuestionRel.getTaskId();
         return studentSubmissionMapper.selectByTaskAndStudentId(taskId, studentId);
 
+    }
+
+    @Override
+    public Task getTaskById(long taskId) {
+        return taskMapper.selectById(taskId);
     }
 
     /**

@@ -20,7 +20,7 @@ public class CourseDataGenerateModel {
         String prompt = String.format("""
                 你是一名资深课程规划师，擅长根据课程信息生成结构清晰、逻辑递进的章、节和知识点体系。请根据以下课程信息，生成完整的课程大纲结构。
                 
-                **课程ID**: %d
+                **课程数据ID**: %d
                 **课程名称**：%s
                 **课程描述**：%s
                 

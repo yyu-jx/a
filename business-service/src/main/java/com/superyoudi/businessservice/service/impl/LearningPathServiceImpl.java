@@ -143,6 +143,8 @@ public class LearningPathServiceImpl implements LearningPathService {
 
         ObjectMapper mapper = new ObjectMapper();
 
+        Long startNodeId = null;
+
         for (LearningPathDataDTO.PathNodeData pathNodeData : lpData.getPathNodeDataList()) {
             String kpIdListJson;
             try {
@@ -157,7 +159,13 @@ public class LearningPathServiceImpl implements LearningPathService {
                     kpIdListJson, LearningPathNode.NODE_STATUS_UNTESTED, null, null, null);
 
             learningPathNodeMapper.insert(node);
+
+            if (startNodeId == null)
+                startNodeId = node.getId();
         }
+
+        // 更新学习路径的当前节点
+        learningPathMapper.updateCurrentNode(newPath.getId(), startNodeId);
 
         log.info("知识节点构建完成。一共 {} 个节点。", lpData.getPathNodeDataList().size());
 
@@ -248,5 +256,23 @@ public class LearningPathServiceImpl implements LearningPathService {
     @Override
     public void updateLearningPath(LearningPath learningPath) {
         learningPathMapper.update(learningPath);
+    }
+
+    @Override
+    public Long setLearningPathToStartNode(Long pathId) {
+        LearningPath learningPath = learningPathMapper.selectById(pathId);
+        if (learningPath == null) {
+            log.error("学习路径 {} 没有找到", pathId);
+            throw new RuntimeException("学习路径没有找到");
+        }
+
+        LearningPathNode firstNodeByPathId = learningPathMapper.findFirstNodeByPathId(learningPath.getId());
+        if (firstNodeByPathId == null) {
+            log.error("学习路径 {} 没有找到起始节点", pathId);
+            throw new RuntimeException("学习路径没有找到起始节点");
+        }
+
+        learningPathMapper.updateCurrentNode(learningPath.getId(), firstNodeByPathId.getId());
+        return firstNodeByPathId.getId();
     }
 }

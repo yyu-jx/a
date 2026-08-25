@@ -11,6 +11,9 @@ INSERT INTO `users` (`username`, `realname`, `password`, `role`, `avatar_url`)
 VALUES ('xiaoming', '小明', '123456', 'student',
         'https://example.com/avatar/xiaoming.jpg');
 
+INSERT INTO course_student_rel (course_id, student_id)
+VALUES (1, 3);
+
 -- 2. 班级表测试数据
 INSERT INTO `classes` (`name`)
 VALUES ('计算机科学与技术2024级1班');

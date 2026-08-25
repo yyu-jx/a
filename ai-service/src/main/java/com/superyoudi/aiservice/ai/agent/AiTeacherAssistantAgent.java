@@ -17,8 +17,6 @@ import reactor.core.publisher.Flux;
 @Component
 public class AiTeacherAssistantAgent {
 
-    // TODO 聊天记录
-
     private final ReactAgent agent;
 
     public AiTeacherAssistantAgent(AiTeacherMessageAgentHook hook, AiTeacherAssistantTools teacherAssistantTools, ChatModel chatModel, RagTools ragTools) {
@@ -40,9 +38,13 @@ public class AiTeacherAssistantAgent {
                         3. 教学分析
                         
                         ## 规范
-                        - 当意图明确，且获取到足够信息时，直接执行并返回结果
+                        - 当意图明确，且获取到足够调用工具的信息时，直接执行并返回结果
                         - 当意图模糊，且信息不足时，主动向教师追问澄清
                         - 每次回复末尾，可以提供1-2个相关的追问建议
+                        
+                        # 知识检索
+                        - 你可以调用工具检索知识图谱，获取需要的信息
+                        - 你可以调用工具，对用户的回复添加引用信息（如果有）
                         """)
                 .hooks(hook)
                 .methodTools(teacherAssistantTools, ragTools)

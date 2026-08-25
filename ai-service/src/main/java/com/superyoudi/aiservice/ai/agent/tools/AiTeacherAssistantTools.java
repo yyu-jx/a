@@ -28,6 +28,8 @@ public class AiTeacherAssistantTools {
         Map<String, Object> metadata = (Map<String, Object>) context.getContext().get(AgentConstants.METADATA_CUSTOM_METADATA);
 
         metadata.put("test", "hahaha");
+
+        aiTeacherAssistantService.notifyTaskCompletion(1L, "test message","task");
     }
 
     // 课件生成工具
@@ -53,20 +55,19 @@ public class AiTeacherAssistantTools {
         Long userId = (Long) context.getContext().get(AgentConstants.METADATA_USER_ID);
 
 
-        Long coursewareRecId = aiTeacherAssistantService.callCoursewareGeneration(userId, request);
-        // TODO 前端发消息
+      aiTeacherAssistantService.callCoursewareGeneration(userId, request);
         return "成功";
     }
 
-    // TODO 作业批改工具
     @Tool(name = "correct_task", description = "批改教师布置的任务")
     @SuppressWarnings("unused")
-    public String correctTask(Long taskId) {
-        aiTeacherAssistantService.correctTask(taskId);
+    public String correctTask(Long taskId, ToolContext context) {
+        Long userId = (Long) context.getContext().get(AgentConstants.METADATA_USER_ID);
+
+        aiTeacherAssistantService.correctTask(userId, taskId);
         return "成功";
     }
 
-    // TODO 任务布置工具
     @Tool(name = "arrange_task", description = "布置教师任务")
     @SuppressWarnings("unused")
     public String arrangeTask(
@@ -90,7 +91,7 @@ public class AiTeacherAssistantTools {
         Long userId = (Long) context.getContext().get(AgentConstants.METADATA_USER_ID);
 
         request.setAssignerId(userId);
-        aiTeacherAssistantService.composeTask(request);
+        aiTeacherAssistantService.composeTask(userId, request);
         return "成功";
     }
 

@@ -4,8 +4,8 @@ import com.superyoudi.businessservice.pojo.entity.Question;
 import com.superyoudi.businessservice.pojo.entity.UserFile;
 import com.superyoudi.businessservice.service.FileService;
 import com.superyoudi.businessservice.service.QuestionBaseService;
+import com.superyoudi.common.dto.QuestionDTO;
 import com.superyoudi.common.entity.Result;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -52,8 +52,8 @@ class CoursePreparingController {
 
     /// TODO 添加题目，包含属性与知识点关联
     @PostMapping("/questions")
-    public Result<Void> addQuestion(@RequestBody Question question) {
-        questionBaseService.addQuestion(question, null);
+    public Result<Void> addQuestion(@RequestBody QuestionDTO question) {
+        questionBaseService.addQuestion(question);
         return Result.success();
     }
 

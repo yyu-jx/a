@@ -5,5 +5,5 @@ import lombok.Data;
 @Data
 public class KnowledgePointDTO {
     private String knowledgeId;
-    private String knowledgeTitle;
+    private String knowledgeDescription;
 }

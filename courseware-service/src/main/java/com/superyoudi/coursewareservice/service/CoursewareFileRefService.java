@@ -16,7 +16,9 @@ public interface CoursewareFileRefService {
 
     void addFileRef(Long coursewareRecId, Long fileId);
 
-    void saveFileAndRef(Long coursewareRecId, MultipartFile file, Long userId, String fileDesc, String source);
+    Long saveExportedFile(Long userId, String fileName);
+
+    void saveFileWithRef(Long coursewareRecId, MultipartFile file, Long userId, String fileDesc, String source);
 
     void deleteFileRef(Long fileRefId);
 }

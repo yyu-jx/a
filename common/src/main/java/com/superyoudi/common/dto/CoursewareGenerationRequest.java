@@ -36,4 +36,33 @@ public class CoursewareGenerationRequest {
     private String teachingFlow;
     private String interactionDesign;
     private String additionalInfo;
+
+    public CoursewareGenerationRequest.DTO toDTO(Long coursewareRecId) {
+        return DTO.builder()
+                .coursewareRecId(coursewareRecId)
+                .title(title)
+                .basicInfo(basicInfo)
+                .teachingTarget(teachingTarget)
+                .coreKnowledges(coreKnowledges)
+                .hardKnowleges(hardKnowleges)
+                .teachingFlow(teachingFlow)
+                .interactionDesign(interactionDesign)
+                .additionalInfo(additionalInfo)
+                .build();
+    }
+
+    @Data
+    @AllArgsConstructor
+    @Builder
+    public static class DTO {
+        private Long coursewareRecId;
+        private String title;
+        private String basicInfo;
+        private String teachingTarget;
+        private String coreKnowledges;
+        private String hardKnowleges;
+        private String teachingFlow;
+        private String interactionDesign;
+        private String additionalInfo;
+    }
 }
