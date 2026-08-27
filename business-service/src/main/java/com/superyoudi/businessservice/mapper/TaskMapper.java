@@ -93,7 +93,11 @@ public interface TaskMapper {
 
     List<ErrorQuestionVO> selectUserErrorQuestion(Long studentId, Long courseId);
 
-    List<TaskList> selectTeacherTaskPage(Pageable pageable, Long userId, Long courseId, String status);
+    List<TaskList> selectTeacherTaskPage(
+            @Param("pageable") Pageable pageable,
+            @Param("userId") Long userId,
+            @Param("courseId") Long courseId,
+            @Param("status") String status);
 
     List<TaskList> selectStudentTaskPage(Pageable pageable, Long userId, Long courseId, String status);
 

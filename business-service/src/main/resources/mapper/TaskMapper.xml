@@ -96,8 +96,22 @@
         ss.total_score AS user_score
         FROM tasks t
         LEFT JOIN courses c ON t.course_id = c.id
-        LEFT JOIN student_submissions ss
-        ON t.id = ss.task_id AND ss.student_id = #{userId}
+        LEFT JOIN (
+        SELECT task_id, status, total_score
+        FROM (
+        SELECT
+        task_id,
+        status,
+        total_score,
+        ROW_NUMBER() OVER (
+        PARTITION BY task_id
+        ORDER BY id DESC
+        ) AS rn
+        FROM student_submissions
+        WHERE student_id = #{userId}
+        ) latest
+        WHERE latest.rn = 1
+        ) ss ON ss.task_id = t.id
         WHERE t.assigner_id = #{userId}
         <if test="courseId != null">
             AND t.course_id = #{courseId}
