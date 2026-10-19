@@ -33,7 +33,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * 生成测验：Task<p>
  * 批改任务：Task<p>
  * 布置任务：Task<p>
- * 课件生成：CoursewareGenerationRequest.DTO
  *
  * @author Sijayyx
  */
@@ -52,9 +51,9 @@ public class AgentTaskResultMessageEndpoint {
      *
      * @param userId                 用户ID
      * @param result                 任务执行结果
-     * @param taskType               数据类型。请查看AgentTaskResultDTO的TYPE_TASK和TYPE_COURSEWARE_GEN_REQUEST
+     * @param taskType               数据类型。请查看AgentTaskResultDTO的TYPE_TASK
      * @param chatPersistenceService 聊天持久化服务
-     * @param <T>                    Task或CoursewareGenerationRequest.DTO
+     * @param <T>                    Task
      */
     public static <T> void notifyTaskCompletion(Long userId, @Nonnull T result, @Nonnull String taskType, ChatPersistenceService chatPersistenceService) {
         try {

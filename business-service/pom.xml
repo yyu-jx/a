@@ -46,18 +46,6 @@
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.superyoudi</groupId>
-            <artifactId>courseware-service</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.superyoudi</groupId>
-                    <artifactId>ai-service</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
 
         <!--      -->
 
@@ -88,6 +76,13 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-pool2</artifactId>
+        </dependency>
+
+        <!-- RocketMQ：Spring Boot 3 使用 2.3.x 系列（2.2.x 只支持 Boot 2） -->
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-spring-boot-starter</artifactId>
+            <version>2.3.3</version>
         </dependency>
 
         <!-- Hutool 全量工具包 -->

@@ -63,12 +63,18 @@ public interface StudentSubmissionMapper {
             """)
     TaskScoreStats selectScoreStatsByTaskId(@Param("taskId") Long taskId);
 
-    @Select("select * from student_submissions where task_id = #{taskId} and student_id = #{student_id} limit 1")
-    StudentSubmission selectByTaskAndStudentId(Long taskId, Long studentId);
+    @Select("select * from student_submissions where task_id = #{taskId} and student_id = #{studentId} limit 1")
+    StudentSubmission selectByTaskAndStudentId(@Param("taskId") Long taskId, @Param("studentId") Long studentId);
 
 
     @Select("select * from student_submissions where task_id = #{taskId}")
     List<StudentSubmission> selectByTaskId(Long taskId);
+
+    /**
+     * 根据ID查询提交记录（RocketMQ 批改消费者按消息里的 submissionId 回查）
+     */
+    @Select("select * from student_submissions where id = #{id}")
+    StudentSubmission selectById(@Param("id") Long id);
 
     @Select("select * from student_submissions")
     List<StudentSubmission> selectAll();

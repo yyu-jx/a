@@ -2,8 +2,10 @@ package com.superyoudi.businessservice.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.superyoudi.aiservice.ai.model.AnswerCorrectionModel;
-import com.superyoudi.aiservice.service.TaskAiService;
+import com.superyoudi.businessservice.cache.TaskQuestionCacheService;
 import com.superyoudi.businessservice.mapper.*;
+import com.superyoudi.businessservice.mq.AiDiagnoseMqProducer;
+import com.superyoudi.businessservice.mq.TaskCorrectionMqProducer;
 import com.superyoudi.businessservice.pojo.dto.TaskDTO;
 import com.superyoudi.businessservice.pojo.dto.TaskQuestion;
 import com.superyoudi.businessservice.pojo.entity.*;
@@ -32,12 +34,10 @@ import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static com.superyoudi.common.constants.RedisConstants.AI_DIAGNOSE_CACHE_HOUR;
 import static com.superyoudi.common.constants.RedisConstants.AI_DIAGNOSE_CACHE_KEY;
 
 @Slf4j
@@ -50,10 +50,12 @@ public class TaskServiceImpl implements TaskService {
     private final StudentAnswerMapper studentAnswerMapper;
     private final TaskMapper taskMapper;
     private final StudentCourseProgressMapper studentCourseProgressMapper;
-    private final TaskAiService taskAiService;
+    private final AiDiagnoseMqProducer aiDiagnoseMqProducer;
     private final StringRedisTemplate stringRedisTemplate;
     private final UserMapper userMapper;
     private final QuestionMapper questionMapper;
+    private final TaskQuestionCacheService taskQuestionCacheService;
+    private final TaskCorrectionMqProducer taskCorrectionMqProducer;
     private final TaskQuestionRelMapper taskQuestionRelMapper;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -68,20 +70,22 @@ public class TaskServiceImpl implements TaskService {
                            StudentAnswerMapper studentAnswerMapper,
                            TaskMapper taskMapper,
                            StudentCourseProgressMapper studentCourseProgressMapper,
-                           TaskAiService taskAiService,
+                           AiDiagnoseMqProducer aiDiagnoseMqProducer,
                            StringRedisTemplate stringRedisTemplate,
                            UserMapper userMapper,
                            QuestionMapper questionMapper,
                            TaskQuestionRelMapper taskQuestionRelMapper,
-                           AnswerCorrectionModel answerCorrectionModel, PathNodeTaskRelMapper pathNodeTaskRelMapper, QuestionBaseService questionBaseService, TaskAnalysisMapper taskAnalysisMapper) {
+                           AnswerCorrectionModel answerCorrectionModel, PathNodeTaskRelMapper pathNodeTaskRelMapper, QuestionBaseService questionBaseService, TaskAnalysisMapper taskAnalysisMapper, TaskQuestionCacheService taskQuestionCacheService, TaskCorrectionMqProducer taskCorrectionMqProducer) {
         this.studentSubmissionMapper = studentSubmissionMapper;
         this.studentAnswerMapper = studentAnswerMapper;
         this.taskMapper = taskMapper;
         this.studentCourseProgressMapper = studentCourseProgressMapper;
-        this.taskAiService = taskAiService;
+        this.aiDiagnoseMqProducer = aiDiagnoseMqProducer;
         this.stringRedisTemplate = stringRedisTemplate;
         this.userMapper = userMapper;
         this.questionMapper = questionMapper;
+        this.taskQuestionCacheService = taskQuestionCacheService;
+        this.taskCorrectionMqProducer = taskCorrectionMqProducer;
         this.taskQuestionRelMapper = taskQuestionRelMapper;
         this.pathNodeTaskRelMapper = pathNodeTaskRelMapper;
 
@@ -240,17 +244,28 @@ public class TaskServiceImpl implements TaskService {
         // 参数校验
         Assert.notNull(submission, "提交记录不能为空");
 
-        if (submission.getId() != null) {
-            studentSubmissionMapper.update(submission);
-        } else {
-            studentSubmissionMapper.insert(submission);
+        // 草稿（未提交）：直接同步保存，不触发批改，也无需发消息
+        if (!"submitted".equals(submission.getStatus())) {
+            if (submission.getId() != null) {
+                studentSubmissionMapper.update(submission);
+            } else {
+                studentSubmissionMapper.insert(submission);
+            }
+            return submission.getId();
         }
 
-        if (submission.getStatus().equals("submitted")) {
-            executeSubmissionCorrection(submission, false);
+        // 已提交：改用"事务消息"完成"保存提交记录 + 触发异步批改"。
+        // 为什么用事务消息：必须保证"提交记录落库"（本地事务）与"批改消息发送"原子 ——
+        // 不能出现"落库成功但消息没发出（学生永远拿不到分）"，
+        // 也不能出现"消息发出但提交没落库（批改不存在的记录）"。
+        // 落库动作在 SubmissionTransactionListener.executeLocalTransaction 里执行，
+        // 成功后回填 submissionId 由本方法返回给前端。
+        Long submissionId = taskCorrectionMqProducer.sendSubmitCorrection(submission);
+        if (submissionId == null) {
+            // 事务监听器保存失败，半消息已回滚
+            throw new BusinessException("作业提交失败，请重试");
         }
-
-        return submission.getId();
+        return submissionId;
     }
 
     /**
@@ -294,19 +309,18 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public String diagnose(Long studentId) {
+        // 1. 查缓存，命中直接返回（缓存由 AiDiagnoseConsumer 异步生成后写入）
         String cacheKey = AI_DIAGNOSE_CACHE_KEY + studentId;
         String cached = stringRedisTemplate.opsForValue().get(cacheKey);
         if (cached != null) {
             return cached;
         }
 
-        Long courseId = null;
-        List<ErrorQuestionVO> allErrorQuestionVO = taskMapper.selectUserErrorQuestion(studentId, courseId);
+        // 2. 缓存未命中 → 触发异步生成（SETNX 去重，同一学生短时间内只发一条消息）
+        aiDiagnoseMqProducer.triggerDiagnose(studentId);
 
-        String result = taskAiService.diagnose(allErrorQuestionVO);
-
-        stringRedisTemplate.opsForValue().set(cacheKey, result, AI_DIAGNOSE_CACHE_HOUR, TimeUnit.HOURS);
-        return result;
+        // 3. 立即返回"生成中"，前端轮询本接口；生成完成后命中缓存拿到诊断报告
+        return "诊断报告生成中，请稍后刷新";
     }
 
     @Override
@@ -350,14 +364,9 @@ public class TaskServiceImpl implements TaskService {
             throw new BusinessException("任务ID不能为空");
         }
 
-        //  查询任务基本信息
-        Task task = taskMapper.selectById(taskId);
-        if (task == null) {
-            throw new BusinessException("任务不存在");
-        }
-
-        //  查询任务关联的所有题目（按题号排序）
-        return questionMapper.selectByTaskId(taskId);
+        // 任务题目列表读取改为委托给 TaskQuestionCacheService：
+        // 热点题目预加载 + 逻辑过期防击穿（具体实现与注释见 TaskQuestionCacheService）
+        return taskQuestionCacheService.getTaskQuestionList(taskId);
     }
 
     @Override
@@ -411,8 +420,16 @@ public class TaskServiceImpl implements TaskService {
         List<StudentAnswer> studentAnswers = getStudentAnswers(submission.getStudentId(), submission.getId());
 
         Map<StudentAnswer, Question> studentAnswerQuestionMap = new HashMap<>();
+        // 批量查询题目，避免循环单查造成的 N+1 问题
+        List<Long> questionIds = studentAnswers.stream()
+                .map(StudentAnswer::getQuestionId)
+                .distinct()
+                .toList();
+        Map<Long, Question> questionMap = questionIds.isEmpty() ? Map.of() :
+                questionMapper.findByIds(questionIds).stream()
+                        .collect(Collectors.toMap(Question::getId, q -> q));
         for (StudentAnswer studentAnswer : studentAnswers) {
-            Question answerQuestion = questionMapper.findById(studentAnswer.getQuestionId());
+            Question answerQuestion = questionMap.get(studentAnswer.getQuestionId());
             if (answerQuestion == null)
                 throw new BusinessException("题目不存在");
 

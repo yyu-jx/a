@@ -42,6 +42,14 @@ public interface QuestionMapper {
     Question findById(Long id);
 
     /**
+     * 根据ID列表批量查询题目（避免循环单查造成的 N+1 问题）
+     */
+    @Select("<script>SELECT * FROM questions WHERE id IN " +
+            "<foreach collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach>" +
+            "</script>")
+    List<Question> findByIds(@Param("ids") List<Long> ids);
+
+    /**
      * 查询所有题目
      */
     @Select("SELECT * FROM questions")

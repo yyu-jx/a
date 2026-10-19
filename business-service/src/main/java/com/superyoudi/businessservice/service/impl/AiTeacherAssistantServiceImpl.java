@@ -14,6 +14,7 @@ import com.superyoudi.aiservice.service.ChatPersistenceService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
 import com.superyoudi.businessservice.mapper.StudentCourseProgressMapper;
 import com.superyoudi.businessservice.mapper.UserMapper;
+import com.superyoudi.businessservice.mq.TaskCorrectionMqProducer;
 import com.superyoudi.businessservice.pojo.dto.AgentTaskResultDTO;
 import com.superyoudi.businessservice.pojo.dto.StudentStudyOverview;
 import com.superyoudi.businessservice.pojo.entity.*;
@@ -24,11 +25,7 @@ import com.superyoudi.businessservice.service.TeacherCourseAnalysisService;
 import com.superyoudi.businessservice.websocket.AgentTaskResultMessageEndpoint;
 import com.superyoudi.common.constants.AgentConstants;
 import com.superyoudi.common.dto.ChatHistoryDTO;
-import com.superyoudi.common.dto.CoursewareGenerationRequest;
 import com.superyoudi.common.dto.TaskArrangementRequest;
-import com.superyoudi.coursewareservice.pojo.entity.CoursewareRecord;
-import com.superyoudi.coursewareservice.service.CoursewareInteractionService;
-import com.superyoudi.coursewareservice.service.CoursewareRecordService;
 import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -41,6 +38,7 @@ import reactor.core.publisher.Flux;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * @author Sijayyx
@@ -49,9 +47,8 @@ import java.util.Map;
 @Slf4j
 public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService {
 
-    private final CoursewareInteractionService coursewareInteractionService;
-    private final CoursewareRecordService coursewareRecordService;
     private final TaskService taskService;
+    private final TaskCorrectionMqProducer taskCorrectionMqProducer;
     private final CourseService courseService;
     private final UserMapper userMapper;
     private final StudentCourseProgressMapper studentCourseProgressMapper;
@@ -60,17 +57,14 @@ public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService 
     private final TaskAnalysisService taskAnalysisService;
     private final TeacherCourseAnalysisService teacherCourseAnalysisService;
 
-    public AiTeacherAssistantServiceImpl(CoursewareInteractionService coursewareInteractionService,
-                                         CoursewareRecordService coursewareRecordService,
-                                         TaskService taskService,
+    public AiTeacherAssistantServiceImpl(TaskService taskService,
                                          CourseService courseService,
                                          UserMapper userMapper,
                                          StudentCourseProgressMapper studentCourseProgressMapper,
                                          @Lazy AiTeacherAssistantAgent aiTeacherAssistantAgent,
-                                         ChatPersistenceService chatPersistenceService, TaskAnalysisService taskAnalysisService, TeacherCourseAnalysisService teacherCourseAnalysisService) {
-        this.coursewareInteractionService = coursewareInteractionService;
-        this.coursewareRecordService = coursewareRecordService;
+                                         ChatPersistenceService chatPersistenceService, TaskAnalysisService taskAnalysisService, TeacherCourseAnalysisService teacherCourseAnalysisService, TaskCorrectionMqProducer taskCorrectionMqProducer) {
         this.taskService = taskService;
+        this.taskCorrectionMqProducer = taskCorrectionMqProducer;
         this.courseService = courseService;
         this.userMapper = userMapper;
         this.studentCourseProgressMapper = studentCourseProgressMapper;
@@ -129,29 +123,22 @@ public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService 
     }
 
     @Override
-    public Long callCoursewareGeneration(long userId, CoursewareGenerationRequest request) {
-        // 新建一个coursewareRecord
-        Long newCoursewareRecordId = coursewareRecordService.insert(CoursewareRecord.builder().userId(userId).build());
-        CoursewareGenerationRequest.DTO dto = request.toDTO(newCoursewareRecordId);
-
-        // 发送消息到前端
-        notifyTaskCompletion(userId, dto, AgentTaskResultDTO.TYPE_COURSEWARE_GEN_REQUEST);
-
-        // 调用生成方法
-        coursewareInteractionService.callCoursewareGeneration(userId, newCoursewareRecordId, request);
-        // 返回coursewareRecordId
-        return newCoursewareRecordId;
-    }
-
-    @Override
     public void correctTask(long userId, long taskId) {
         List<StudentSubmission> submissions = taskService.getSubmissions(taskId);
-        for (StudentSubmission submission : submissions) {
-            taskService.executeSubmissionCorrection(submission, true);
+        if (submissions == null || submissions.isEmpty()) {
+            return;
         }
 
-        Task task = taskService.getTaskById(taskId);
-        notifyTaskCompletion(userId, task, AgentTaskResultDTO.TYPE_TASK);
+        // 生成本次批改的批次ID，用于消费端统计整批完成进度
+        String batchId = UUID.randomUUID().toString();
+        // 记录批次总数；消费端每完成一条 +1，全部完成后通过 WebSocket 通知教师
+        taskCorrectionMqProducer.initBatch(batchId, submissions.size());
+
+        // 逐条发送批改消息：每个提交独立成一条消息，由 RocketMQ 并发消费，互不影响
+        for (StudentSubmission submission : submissions) {
+            taskCorrectionMqProducer.sendCorrection(submission, userId, batchId, true);
+        }
+        // 注意：批改已改为异步执行，整批完成后由 TaskCorrectionConsumer 通过 WebSocket 通知教师
     }
 
     @Override
@@ -248,7 +235,7 @@ public class AiTeacherAssistantServiceImpl implements AiTeacherAssistantService 
 
     @Override
     public String getTaskAnalysis(@NonNull Long taskId) {
-        Task task = taskService.getCourseRelatedTasks(taskId).get(0);
+        Task task = taskService.getTaskById(taskId);
         TaskAnalysis taskAnalysis = taskAnalysisService.getTaskAnalysis(taskId);
         if (task == null || taskAnalysis == null)
             return "任务数据不存在";

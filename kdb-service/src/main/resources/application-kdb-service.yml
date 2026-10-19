@@ -3,7 +3,8 @@ spring:
     uri: bolt://localhost:7687
     authentication:
       username: neo4j
-      password: 12345678
+      # 密码通过环境变量注入，不要硬编码到配置文件
+      password: ${NEO4J_PASSWORD:}
   ai:
     vectorstore:
       neo4j:

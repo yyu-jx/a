@@ -24,7 +24,6 @@
     <modules>
         <module>common</module>
         <module>business-service</module>
-        <module>courseware-service</module>
         <module>ai-service</module>
         <module>kdb-service</module>
     </modules>

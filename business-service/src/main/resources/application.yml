@@ -3,18 +3,20 @@ spring:
     import:
       - optional:classpath:/application-ai-service.yml
       - optional:classpath:/application-kdb-service.yml
+      - optional:classpath:/application-mq.yml
   # MySQL 配置
   datasource:
     url: jdbc:mysql://localhost:3306/edu_ai
     username: root
-    password: 114514 # 不要提交这一行
+    # 密码通过环境变量注入，不要硬编码到配置文件
+    password: ${MYSQL_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-#redis和连接池 配置
+  # redis和连接池 配置
   data:
     redis:
       host: localhost
-      port: 16379 # 不要提交这一行
+      port: 6379
       database: 0
       timeout: 3000ms
       lettuce:

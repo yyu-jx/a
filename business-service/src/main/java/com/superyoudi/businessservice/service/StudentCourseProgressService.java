@@ -1,6 +1,7 @@
 package com.superyoudi.businessservice.service;
 
 import com.superyoudi.aiservice.mapper.LearningPathNodeMapper;
+import com.superyoudi.businessservice.cache.StudentProgressCacheService;
 import com.superyoudi.businessservice.mapper.*;
 import com.superyoudi.businessservice.pojo.entity.StudentCourseKey;
 import com.superyoudi.common.dto.StudentCourseProgress;
@@ -24,7 +25,7 @@ public class StudentCourseProgressService {
     private final StudentKnowledgeMasteryMapper studentKnowledgeMasteryMapper;
     private final SectionKnowledgeRelMapper sectionKnowledgeRelMapper;
     private final TaskMapper taskMapper;
-    private final StudentCourseProgressMapper studentCourseProgressMapper;
+    private final StudentProgressCacheService studentProgressCacheService;
 
 
     public int syncAll() {
@@ -73,7 +74,8 @@ public class StudentCourseProgressService {
         progress.setKnowledgeCoverRate(knowledgeCoverRate);
         progress.setTaskCompletionRate(taskCompletionRate);
 
-        studentCourseProgressMapper.upsert(progress);
+        // 方案A：写缓存 + 标记脏，由后台定时任务（ProgressFlushScheduledTask）批量异步回写 DB，而非同步 upsert
+        studentProgressCacheService.writeProgress(progress);
     }
 
     private Long valueOrZero(Long value) {

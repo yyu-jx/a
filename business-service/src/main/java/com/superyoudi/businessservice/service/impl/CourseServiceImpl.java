@@ -1,11 +1,14 @@
 package com.superyoudi.businessservice.service.impl;
 
+import ch.qos.logback.core.util.TimeUtil;
 import com.superyoudi.aiservice.ai.model.CourseDataGenerateModel;
 import com.superyoudi.aiservice.mapper.LearningPathMapper;
 import com.superyoudi.aiservice.pojo.entity.LearningPath;
 import com.superyoudi.aiservice.pojo.entity.LearningPathNode;
 import com.superyoudi.aiservice.service.LearningPathService;
 import com.superyoudi.aiservice.utils.AiMessageUtils;
+import com.superyoudi.businessservice.cache.CourseCacheService;
+import com.superyoudi.businessservice.cache.StudentProgressCacheService;
 import com.superyoudi.businessservice.mapper.*;
 import com.superyoudi.businessservice.pojo.dto.CourseDTO;
 import com.superyoudi.businessservice.pojo.dto.CourseOpeningDataDTO;
@@ -31,7 +34,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +48,7 @@ import java.util.stream.Collectors;
 public class CourseServiceImpl implements CourseService {
 
     private final CourseMapper courseMapper;
-    private final StudentCourseProgressMapper studentCourseProgressesMapper;
+    private final StudentProgressCacheService studentProgressCacheService;
     private final KnowledgePointService knowledgeHomeService;
     private final LearningPathMapper learningPathMapper;
     private final CourseDataGenerateModel courseDataGenerateModel;
@@ -57,6 +60,7 @@ public class CourseServiceImpl implements CourseService {
     private final TeacherCourseAnalysisMapper teacherCourseAnalysisMapper;
     private final CourseDataMapper courseDataMapper;
     private final UserMapper userMapper;
+    private final CourseCacheService courseCacheService;
 
     /**
      * 获取全部课程数据表
@@ -95,16 +99,9 @@ public class CourseServiceImpl implements CourseService {
      */
     @Override
     public CourseVO getCourseInfo(Long courseId) throws CourseNotExistException {
-        Course course = courseMapper.selectById(courseId);
-        if (course == null) {
-            // 抛出业务异常：课程不存在
-            throw new CourseNotExistException("课程不存在");
-        }
-
-        CourseVO vo = new CourseVO();
-        BeanUtils.copyProperties(course, vo);
-
-        return vo;
+        // 课程详情读取改为委托给 CourseCacheService：
+        // 空值缓存防穿透 + 逻辑过期防击穿（具体实现与注释见 CourseCacheService）
+        return courseCacheService.getCourseInfo(courseId);
     }
 
     @Override
@@ -137,15 +134,14 @@ public class CourseServiceImpl implements CourseService {
      */
     @Override
     public StudentCourseProgressVO getCourseProgress(Long courseId, Long studentId) {
-
-        List<Long> courseIdList = List.of(courseId);
-        List<StudentCourseProgress> progressList = studentCourseProgressesMapper.selectProgressByStudentAndCourseIds(studentId, courseIdList);
-        if (CollectionUtils.isEmpty(progressList)) {
+        // 学习进度读取改为委托给 StudentProgressCacheService（方案A：写缓存 + 异步回写 DB）
+        StudentCourseProgress progress = studentProgressCacheService.getProgress(studentId, courseId);
+        if (progress == null) {
             throw new CourseNotExistException("课程不存在");
         }
 
         StudentCourseProgressVO vo = new StudentCourseProgressVO();
-        BeanUtils.copyProperties(progressList.get(0), vo);
+        BeanUtils.copyProperties(progress, vo);
 
         return vo;
     }
